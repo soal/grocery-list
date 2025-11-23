@@ -3,9 +3,14 @@ module Db.Items exposing (..)
 import Dict exposing (Dict)
 
 
-type ItemState
+type ItemMarkedAs
     = InBasket
     | ToBuy
+
+
+type ItemState
+    = Stuffed
+    | Required
 
 
 type Quantity
@@ -19,6 +24,7 @@ type alias Item =
     , comment : Maybe String
     , slug : String
     , symbol : Maybe Char
+    , state : ItemState
     }
 
 
@@ -33,6 +39,7 @@ items =
                 (Just "лучше побольше")
                 "хлеб"
                 Nothing
+                Stuffed
           )
         , ( 2
           , Item
@@ -42,6 +49,7 @@ items =
                 Nothing
                 "бананы"
                 (Just '🍌')
+                Stuffed
           )
         , ( 3
           , Item
@@ -51,6 +59,7 @@ items =
                 (Just "Если большие и красивые")
                 "Яблоки"
                 (Just '🍏')
+                Stuffed
           )
         , ( 4
           , Item
@@ -65,6 +74,7 @@ items =
                 )
                 "томатный-соус"
                 Nothing
+                Stuffed
           )
         , ( 5
           , Item
@@ -74,5 +84,6 @@ items =
                 Nothing
                 "мясо"
                 Nothing
+                Stuffed
           )
         ]

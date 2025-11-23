@@ -2,32 +2,17 @@ module Pages.Items exposing (Model, Msg, page)
 
 import Components.Category.Body as CategoryBody
 import Components.Category.Header exposing (toggleCategory)
+import Components.Item.ListElement
 import Db.Categories exposing (Category, CollapsedState(..), categories)
 import Db.Items exposing (Item, Quantity(..), items)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
-import FeatherIcons as Icons
-import Html
-    exposing
-        ( Html
-        , a
-        , article
-        , b
-        , div
-        , h4
-        , i
-        , input
-        , label
-        , small
-        , span
-        , text
-        )
-import Html.Attributes exposing (class, name, type_)
+import Html exposing (Html, div)
+import Html.Attributes exposing (class)
 import Html.Keyed
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
-import Route.Path
 import Shared
 import View exposing (View)
 
@@ -73,6 +58,7 @@ init () =
 
 type Msg
     = CollapseClicked Int CollapsedState
+    | ItemChecked Int Bool
     | NoOp
 
 
@@ -85,6 +71,9 @@ update msg model =
               }
             , Effect.none
             )
+
+        ItemChecked id checked ->
+            ( model, Effect.none )
 
         NoOp ->
             ( model
@@ -157,42 +146,17 @@ viewItems allItems category =
         |> Html.Keyed.node "div" []
 
 
-viewItem : Item -> Html msg
+viewItem : Item -> Html Msg
 viewItem item =
-    article [ class "grocery-item" ]
-        [ div []
-            [ label []
-                [ input
-                    [ type_ "checkbox"
-                    , name "to-buy"
-                    , class "contrast"
-                    ]
-                    []
-                , h4 []
-                    [ span [] [ text item.name ]
-                    , span []
-                        [ Maybe.withDefault ' ' item.symbol
-                            |> String.fromChar
-                            |> text
-                        ]
-                    ]
-                ]
-            , span [ class "item-quantity" ] (viewQuantity item.quantity)
-            ]
-        , div []
-            [ i [ class "item-comment" ]
-                [ text (Maybe.withDefault "" item.comment) ]
-            , a
-                [ Route.Path.href
-                    (Route.Path.Items_Item_ { item = item.slug })
-                ]
-                [ Icons.chevronRight |> Icons.toHtml [] ]
-            ]
-        ]
+    Components.Item.ListElement.new { item = item }
+        |> Components.Item.ListElement.withLink
+        |> Components.Item.ListElement.view
+        |> Html.map
+            (\msg ->
+                case msg of
+                    Components.Item.ListElement.ItemChecked id check ->
+                        ItemChecked id check
 
-
-viewQuantity : Quantity -> List (Html msg)
-viewQuantity (Quantity quantity unit) =
-    [ b [] [ text (String.fromInt quantity) ]
-    , small [] [ text unit ]
-    ]
+                    _ ->
+                        NoOp
+            )

@@ -3,27 +3,13 @@ module Pages.InStore exposing (Model, Msg, page)
 import Components.Category.Body as CategoryBody
 import Components.Category.Header exposing (toggleCategory)
 import Components.Counter
+import Components.Item.ListElement
 import Db.Categories exposing (Category, CollapsedState(..), categories)
-import Db.Items exposing (Item, ItemState(..), Quantity(..), items)
+import Db.Items exposing (Item, ItemMarkedAs(..), Quantity(..), items)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
-import Html
-    exposing
-        ( Html
-        , article
-        , b
-        , button
-        , div
-        , h4
-        , i
-        , input
-        , label
-        , small
-        , span
-        , text
-        )
-import Html.Attributes exposing (checked, class, classList, name, type_)
-import Html.Events exposing (onClick)
+import Html exposing (Html, button, div, text)
+import Html.Attributes exposing (class, classList)
 import Html.Keyed
 import Layouts
 import Page exposing (Page)
@@ -52,7 +38,7 @@ toLayout _ =
 -- INIT
 
 
-toggleItemState : ItemState -> ItemState
+toggleItemState : ItemMarkedAs -> ItemMarkedAs
 toggleItemState state =
     if state == InBasket then
         ToBuy
@@ -62,13 +48,13 @@ toggleItemState state =
 
 
 type ItemView
-    = ItemView Item ItemState
+    = ItemView Item ItemMarkedAs
 
 
 type alias Model =
     { categories : List Category
     , items : Dict Int Item
-    , itemStates : Dict Int ItemState
+    , itemStates : Dict Int ItemMarkedAs
     }
 
 
@@ -163,7 +149,7 @@ view model =
 
 viewCategory :
     Dict Int Item
-    -> Dict Int ItemState
+    -> Dict Int ItemMarkedAs
     -> Category
     -> ( String, Html Msg )
 viewCategory allItems itemStates category =
@@ -177,12 +163,12 @@ viewCategory allItems itemStates category =
     )
 
 
-isAllDone : Dict Int ItemState -> Bool
+isAllDone : Dict Int ItemMarkedAs -> Bool
 isAllDone itemStates =
     getInBasketLength itemStates >= List.length (Dict.values itemStates)
 
 
-viewCatHeader : Dict Int ItemState -> Category -> Html Msg
+viewCatHeader : Dict Int ItemMarkedAs -> Category -> Html Msg
 viewCatHeader itemStates category =
     Components.Category.Header.new { category = category }
         |> Components.Category.Header.withCounter itemStates
@@ -195,10 +181,11 @@ viewCatHeader itemStates category =
             )
 
 
-viewItems : Dict Int Item -> Dict Int ItemState -> Category -> Html Msg
+viewItems : Dict Int Item -> Dict Int ItemMarkedAs -> Category -> Html Msg
 viewItems allItems itemStates category =
     ( allItems, category )
         |> getCatItems
+        -- |> List.filter (\id item -> item.state == ToBuy)
         |> List.map
             (\( id, item ) ->
                 ( id
@@ -216,62 +203,28 @@ getCatItems ( allItems, category ) =
 
 
 viewItem : ItemView -> Html Msg
-viewItem (ItemView item state) =
-    article
-        [ class "grocery-item"
-        , classList [ ( "in-basket", state == InBasket ) ]
-        , onClick (ItemClicked item.id)
-        ]
-        [ div []
-            [ label []
-                [ input
-                    [ type_ "checkbox"
-                    , name "to-buy"
-                    , class "contrast"
-                    , checked (itemStateToBool state)
-                    ]
-                    []
-                , h4 []
-                    [ span [] [ text item.name ]
-                    , span []
-                        [ text <|
-                            String.fromChar <|
-                                Maybe.withDefault ' ' item.symbol
-                        ]
-                    ]
-                ]
-            , span [ class "item-quantity" ] (viewQuantity item.quantity)
-            ]
-        , div []
-            [ i [ class "item-comment" ]
-                [ text (Maybe.withDefault "" item.comment) ]
-            ]
-        ]
+viewItem (ItemView item markedAs) =
+    Components.Item.ListElement.new { item = item }
+        |> Components.Item.ListElement.withMark markedAs
+        |> Components.Item.ListElement.view
+        |> Html.map
+            (\msg ->
+                case msg of
+                    Components.Item.ListElement.ItemClicked id ->
+                        ItemClicked id
+
+                    _ ->
+                        NoOp
+            )
 
 
-getItemState : Dict Int ItemState -> Int -> ItemState
+getItemState : Dict Int ItemMarkedAs -> Int -> ItemMarkedAs
 getItemState itemStates itemId =
     Maybe.withDefault ToBuy (Dict.get itemId itemStates)
 
 
-getInBasketLength : Dict Int ItemState -> Int
+getInBasketLength : Dict Int ItemMarkedAs -> Int
 getInBasketLength itemStates =
     Dict.values itemStates
         |> List.filter (\v -> v == InBasket)
         |> List.length
-
-
-itemStateToBool : ItemState -> Bool
-itemStateToBool state =
-    if state == InBasket then
-        True
-
-    else
-        False
-
-
-viewQuantity : Quantity -> List (Html msg)
-viewQuantity (Quantity quantity unit) =
-    [ b [] [ text (String.fromInt quantity) ]
-    , small [] [ text unit ]
-    ]

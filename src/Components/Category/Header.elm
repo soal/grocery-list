@@ -10,7 +10,7 @@ module Components.Category.Header exposing
 
 import Components.Counter
 import Db.Categories exposing (Category, CollapsedState(..))
-import Db.Items exposing (ItemState(..))
+import Db.Items exposing (ItemMarkedAs(..))
 import Dict exposing (Dict)
 import FeatherIcons as Icons
 import Html exposing (Html, h3, span, text)
@@ -20,7 +20,7 @@ import Html.Events exposing (onClick)
 
 type CategoryHeader
     = Settings
-        { itemStates : Maybe (Dict Int ItemState)
+        { itemStates : Maybe (Dict Int ItemMarkedAs)
         , category : Category
         , counter : Bool
         }
@@ -35,7 +35,7 @@ new props =
         }
 
 
-withCounter : Dict Int ItemState -> CategoryHeader -> CategoryHeader
+withCounter : Dict Int ItemMarkedAs -> CategoryHeader -> CategoryHeader
 withCounter itemStates (Settings settings) =
     Settings { settings | counter = True, itemStates = Just itemStates }
 
@@ -91,7 +91,7 @@ view (Settings settings) =
 
 
 viewOptionalCounter :
-    Maybe (Dict Int ItemState)
+    Maybe (Dict Int ItemMarkedAs)
     -> List Int
     -> Bool
     -> List (Html msg)
