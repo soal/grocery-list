@@ -1,0 +1,244 @@
+html {
+  font-size: 15px;
+}
+
+/* :root { */
+/* --pico-form-element-spacing-vertical: 0.5rem; */
+/* --pico-form-element-spacing-horizontal: 0.665rem; */
+/* } */
+
+button {
+  .button-body {
+    display: flex;
+    column-gap: 0.4em;
+  }
+}
+
+.nav-header {
+  @media screen and (width < 451px) {
+    display: none;
+  }
+
+  @media screen and (width > 450px) {
+    display: block;
+  }
+}
+
+.nav-footer {
+  background-color: var(--pico-background-color);
+  box-shadow: var(--pico-box-shadow);
+  position: fixed;
+  bottom: 0;
+
+  @media screen and (width < 451px) {
+    display: block;
+  }
+
+  @media screen and (width > 450px) {
+    display: none;
+  }
+}
+
+
+.app-main {
+  @media screen and (width < 451px) {
+    margin-bottom: 100px;
+  }
+
+  @media screen and (width > 450px) {
+    margin-bottom: 0;
+  }
+}
+
+.main-nav {
+  .link {
+    color: var(--pico-secondary);
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    column-gap: 0.4em;
+
+    &.active {
+      color: white;
+      background-color: var(--pico-primary-background);
+      text-decoration: none;
+
+      &:hover,
+      &:focus,
+      &:active {
+        text-decoration: none;
+      }
+
+    }
+  }
+}
+
+.grocery-category {
+  margin-bottom: calc(1.5 * var(--pico-form-element-spacing-horizontal));
+
+  & h3 {
+    display: flex;
+    column-gap: calc(var(--pico-block-spacing-horizontal) / 3);
+    align-items: baseline;
+
+    .counter {
+      /* font-weight: normal; */
+      font-size: 0.65em;
+      padding-left: 0.2em;
+
+      &.all-done {
+        color: var(--pico-ins-color);
+      }
+    }
+  }
+
+  .chevron {
+    flex-grow: 1;
+
+    &:hover {
+      color: var(--pico-primary);
+    }
+  }
+
+  .category-body {
+    height: auto;
+
+    &.collapsed {
+      height: 0;
+      overflow: hidden;
+    }
+  }
+}
+
+.grocery-item {
+  --base-size: 1.25rem;
+
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  &.in-basket {
+    @media (prefers-color-scheme: dark) {
+      background-color: rgba(39, 153, 119, 0.1);
+      opacity: 0.6;
+    }
+
+    @media (prefers-color-scheme: light) {
+      background-color: rgba(39, 153, 119, 0.05);
+      opacity: 0.7;
+    }
+  }
+
+  >div {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+
+    &:last-child {
+      flex-grow: 1;
+    }
+  }
+
+  & label {
+    margin-bottom: 0;
+  }
+
+  &.to-buy {
+    border: 1px var(--pico-form-element-active-border-color) solid;
+  }
+
+  & label {
+    display: flex;
+    font-size: var(--base-size);
+
+    & input[type=checkbox] {
+      font-size: var(--base-size);
+    }
+
+    & span {
+      line-height: 1em;
+    }
+
+    & h4 {
+      line-height: 1em;
+      display: flex;
+      flex-wrap: nowrap;
+      margin: 0;
+    }
+  }
+
+  .item-quantity {
+    align-items: baseline;
+    display: flex;
+    text-align: center;
+    column-gap: 0.25em;
+  }
+
+  & a {
+    margin-left: auto;
+    color: var(--pico-secondary);
+
+    &:hover {
+      color: var(--pico-primary);
+    }
+
+    & svg {
+      width: calc(var(--base-size) * 1.5);
+      height: calc(var(--base-size) * 1.5);
+    }
+  }
+
+  .item-comment {
+    display: flex;
+    align-items: start;
+
+    & svg {
+      flex-shrink: 0;
+    }
+  }
+}
+
+.add-item-button {
+  border-radius: var(--pico-border-radius);
+  border-style: dashed;
+  /* border-color: var(--pico-primary-hover); */
+  border-color: transparent;
+  border-width: 1px;
+  color: var(--pico-secondary);
+  display: flex;
+  /* justify-content: center; */
+  padding-block: calc(var(--pico-block-spacing-vertical) / 2);
+  padding-inline: var(--pico-block-spacing-vertical);
+
+  & svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  &:hover {
+    border-color: var(--pico-primary-border);
+    color: var(--pico-primary);
+    cursor: pointer;
+    transition: color 0.25s ease-in-out, border-color 0.25s ease-in-out;
+  }
+}
+
+/* .chevron { */
+/* cursor: pointer; */
+/* } */
+
+.end-shopping-button {
+  display: block;
+  margin-inline: auto;
+
+  &.all-done {
+    background-color: var(--pico-form-element-valid-focus-color);
+    border-color: var(--pico-form-element-valid-active-border-color);
+  }
+
+  & .counter {
+    padding-right: 0.5em;
+    font-weight: bold;
+  }
+}
