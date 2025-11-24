@@ -10,9 +10,8 @@ module Components.Category.Header exposing
 
 import Components.Counter
 import Db.Categories exposing (Category, CollapsedState(..))
-import Db.Items exposing (ItemMarkedAs(..))
+import Db.Items exposing (Item, ItemState(..))
 import Dict exposing (Dict)
-import Effect
 import FeatherIcons as Icons
 import Html exposing (Html, h3, span, text)
 import Html.Attributes exposing (..)
@@ -21,24 +20,24 @@ import Html.Events exposing (onClick)
 
 type CategoryHeader
     = Settings
-        { itemStates : Maybe (Dict Int ItemMarkedAs)
-        , category : Category
+        { category : Category
+        , items : Dict String Item
         , counter : Bool
         }
 
 
-new : { category : Category } -> CategoryHeader
+new : { category : Category, items : Dict String Item } -> CategoryHeader
 new props =
     Settings
-        { itemStates = Nothing
-        , category = props.category
+        { category = props.category
+        , items = props.items
         , counter = False
         }
 
 
-withCounter : Dict Int ItemMarkedAs -> CategoryHeader -> CategoryHeader
-withCounter itemStates (Settings settings) =
-    Settings { settings | counter = True, itemStates = Just itemStates }
+withCounter : CategoryHeader -> CategoryHeader
+withCounter (Settings settings) =
+    Settings { settings | counter = True }
 
 
 type alias Model =
@@ -84,25 +83,24 @@ view (Settings settings) =
     in
     h3 []
         (title
-            :: viewOptionalCounter settings.itemStates
+            :: viewOptionalCounter settings.items
                 settings.category.items
                 settings.counter
             ++ [ chevron ]
         )
 
 
-viewOptionalCounter :
-    Maybe (Dict Int ItemMarkedAs)
-    -> List Int
-    -> Bool
-    -> List (Html msg)
-viewOptionalCounter itemStates catItems counter =
-    case ( counter, itemStates ) of
-        ( True, Just states ) ->
-            [ Components.Counter.view states catItems InBasket ]
+viewOptionalCounter : Dict String Item -> List Int -> Bool -> List (Html msg)
+viewOptionalCounter items catItems counter =
+    if counter == True then
+        [ Components.Counter.view
+            (Dict.map (\_ item -> item.state) items)
+            (List.map String.fromInt catItems)
+            InBasket
+        ]
 
-        ( _, _ ) ->
-            []
+    else
+        []
 
 
 toggleCategory : List Category -> Int -> CollapsedState -> List Category

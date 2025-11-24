@@ -5,12 +5,12 @@ import Html exposing (Html, span, text)
 import Html.Attributes exposing (class, classList)
 
 
-view : Dict Int stateT -> List Int -> stateT -> Html msg
-view states listOfIds state =
+view : Dict String stateT -> List String -> stateT -> Html msg
+view items listOfIds state =
     let
         inAskedState =
             listOfIds
-                |> List.filter (\id -> Dict.get id states == Just state)
+                |> List.filter (\id -> Dict.get id items == Just state)
                 |> List.length
 
         total =

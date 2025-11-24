@@ -2,13 +2,13 @@ module Pages.Items exposing (Model, Msg, page)
 
 import Components.Category.Body as CategoryBody
 import Components.Category.Header exposing (toggleCategory)
-import Components.Item.ListElement exposing (updItemState)
-import Db.Categories exposing (Category, CollapsedState(..), categories)
-import Db.Items exposing (Item, ItemState(..), Quantity(..), items)
+import Components.Item.ListElement
+import Db.Categories exposing (Category, CollapsedState(..))
+import Db.Items exposing (Item, ItemState(..), Quantity(..))
 import Dict exposing (Dict)
 import Effect exposing (CatsAndItems, Effect)
 import Html exposing (Html, div)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (checked, class)
 import Html.Keyed
 import Layouts
 import Page exposing (Page)
@@ -19,12 +19,12 @@ import View exposing (View)
 
 
 page : Shared.Model -> Route () -> Page Model Msg
-page _ _ =
+page shared _ =
     Page.new
         { init = init
         , update = update
         , subscriptions = subscriptions
-        , view = view
+        , view = view shared
         }
         |> Page.withLayout toLayout
 
@@ -39,16 +39,12 @@ toLayout _ =
 
 
 type alias Model =
-    { categories : List Category
-    , items : Dict Int Item
-    }
+    { collapsedCatMap : Dict String CollapsedState }
 
 
 init : () -> ( Model, Effect Msg )
 init () =
-    ( { categories = categories
-      , items = items
-      }
+    ( { collapsedCatMap = Dict.empty }
     , Effect.queryAll GotCatsAndItems
     )
 
@@ -68,15 +64,24 @@ update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         CollapseClicked id state ->
-            ( { model
-                | categories = toggleCategory model.categories id state
-              }
-            , Effect.none
-            )
+            -- ( { model
+            --     | categories = toggleCategory model.categories id state
+            --   }
+            -- , Effect.none
+            -- )
+            ( model, Effect.none )
 
         ItemChecked id checked ->
-            ( { model | items = updItemState model.items id checked }
-            , Effect.none
+            let
+                newState =
+                    if checked == True then
+                        Required
+
+                    else
+                        Stuffed
+            in
+            ( model
+            , Effect.updateItemState id newState
             )
 
         GotCatsAndItems result ->
@@ -106,24 +111,24 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> View Msg
-view model =
+view : Shared.Model -> Model -> View Msg
+view shared model =
     { title = "Всё сразу"
     , body =
         [ Html.Keyed.node "div" [] <|
-            List.map (viewCategory model.items) model.categories
+            List.map (viewCategory shared.items) shared.categories
         ]
     }
 
 
 viewCategory :
-    Dict Int Item
+    Dict String Item
     -> Category
     -> ( String, Html Msg )
 viewCategory allItems category =
     ( String.fromInt category.id
     , div [ class "grocery-category" ]
-        [ viewCatHeader category
+        [ viewCatHeader category allItems
         , CategoryBody.view
             category.state
             (viewItems allItems category)
@@ -131,9 +136,9 @@ viewCategory allItems category =
     )
 
 
-viewCatHeader : Category -> Html Msg
-viewCatHeader category =
-    Components.Category.Header.new { category = category }
+viewCatHeader : Category -> Dict String Item -> Html Msg
+viewCatHeader category items =
+    Components.Category.Header.new { category = category, items = items }
         |> Components.Category.Header.view
         |> Html.map
             (\msg ->
@@ -143,14 +148,14 @@ viewCatHeader category =
             )
 
 
-getCatItems : ( Dict Int Item, Category ) -> List ( String, Item )
+getCatItems : ( Dict String Item, Category ) -> List ( String, Item )
 getCatItems ( allItems, category ) =
-    List.map (\id -> Dict.get id allItems) category.items
+    List.map (\id -> Dict.get (String.fromInt id) allItems) category.items
         |> List.filterMap identity
         |> List.map (\item -> ( String.fromInt item.id, item ))
 
 
-viewItems : Dict Int Item -> Category -> Html Msg
+viewItems : Dict String Item -> Category -> Html Msg
 viewItems allItems category =
     ( allItems, category )
         |> getCatItems
@@ -160,7 +165,8 @@ viewItems allItems category =
 
 viewItem : Item -> Html Msg
 viewItem item =
-    Components.Item.ListElement.new { item = item }
+    Components.Item.ListElement.new
+        { item = item, checkedSates = [ Required, InBasket ] }
         |> Components.Item.ListElement.withLink
         |> Components.Item.ListElement.view
         |> Html.map

@@ -2,14 +2,12 @@ module Components.Item.ListElement exposing
     ( ItemListElement
     , Msg(..)
     , new
-    , updItemState
     , view
     , withLink
     , withMark
     )
 
-import Db.Items exposing (Item, ItemMarkedAs(..), ItemState(..), Quantity(..))
-import Dict exposing (Dict)
+import Db.Items exposing (Item, ItemState(..), Quantity(..))
 import FeatherIcons as Icons
 import Html
     exposing
@@ -34,23 +32,20 @@ import Route.Path
 type ItemListElement
     = Settings
         { item : Item
-        , markedAs : Maybe ItemMarkedAs
         , link : Bool
+        , checkedSates : List ItemState
+        , mark : Bool
         }
 
 
-new : { item : Item } -> ItemListElement
+new : { item : Item, checkedSates : List ItemState } -> ItemListElement
 new props =
     Settings
         { item = props.item
-        , markedAs = Nothing
         , link = False
+        , mark = False
+        , checkedSates = props.checkedSates
         }
-
-
-withMark : ItemMarkedAs -> ItemListElement -> ItemListElement
-withMark markedAs (Settings settings) =
-    Settings { settings | markedAs = Just markedAs }
 
 
 withLink : ItemListElement -> ItemListElement
@@ -58,8 +53,13 @@ withLink (Settings settings) =
     Settings { settings | link = True }
 
 
+withMark : ItemListElement -> ItemListElement
+withMark (Settings settings) =
+    Settings { settings | mark = True }
+
+
 type Msg
-    = ItemClicked Int
+    = ItemClicked Int ItemState
     | ItemChecked Int Bool
 
 
@@ -77,11 +77,14 @@ view (Settings settings) =
 
             else
                 []
+
+        checkMark =
+            settings.mark && settings.item.state == InBasket
     in
     article
         [ class "grocery-item"
-        , classList [ ( "in-basket", settings.markedAs == Just InBasket ) ]
-        , onClick (ItemClicked settings.item.id)
+        , classList [ ( "in-basket", checkMark ) ]
+        , onClick (ItemClicked settings.item.id settings.item.state)
         ]
         [ div []
             [ label []
@@ -89,7 +92,11 @@ view (Settings settings) =
                     [ type_ "checkbox"
                     , name "to-buy"
                     , class "contrast"
-                    , checked (itemStateToBool settings.item.state)
+                    , checked
+                        (itemStateToBool
+                            settings.item.state
+                            settings.checkedSates
+                        )
                     , onCheck (ItemChecked settings.item.id)
                     ]
                     []
@@ -117,34 +124,6 @@ viewQuantity (Quantity quantity unit) =
     ]
 
 
-itemMarkedToBool : ItemMarkedAs -> Bool
-itemMarkedToBool state =
-    if state == InBasket then
-        True
-
-    else
-        False
-
-
-itemStateToBool : ItemState -> Bool
-itemStateToBool state =
-    if state == Required then
-        True
-
-    else
-        False
-
-
-updItemState : Dict Int Item -> Int -> Bool -> Dict Int Item
-updItemState items id checked =
-    let
-        newState =
-            if checked == True then
-                Required
-
-            else
-                Stuffed
-    in
-    Dict.update id
-        (Maybe.map (\found -> { found | state = newState }))
-        items
+itemStateToBool : ItemState -> List ItemState -> Bool
+itemStateToBool state checkedSates =
+    List.member state checkedSates

@@ -21,7 +21,7 @@ type alias DbConfig =
 
 type alias InitData =
     { settings : AppSettings
-    , items : Dict Int Item
+    , items : Dict String Item
     , categories : List Category
     }
 
@@ -29,4 +29,6 @@ type alias InitData =
 type alias Model =
     { settings : AppSettings
     , dbConfig : DbConfig
+    , items : Dict String Item
+    , categories : List Category
     }

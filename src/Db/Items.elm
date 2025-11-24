@@ -1,18 +1,14 @@
 module Db.Items exposing (..)
 
 import Dict exposing (Dict)
-import Json.Decode as D exposing (decodeValue)
+import Json.Decode as D
 import Time
-
-
-type ItemMarkedAs
-    = InBasket
-    | ToBuy
 
 
 type ItemState
     = Stuffed
     | Required
+    | InBasket
 
 
 stringToItemState : String -> ItemState
@@ -23,6 +19,9 @@ stringToItemState stateStr =
 
         "required" ->
             Required
+
+        "in-basket" ->
+            InBasket
 
         _ ->
             Stuffed
@@ -72,10 +71,17 @@ itemDec =
             )
 
 
-items : Dict Int Item
+updateItemState : Dict String Item -> Int -> ItemState -> Dict String Item
+updateItemState allItems id state =
+    Dict.update (String.fromInt id)
+        (Maybe.map (\found -> { found | state = state }))
+        allItems
+
+
+items : Dict String Item
 items =
     Dict.fromList
-        [ ( 1
+        [ ( "1"
           , Item
                 1
                 "Хлеб"
@@ -87,7 +93,7 @@ items =
                 (Time.millisToPosix 10)
                 (Time.millisToPosix 10)
           )
-        , ( 2
+        , ( "2"
           , Item
                 2
                 "Бананы"
@@ -99,7 +105,7 @@ items =
                 (Time.millisToPosix 10)
                 (Time.millisToPosix 10)
           )
-        , ( 3
+        , ( "3"
           , Item
                 3
                 "Яблоки"
@@ -111,7 +117,7 @@ items =
                 (Time.millisToPosix 10)
                 (Time.millisToPosix 10)
           )
-        , ( 4
+        , ( "4"
           , Item
                 4
                 "Томатный соус"
@@ -128,7 +134,7 @@ items =
                 (Time.millisToPosix 10)
                 (Time.millisToPosix 10)
           )
-        , ( 5
+        , ( "5"
           , Item
                 5
                 "Какое-нибудь мясо"

@@ -4,12 +4,12 @@ import Components.Category.Body as CategoryBody
 import Components.Category.Header exposing (toggleCategory)
 import Components.Counter
 import Components.Item.ListElement
-import Db.Categories exposing (Category, CollapsedState(..), categories)
-import Db.Items exposing (Item, ItemMarkedAs(..), Quantity(..), items)
+import Db.Categories exposing (Category, CollapsedState(..))
+import Db.Items exposing (Item, ItemState(..), Quantity(..), updateItemState)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, button, div, text)
-import Html.Attributes exposing (class, classList)
+import Html.Attributes exposing (checked, class, classList)
 import Html.Keyed
 import Layouts
 import Page exposing (Page)
@@ -19,12 +19,12 @@ import View exposing (View)
 
 
 page : Shared.Model -> Route () -> Page Model Msg
-page _ _ =
+page shared _ =
     Page.new
         { init = init
         , update = update
         , subscriptions = subscriptions
-        , view = view
+        , view = view shared
         }
         |> Page.withLayout toLayout
 
@@ -38,35 +38,14 @@ toLayout _ =
 -- INIT
 
 
-toggleItemState : ItemMarkedAs -> ItemMarkedAs
-toggleItemState state =
-    if state == InBasket then
-        ToBuy
-
-    else
-        InBasket
-
-
-type ItemView
-    = ItemView Item ItemMarkedAs
-
-
 type alias Model =
-    { categories : List Category
-    , items : Dict Int Item
-    , itemStates : Dict Int ItemMarkedAs
+    { collapsedCatMap : Dict String CollapsedState
     }
 
 
 init : () -> ( Model, Effect Msg )
 init () =
-    ( { categories = categories
-      , items = items
-      , itemStates =
-            Dict.keys items
-                |> List.map (\id -> ( id, ToBuy ))
-                |> Dict.fromList
-      }
+    ( { collapsedCatMap = Dict.empty }
     , Effect.none
     )
 
@@ -77,7 +56,7 @@ init () =
 
 type Msg
     = CollapseClicked Int CollapsedState
-    | ItemClicked Int
+    | ItemClicked Int ItemState
     | NoOp
 
 
@@ -85,25 +64,16 @@ update : Msg -> Model -> ( Model, Effect msg )
 update msg model =
     case msg of
         CollapseClicked id state ->
-            ( { model
-                | categories = toggleCategory model.categories id state
-              }
-            , Effect.none
-            )
+            -- ( { model
+            --     | categories = toggleCategory model.categories id state
+            --   }
+            -- , Effect.none
+            -- )
+            ( model, Effect.none )
 
-        ItemClicked itemId ->
-            ( { model
-                | itemStates =
-                    Dict.update
-                        itemId
-                        (\_ ->
-                            getItemState model.itemStates itemId
-                                |> toggleItemState
-                                |> Just
-                        )
-                        model.itemStates
-              }
-            , Effect.none
+        ItemClicked id currentState ->
+            ( model
+            , Effect.updateItemState id (toggleItemState currentState)
             )
 
         NoOp ->
@@ -125,21 +95,21 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> View Msg
-view model =
+view : Shared.Model -> Model -> View Msg
+view shared model =
     { title = "В магазине"
     , body =
         [ Html.Keyed.node "div" [] <|
             List.map
-                (viewCategory model.items model.itemStates)
-                model.categories
+                (viewCategory shared.items)
+                shared.categories
         , button
             [ class "end-shopping-button"
-            , classList [ ( "all-done", isAllDone model.itemStates ) ]
+            , classList [ ( "all-done", isAllDone shared.items ) ]
             ]
             [ Components.Counter.view
-                model.itemStates
-                (Dict.keys model.items)
+                (Dict.map (\_ item -> item.state) shared.items)
+                (Dict.keys shared.items)
                 InBasket
             , text "Закончить покупки"
             ]
@@ -148,30 +118,29 @@ view model =
 
 
 viewCategory :
-    Dict Int Item
-    -> Dict Int ItemMarkedAs
+    Dict String Item
     -> Category
     -> ( String, Html Msg )
-viewCategory allItems itemStates category =
+viewCategory allItems category =
     ( String.fromInt category.id
     , div [ class "grocery-category" ]
-        [ viewCatHeader itemStates category
+        [ viewCatHeader allItems category
         , CategoryBody.view
             category.state
-            (viewItems allItems itemStates category)
+            (viewItems allItems category)
         ]
     )
 
 
-isAllDone : Dict Int ItemMarkedAs -> Bool
+isAllDone : Dict String Item -> Bool
 isAllDone itemStates =
     getInBasketLength itemStates >= List.length (Dict.values itemStates)
 
 
-viewCatHeader : Dict Int ItemMarkedAs -> Category -> Html Msg
-viewCatHeader itemStates category =
-    Components.Category.Header.new { category = category }
-        |> Components.Category.Header.withCounter itemStates
+viewCatHeader : Dict String Item -> Category -> Html Msg
+viewCatHeader items category =
+    Components.Category.Header.new { category = category, items = items }
+        |> Components.Category.Header.withCounter
         |> Components.Category.Header.view
         |> Html.map
             (\msg ->
@@ -181,50 +150,56 @@ viewCatHeader itemStates category =
             )
 
 
-viewItems : Dict Int Item -> Dict Int ItemMarkedAs -> Category -> Html Msg
-viewItems allItems itemStates category =
+viewItems : Dict String Item -> Category -> Html Msg
+viewItems allItems category =
     ( allItems, category )
         |> getCatItems
-        -- |> List.filter (\id item -> item.state == ToBuy)
+        |> List.filter
+            (\( _, item ) -> item.state /= Stuffed)
         |> List.map
-            (\( id, item ) ->
-                ( id
-                , viewItem <| ItemView item <| getItemState itemStates item.id
-                )
-            )
+            (\( id, item ) -> ( id, viewItem item ))
         |> Html.Keyed.node "div" []
 
 
-getCatItems : ( Dict Int Item, Category ) -> List ( String, Item )
+getCatItems : ( Dict String Item, Category ) -> List ( String, Item )
 getCatItems ( allItems, category ) =
-    List.map (\id -> Dict.get id allItems) category.items
+    List.map (\id -> Dict.get (String.fromInt id) allItems) category.items
         |> List.filterMap identity
         |> List.map (\item -> ( String.fromInt item.id, item ))
 
 
-viewItem : ItemView -> Html Msg
-viewItem (ItemView item markedAs) =
-    Components.Item.ListElement.new { item = item }
-        |> Components.Item.ListElement.withMark markedAs
+viewItem : Item -> Html Msg
+viewItem item =
+    Components.Item.ListElement.new
+        { item = item, checkedSates = [ InBasket ] }
+        |> Components.Item.ListElement.withMark
         |> Components.Item.ListElement.view
         |> Html.map
             (\msg ->
                 case msg of
-                    Components.Item.ListElement.ItemClicked id ->
-                        ItemClicked id
+                    Components.Item.ListElement.ItemClicked id currentState ->
+                        ItemClicked id currentState
 
                     _ ->
                         NoOp
             )
 
 
-getItemState : Dict Int ItemMarkedAs -> Int -> ItemMarkedAs
-getItemState itemStates itemId =
-    Maybe.withDefault ToBuy (Dict.get itemId itemStates)
-
-
-getInBasketLength : Dict Int ItemMarkedAs -> Int
-getInBasketLength itemStates =
-    Dict.values itemStates
-        |> List.filter (\v -> v == InBasket)
+getInBasketLength : Dict String Item -> Int
+getInBasketLength items =
+    Dict.values items
+        |> List.filter (\item -> item.state == InBasket)
         |> List.length
+
+
+toggleItemState : ItemState -> ItemState
+toggleItemState state =
+    case state of
+        InBasket ->
+            Required
+
+        Required ->
+            InBasket
+
+        Stuffed ->
+            Stuffed

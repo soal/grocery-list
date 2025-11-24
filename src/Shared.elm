@@ -12,8 +12,8 @@ module Shared exposing
 
 -}
 
-import Db.Categories exposing (Category)
-import Db.Items exposing (Item)
+import Db.Categories exposing (Category, categories)
+import Db.Items exposing (Item, items, updateItemState)
 import Db.Settings exposing (AppSettings, AppTheme(..), settingsDec)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
@@ -54,6 +54,8 @@ init flagsResult route =
             , version = 1
             , status = Shared.Model.DbInitial
             }
+      , items = items
+      , categories = categories
       }
     , Effect.initDb Shared.Msg.DbInitialized
     )
@@ -88,6 +90,11 @@ update route msg model =
                                 Shared.Model.DbError
                         )
               }
+            , Effect.none
+            )
+
+        Shared.Msg.ItemStateUpdated itemId state ->
+            ( { model | items = updateItemState model.items itemId state }
             , Effect.none
             )
 
