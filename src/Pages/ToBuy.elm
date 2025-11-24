@@ -10,7 +10,7 @@ import View exposing (View)
 
 
 page : Shared.Model -> Route () -> Page Model Msg
-page shared route =
+page _ _ =
     Page.new
         { init = init
         , update = update
@@ -21,7 +21,7 @@ page shared route =
 
 
 toLayout : Model -> Layouts.Layout Msg
-toLayout model =
+toLayout _ =
     Layouts.MainNav {}
 
 
@@ -62,7 +62,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -71,7 +71,7 @@ subscriptions model =
 
 
 view : Model -> View Msg
-view model =
+view _ =
     { title = "Pages.ToBuy"
     , body = [ Html.text "/to-buy" ]
     }

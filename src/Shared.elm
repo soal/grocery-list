@@ -12,15 +12,16 @@ module Shared exposing
 
 -}
 
-import Db.Categories exposing (Category, categories)
-import Db.Items exposing (Item, items, updateItemState)
+import Db.Categories exposing (CollapsedState(..), categories)
+import Db.Items exposing (items, updateItemState)
 import Db.Settings exposing (AppSettings, AppTheme(..), settingsDec)
-import Dict exposing (Dict)
+import Dict
 import Effect exposing (Effect)
-import Json.Decode as Dec
+import Json.Decode exposing (field, map)
 import Route exposing (Route)
-import Route.Path
-import Shared.Model exposing (DbConfig, DbStatus(..))
+import Route.Path exposing (toString)
+import Set
+import Shared.Model exposing (CollapsedCats, DbConfig, DbStatus(..))
 import Shared.Msg
 
 
@@ -32,10 +33,10 @@ type alias Flags =
     { settings : AppSettings }
 
 
-decoder : Dec.Decoder Flags
+decoder : Json.Decode.Decoder Flags
 decoder =
-    Dec.map Flags
-        (Dec.field "settings" settingsDec)
+    map Flags
+        (field "settings" settingsDec)
 
 
 
@@ -46,13 +47,22 @@ type alias Model =
     Shared.Model.Model
 
 
-init : Result Dec.Error Flags -> Route () -> ( Model, Effect Msg )
-init flagsResult route =
+init : Result Json.Decode.Error Flags -> Route () -> ( Model, Effect Msg )
+init _ route =
     ( { settings = { theme = Dark }
       , dbConfig =
             { name = "grocery-list"
             , version = 1
             , status = Shared.Model.DbInitial
+            }
+      , uiState =
+            { lastRoute = toString route.path
+            , collapsedCatsMap =
+                Dict.fromList
+                    [ ( "all", Set.empty )
+                    , ( "to-buy", Set.empty )
+                    , ( "in-store", Set.empty )
+                    ]
             }
       , items = items
       , categories = categories
@@ -70,7 +80,7 @@ type alias Msg =
 
 
 update : Route () -> Msg -> Model -> ( Model, Effect Msg )
-update route msg model =
+update _ msg model =
     case msg of
         Shared.Msg.NoOp ->
             ( model
@@ -98,10 +108,45 @@ update route msg model =
             , Effect.none
             )
 
+        Shared.Msg.CatCollapsedStateUpdate pagePath catId state ->
+            ( { model
+                | uiState =
+                    { lastRoute = model.uiState.lastRoute
+                    , collapsedCatsMap =
+                        updateCollapsedCats
+                            pagePath
+                            catId
+                            model.uiState.collapsedCatsMap
+                            state
+                    }
+              }
+            , Effect.none
+            )
+
 
 updateDbStatus : DbConfig -> DbStatus -> DbConfig
 updateDbStatus dbConfig status =
     { dbConfig | status = status }
+
+
+updateCollapsedCats :
+    String
+    -> Int
+    -> CollapsedCats
+    -> CollapsedState
+    -> CollapsedCats
+updateCollapsedCats pageName catId catsMap state =
+    Dict.update pageName
+        (Maybe.map
+            (\ids ->
+                if state == Open then
+                    Set.remove catId ids
+
+                else
+                    Set.insert catId ids
+            )
+        )
+        catsMap
 
 
 
@@ -109,5 +154,5 @@ updateDbStatus dbConfig status =
 
 
 subscriptions : Route () -> Model -> Sub Msg
-subscriptions route model =
+subscriptions _ _ =
     Sub.none

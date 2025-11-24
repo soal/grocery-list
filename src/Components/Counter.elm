@@ -6,15 +6,17 @@ import Html.Attributes exposing (class, classList)
 
 
 view : Dict String stateT -> List String -> stateT -> Html msg
-view items listOfIds state =
+view idsAndStates listOfIds desiredState =
     let
         inAskedState =
             listOfIds
-                |> List.filter (\id -> Dict.get id items == Just state)
+                |> List.filter (\id -> Dict.get id idsAndStates == Just desiredState)
                 |> List.length
 
         total =
-            List.length listOfIds
+            listOfIds
+                |> List.filter (\id -> Dict.member id idsAndStates)
+                |> List.length
     in
     span
         [ class "counter"

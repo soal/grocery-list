@@ -6,12 +6,11 @@ import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
-import Time
 import View exposing (View)
 
 
 page : Shared.Model -> Route { item : String } -> Page Model Msg
-page shared route =
+page _ _ =
     Page.new
         { init = init
         , update = update
@@ -22,7 +21,7 @@ page shared route =
 
 
 toLayout : Model -> Layouts.Layout Msg
-toLayout model =
+toLayout _ =
     Layouts.MainNav {}
 
 
@@ -30,29 +29,9 @@ toLayout model =
 -- INIT
 
 
-type ItemState
-    = Stuffed
-    | BuyNow
-    | BuyLater
-
-
 type alias Image =
     { url : String
     , alt : String
-    }
-
-
-type Quantity
-    = Quantity Int String
-
-
-type alias Item =
-    { id : Int
-    , name : String
-    , img : Maybe Image
-    , state : ItemState
-    , lastPurchase : Maybe Time.Posix
-    , quantity : Maybe Quantity
     }
 
 
@@ -89,7 +68,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -98,7 +77,7 @@ subscriptions model =
 
 
 view : Model -> View Msg
-view model =
+view _ =
     { title = "Pages.Items.Item_"
     , body = [ Html.text "/items/:item" ]
     }

@@ -3,18 +3,16 @@ module Pages.Settings exposing (Model, Msg, page)
 import Effect exposing (Effect)
 import Html exposing (button, div, h1, h2, input, text)
 import Html.Attributes exposing (type_)
-import Html.Events exposing (onClick)
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
 import Shared.Msg exposing (Msg(..))
-import TaskPort
 import View exposing (View)
 
 
 page : Shared.Model -> Route () -> Page Model Msg
-page shared route =
+page _ _ =
     Page.new
         { init = init
         , update = update
@@ -25,7 +23,7 @@ page shared route =
 
 
 toLayout : Model -> Layouts.Layout Msg
-toLayout model =
+toLayout _ =
     Layouts.MainNav {}
 
 
@@ -49,26 +47,12 @@ init () =
 
 
 type Msg
-    = OnCallRes (TaskPort.Result Bool)
-    | NoOp
+    = NoOp
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
-        OnCallRes res ->
-            case res of
-                Err _ ->
-                    ( model, Effect.none )
-
-                Ok value ->
-                    case Debug.log "VALUE!" value of
-                        True ->
-                            ( model, Effect.none )
-
-                        False ->
-                            ( model, Effect.none )
-
         NoOp ->
             ( model
             , Effect.none
@@ -80,7 +64,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -89,7 +73,7 @@ subscriptions model =
 
 
 view : Model -> View Msg
-view model =
+view _ =
     { title = "Настройки"
     , body =
         [ h1 [] [ text "Настройки" ]

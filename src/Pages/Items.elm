@@ -1,20 +1,17 @@
 module Pages.Items exposing (Model, Msg, page)
 
-import Components.Category.Body as CategoryBody
-import Components.Category.Header exposing (toggleCategory)
-import Components.Item.ListElement
-import Db.Categories exposing (Category, CollapsedState(..))
-import Db.Items exposing (Item, ItemState(..), Quantity(..))
+import Components.Item.List
+import Db.Categories exposing (CollapsedState(..))
+import Db.Items exposing (ItemState(..), Quantity(..))
 import Dict exposing (Dict)
-import Effect exposing (CatsAndItems, Effect)
-import Html exposing (Html, div)
-import Html.Attributes exposing (checked, class)
-import Html.Keyed
+import Effect exposing (Effect)
+import Html
+import Html.Attributes exposing (checked)
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
-import TaskPort
+import Utils exposing (getCollapsesCatsForPage)
 import View exposing (View)
 
 
@@ -44,8 +41,8 @@ type alias Model =
 
 init : () -> ( Model, Effect Msg )
 init () =
-    ( { collapsedCatMap = Dict.empty }
-    , Effect.queryAll GotCatsAndItems
+    ( { collapsedCatMap = Dict.fromList [ ( "1", Debug.log "ON INIT" Collapsed ) ] }
+    , Effect.none
     )
 
 
@@ -56,7 +53,6 @@ init () =
 type Msg
     = CollapseClicked Int CollapsedState
     | ItemChecked Int Bool
-    | GotCatsAndItems (TaskPort.Result CatsAndItems)
     | NoOp
 
 
@@ -64,12 +60,7 @@ update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         CollapseClicked id state ->
-            -- ( { model
-            --     | categories = toggleCategory model.categories id state
-            --   }
-            -- , Effect.none
-            -- )
-            ( model, Effect.none )
+            ( model, Effect.updateCatCollapsedState "all" id state )
 
         ItemChecked id checked ->
             let
@@ -83,14 +74,6 @@ update msg model =
             ( model
             , Effect.updateItemState id newState
             )
-
-        GotCatsAndItems result ->
-            case result of
-                Ok data ->
-                    ( model, Effect.none )
-
-                Err _ ->
-                    ( model, Effect.none )
 
         NoOp ->
             ( model
@@ -112,69 +95,30 @@ subscriptions _ =
 
 
 view : Shared.Model -> Model -> View Msg
-view shared model =
+view shared _ =
     { title = "Всё сразу"
     , body =
-        [ Html.Keyed.node "div" [] <|
-            List.map (viewCategory shared.items) shared.categories
+        [ Components.Item.List.new
+            { items = shared.items
+            , categories = shared.categories
+            , checkedSates = [ Required, InBasket ]
+            , collapsedCatIds =
+                getCollapsesCatsForPage "all" shared.uiState.collapsedCatsMap
+            , pageName = "all"
+            }
+            |> Components.Item.List.withLink
+            |> Components.Item.List.view
+            |> Html.map
+                (\msg ->
+                    case msg of
+                        Components.Item.List.CollapseClicked id state ->
+                            CollapseClicked id state
+
+                        Components.Item.List.ItemChecked id check ->
+                            ItemChecked id check
+
+                        _ ->
+                            NoOp
+                )
         ]
     }
-
-
-viewCategory :
-    Dict String Item
-    -> Category
-    -> ( String, Html Msg )
-viewCategory allItems category =
-    ( String.fromInt category.id
-    , div [ class "grocery-category" ]
-        [ viewCatHeader category allItems
-        , CategoryBody.view
-            category.state
-            (viewItems allItems category)
-        ]
-    )
-
-
-viewCatHeader : Category -> Dict String Item -> Html Msg
-viewCatHeader category items =
-    Components.Category.Header.new { category = category, items = items }
-        |> Components.Category.Header.view
-        |> Html.map
-            (\msg ->
-                case msg of
-                    Components.Category.Header.Toggle id state ->
-                        CollapseClicked id state
-            )
-
-
-getCatItems : ( Dict String Item, Category ) -> List ( String, Item )
-getCatItems ( allItems, category ) =
-    List.map (\id -> Dict.get (String.fromInt id) allItems) category.items
-        |> List.filterMap identity
-        |> List.map (\item -> ( String.fromInt item.id, item ))
-
-
-viewItems : Dict String Item -> Category -> Html Msg
-viewItems allItems category =
-    ( allItems, category )
-        |> getCatItems
-        |> List.map (\( id, item ) -> ( id, viewItem item ))
-        |> Html.Keyed.node "div" []
-
-
-viewItem : Item -> Html Msg
-viewItem item =
-    Components.Item.ListElement.new
-        { item = item, checkedSates = [ Required, InBasket ] }
-        |> Components.Item.ListElement.withLink
-        |> Components.Item.ListElement.view
-        |> Html.map
-            (\msg ->
-                case msg of
-                    Components.Item.ListElement.ItemChecked id check ->
-                        ItemChecked id check
-
-                    _ ->
-                        NoOp
-            )

@@ -1,6 +1,6 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
-import Html exposing (Html)
+import Html
 import Html.Attributes as Attrs
 import Page exposing (Page)
 import View exposing (View)
@@ -53,7 +53,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -62,7 +62,7 @@ subscriptions model =
 
 
 view : Model -> View Msg
-view model =
+view _ =
     { title = "Homepage"
     , body =
         [ Html.div [ Attrs.class "container" ] [ Html.text "Main" ]

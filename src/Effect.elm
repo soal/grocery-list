@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , CatsAndItems, initDb, queryAll, updateItemState
+    , CatsAndItems, initDb, queryAll, updateCatCollapsedState, updateItemState
     )
 
 {-|
@@ -25,12 +25,12 @@ module Effect exposing
 -}
 
 import Browser.Navigation
-import Db.Categories exposing (Category, categoryDec)
+import Db.Categories exposing (Category, CollapsedState, categoryDec)
 import Db.Items exposing (Item, ItemState(..), itemDec)
 import Dict exposing (Dict)
 import Json.Decode as D
 import Json.Encode as E
-import Route exposing (Route)
+import Route
 import Route.Path
 import Shared.Model
 import Shared.Msg
@@ -166,13 +166,21 @@ sendMsg msg =
 
 
 
--- ROUTING
 -- SHARED UPDATES
 
 
 updateItemState : Int -> ItemState -> Effect msg
 updateItemState itemId state =
     SendSharedMsg (Shared.Msg.ItemStateUpdated itemId state)
+
+
+updateCatCollapsedState : String -> Int -> CollapsedState -> Effect msg
+updateCatCollapsedState pagePath catId state =
+    SendSharedMsg (Shared.Msg.CatCollapsedStateUpdate pagePath catId state)
+
+
+
+-- ROUTING
 
 
 {-| Set the new route, and make the back button go back to the current route.
