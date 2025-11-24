@@ -1,11 +1,15 @@
 module Pages.Settings exposing (Model, Msg, page)
 
 import Effect exposing (Effect)
-import Html
+import Html exposing (button, div, h1, h2, input, text)
+import Html.Attributes exposing (type_)
+import Html.Events exposing (onClick)
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
+import Shared.Msg exposing (Msg(..))
+import TaskPort
 import View exposing (View)
 
 
@@ -45,12 +49,26 @@ init () =
 
 
 type Msg
-    = NoOp
+    = OnCallRes (TaskPort.Result Bool)
+    | NoOp
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
+        OnCallRes res ->
+            case res of
+                Err _ ->
+                    ( model, Effect.none )
+
+                Ok value ->
+                    case Debug.log "VALUE!" value of
+                        True ->
+                            ( model, Effect.none )
+
+                        False ->
+                            ( model, Effect.none )
+
         NoOp ->
             ( model
             , Effect.none
@@ -72,6 +90,15 @@ subscriptions model =
 
 view : Model -> View Msg
 view model =
-    { title = "Pages.Settings"
-    , body = [ Html.text "/settings" ]
+    { title = "Настройки"
+    , body =
+        [ h1 [] [ text "Настройки" ]
+        , div []
+            [ h2 [] [ text "Тема" ] ]
+        , div []
+            [ h2 [] [ text "Экспорт и импорт" ]
+            , button [] [ text "Экспорт данных" ]
+            , input [ type_ "file" ] [ text "Импорт из файла" ]
+            ]
+        ]
     }

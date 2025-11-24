@@ -2,11 +2,11 @@ module Pages.Items exposing (Model, Msg, page)
 
 import Components.Category.Body as CategoryBody
 import Components.Category.Header exposing (toggleCategory)
-import Components.Item.ListElement
+import Components.Item.ListElement exposing (updItemState)
 import Db.Categories exposing (Category, CollapsedState(..), categories)
-import Db.Items exposing (Item, Quantity(..), items)
+import Db.Items exposing (Item, ItemState(..), Quantity(..), items)
 import Dict exposing (Dict)
-import Effect exposing (Effect)
+import Effect exposing (CatsAndItems, Effect)
 import Html exposing (Html, div)
 import Html.Attributes exposing (class)
 import Html.Keyed
@@ -14,6 +14,7 @@ import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
+import TaskPort
 import View exposing (View)
 
 
@@ -48,7 +49,7 @@ init () =
     ( { categories = categories
       , items = items
       }
-    , Effect.none
+    , Effect.queryAll GotCatsAndItems
     )
 
 
@@ -59,6 +60,7 @@ init () =
 type Msg
     = CollapseClicked Int CollapsedState
     | ItemChecked Int Bool
+    | GotCatsAndItems (TaskPort.Result CatsAndItems)
     | NoOp
 
 
@@ -73,7 +75,17 @@ update msg model =
             )
 
         ItemChecked id checked ->
-            ( model, Effect.none )
+            ( { model | items = updItemState model.items id checked }
+            , Effect.none
+            )
+
+        GotCatsAndItems result ->
+            case result of
+                Ok data ->
+                    ( model, Effect.none )
+
+                Err _ ->
+                    ( model, Effect.none )
 
         NoOp ->
             ( model

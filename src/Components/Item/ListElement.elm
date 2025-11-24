@@ -2,12 +2,14 @@ module Components.Item.ListElement exposing
     ( ItemListElement
     , Msg(..)
     , new
+    , updItemState
     , view
     , withLink
     , withMark
     )
 
-import Db.Items exposing (Item, ItemMarkedAs(..), Quantity(..))
+import Db.Items exposing (Item, ItemMarkedAs(..), ItemState(..), Quantity(..))
+import Dict exposing (Dict)
 import FeatherIcons as Icons
 import Html
     exposing
@@ -87,19 +89,19 @@ view (Settings settings) =
                     [ type_ "checkbox"
                     , name "to-buy"
                     , class "contrast"
+                    , checked (itemStateToBool settings.item.state)
                     , onCheck (ItemChecked settings.item.id)
                     ]
                     []
                 , h4 []
                     [ span [] [ text settings.item.name ]
                     , span []
-                        [ Maybe.withDefault ' ' settings.item.symbol
-                            |> String.fromChar
-                            |> text
-                        ]
+                        [ text (Maybe.withDefault " " settings.item.symbol) ]
                     ]
                 ]
-            , span [ class "item-quantity" ] (viewQuantity settings.item.quantity)
+            , span
+                [ class "item-quantity" ]
+                (viewQuantity settings.item.quantity)
             ]
         , div [] <|
             i [ class "item-comment" ]
@@ -115,10 +117,34 @@ viewQuantity (Quantity quantity unit) =
     ]
 
 
-itemStateToBool : ItemMarkedAs -> Bool
-itemStateToBool state =
+itemMarkedToBool : ItemMarkedAs -> Bool
+itemMarkedToBool state =
     if state == InBasket then
         True
 
     else
         False
+
+
+itemStateToBool : ItemState -> Bool
+itemStateToBool state =
+    if state == Required then
+        True
+
+    else
+        False
+
+
+updItemState : Dict Int Item -> Int -> Bool -> Dict Int Item
+updItemState items id checked =
+    let
+        newState =
+            if checked == True then
+                Required
+
+            else
+                Stuffed
+    in
+    Dict.update id
+        (Maybe.map (\found -> { found | state = newState }))
+        items

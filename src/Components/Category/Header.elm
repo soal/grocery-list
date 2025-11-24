@@ -12,6 +12,7 @@ import Components.Counter
 import Db.Categories exposing (Category, CollapsedState(..))
 import Db.Items exposing (ItemMarkedAs(..))
 import Dict exposing (Dict)
+import Effect
 import FeatherIcons as Icons
 import Html exposing (Html, h3, span, text)
 import Html.Attributes exposing (..)

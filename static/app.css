@@ -101,11 +101,11 @@ button {
   }
 
   .category-body {
-    height: auto;
+    overflow: hidden;
+    max-height: max-content;
 
     &.collapsed {
-      height: 0;
-      overflow: hidden;
+      max-height: 0;
     }
   }
 }

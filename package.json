@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "dexie": "^4.2.1",
+    "elm-taskport": "^2.0.1"
+  }
+}

@@ -12,11 +12,15 @@ module Shared exposing
 
 -}
 
+import Db.Categories exposing (Category)
+import Db.Items exposing (Item)
+import Db.Settings exposing (AppSettings, AppTheme(..), settingsDec)
+import Dict exposing (Dict)
 import Effect exposing (Effect)
-import Json.Decode
+import Json.Decode as Dec
 import Route exposing (Route)
 import Route.Path
-import Shared.Model
+import Shared.Model exposing (DbConfig, DbStatus(..))
 import Shared.Msg
 
 
@@ -25,12 +29,13 @@ import Shared.Msg
 
 
 type alias Flags =
-    {}
+    { settings : AppSettings }
 
 
-decoder : Json.Decode.Decoder Flags
+decoder : Dec.Decoder Flags
 decoder =
-    Json.Decode.succeed {}
+    Dec.map Flags
+        (Dec.field "settings" settingsDec)
 
 
 
@@ -41,10 +46,16 @@ type alias Model =
     Shared.Model.Model
 
 
-init : Result Json.Decode.Error Flags -> Route () -> ( Model, Effect Msg )
+init : Result Dec.Error Flags -> Route () -> ( Model, Effect Msg )
 init flagsResult route =
-    ( {}
-    , Effect.none
+    ( { settings = { theme = Dark }
+      , dbConfig =
+            { name = "grocery-list"
+            , version = 1
+            , status = Shared.Model.DbInitial
+            }
+      }
+    , Effect.initDb Shared.Msg.DbInitialized
     )
 
 
@@ -63,6 +74,27 @@ update route msg model =
             ( model
             , Effect.none
             )
+
+        Shared.Msg.DbInitialized result ->
+            ( { model
+                | dbConfig =
+                    updateDbStatus
+                        model.dbConfig
+                        (case result of
+                            Ok _ ->
+                                Shared.Model.DbReady
+
+                            Err _ ->
+                                Shared.Model.DbError
+                        )
+              }
+            , Effect.none
+            )
+
+
+updateDbStatus : DbConfig -> DbStatus -> DbConfig
+updateDbStatus dbConfig status =
+    { dbConfig | status = status }
 
 
 

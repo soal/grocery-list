@@ -1,6 +1,8 @@
 module Db.Items exposing (..)
 
 import Dict exposing (Dict)
+import Json.Decode as D exposing (decodeValue)
+import Time
 
 
 type ItemMarkedAs
@@ -13,8 +15,29 @@ type ItemState
     | Required
 
 
+stringToItemState : String -> ItemState
+stringToItemState stateStr =
+    case stateStr of
+        "stuffed" ->
+            Stuffed
+
+        "required" ->
+            Required
+
+        _ ->
+            Stuffed
+
+
 type Quantity
     = Quantity Int String
+
+
+quantityDec : D.Decoder Quantity
+quantityDec =
+    D.map2
+        (\number unit -> Quantity number unit)
+        (D.field "count" D.int)
+        (D.field "unit" D.string)
 
 
 type alias Item =
@@ -23,9 +46,30 @@ type alias Item =
     , quantity : Quantity
     , comment : Maybe String
     , slug : String
-    , symbol : Maybe Char
+    , symbol : Maybe String
     , state : ItemState
+    , created : Time.Posix
+    , updated : Time.Posix
     }
+
+
+itemDec : D.Decoder Item
+itemDec =
+    D.map7
+        Item
+        (D.field "id" D.int)
+        (D.field "name" D.string)
+        (D.field "quantity" quantityDec)
+        (D.field "comment" <| D.maybe D.string)
+        (D.field "slug" D.string)
+        (D.field "symbol" <| D.maybe D.string)
+        (D.field "state" <| D.map stringToItemState D.string)
+        |> D.andThen
+            (\partial ->
+                D.map2 partial
+                    (D.field "created" <| D.map Time.millisToPosix D.int)
+                    (D.field "updated" <| D.map Time.millisToPosix D.int)
+            )
 
 
 items : Dict Int Item
@@ -40,6 +84,8 @@ items =
                 "хлеб"
                 Nothing
                 Stuffed
+                (Time.millisToPosix 10)
+                (Time.millisToPosix 10)
           )
         , ( 2
           , Item
@@ -48,8 +94,10 @@ items =
                 (Quantity 6 "штук")
                 Nothing
                 "бананы"
-                (Just '🍌')
+                (Just "🍌")
                 Stuffed
+                (Time.millisToPosix 10)
+                (Time.millisToPosix 10)
           )
         , ( 3
           , Item
@@ -58,8 +106,10 @@ items =
                 (Quantity 4 "штук")
                 (Just "Если большие и красивые")
                 "Яблоки"
-                (Just '🍏')
+                (Just "🍏")
                 Stuffed
+                (Time.millisToPosix 10)
+                (Time.millisToPosix 10)
           )
         , ( 4
           , Item
@@ -75,6 +125,8 @@ items =
                 "томатный-соус"
                 Nothing
                 Stuffed
+                (Time.millisToPosix 10)
+                (Time.millisToPosix 10)
           )
         , ( 5
           , Item
@@ -85,5 +137,7 @@ items =
                 "мясо"
                 Nothing
                 Stuffed
+                (Time.millisToPosix 10)
+                (Time.millisToPosix 10)
           )
         ]

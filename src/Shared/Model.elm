@@ -1,14 +1,32 @@
-module Shared.Model exposing (Model)
+module Shared.Model exposing (DbConfig, DbStatus(..), Model)
 
-{-| -}
+import Db.Categories exposing (Category)
+import Db.Items exposing (Item)
+import Db.Settings exposing (..)
+import Dict exposing (Dict)
 
 
-{-| Normally, this value would live in "Shared.elm"
-but that would lead to a circular dependency import cycle.
+type DbStatus
+    = DbInitial
+    | DbReady
+    | DbError
 
-For that reason, both `Shared.Model` and `Shared.Msg` are in their
-own file, so they can be imported by `Effect.elm`
 
--}
+type alias DbConfig =
+    { name : String
+    , version : Int
+    , status : DbStatus
+    }
+
+
+type alias InitData =
+    { settings : AppSettings
+    , items : Dict Int Item
+    , categories : List Category
+    }
+
+
 type alias Model =
-    {}
+    { settings : AppSettings
+    , dbConfig : DbConfig
+    }
