@@ -13,9 +13,9 @@ module Shared exposing
 -}
 
 import Db.Categories exposing (CollapsedState(..), categories)
-import Db.Items exposing (items, updateItemState)
+import Db.Items exposing (Item, ItemState(..), items, updateItem, updateItemState)
 import Db.Settings exposing (AppSettings, AppTheme(..), settingsDec)
-import Dict
+import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Json.Decode exposing (field, map)
 import Route exposing (Route)
@@ -66,6 +66,7 @@ init _ route =
             }
       , items = items
       , categories = categories
+      , titlePrefix = "Покупки: "
       }
     , Effect.initDb Shared.Msg.DbInitialized
     )
@@ -123,6 +124,14 @@ update _ msg model =
             , Effect.none
             )
 
+        Shared.Msg.EndShopping ->
+            ( { model | items = endShopping model.items }, Effect.none )
+
+        Shared.Msg.ItemUpdated item ->
+            ( { model | items = updateItem model.items item }
+            , Effect.none
+            )
+
 
 updateDbStatus : DbConfig -> DbStatus -> DbConfig
 updateDbStatus dbConfig status =
@@ -147,6 +156,19 @@ updateCollapsedCats pageName catId catsMap state =
             )
         )
         catsMap
+
+
+endShopping : Dict String Item -> Dict String Item
+endShopping items =
+    Dict.map
+        (\_ item ->
+            if item.state == InBasket then
+                { item | state = Stuffed }
+
+            else
+                item
+        )
+        items
 
 
 

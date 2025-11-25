@@ -11,6 +11,12 @@ type ItemState
     | InBasket
 
 
+type alias Image =
+    { url : String
+    , alt : String
+    }
+
+
 stringToItemState : String -> ItemState
 stringToItemState stateStr =
     case stateStr of
@@ -75,6 +81,13 @@ updateItemState : Dict String Item -> Int -> ItemState -> Dict String Item
 updateItemState allItems id state =
     Dict.update (String.fromInt id)
         (Maybe.map (\found -> { found | state = state }))
+        allItems
+
+
+updateItem : Dict String Item -> Item -> Dict String Item
+updateItem allItems item =
+    Dict.update (String.fromInt item.id)
+        (Maybe.map (always item))
         allItems
 
 

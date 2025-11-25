@@ -12,12 +12,12 @@ import View exposing (View)
 
 
 page : Shared.Model -> Route () -> Page Model Msg
-page _ _ =
+page shared _ =
     Page.new
         { init = init
         , update = update
         , subscriptions = subscriptions
-        , view = view
+        , view = view shared
         }
         |> Page.withLayout toLayout
 
@@ -72,9 +72,9 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> View Msg
-view _ =
-    { title = "Настройки"
+view : Shared.Model -> Model -> View Msg
+view shared _ =
+    { title = shared.titlePrefix ++ "Настройки"
     , body =
         [ h1 [] [ text "Настройки" ]
         , div []

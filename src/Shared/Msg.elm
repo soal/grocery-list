@@ -1,7 +1,7 @@
 module Shared.Msg exposing (Msg(..))
 
 import Db.Categories exposing (CollapsedState)
-import Db.Items exposing (ItemState)
+import Db.Items exposing (Item, ItemState)
 import TaskPort
 
 
@@ -10,3 +10,5 @@ type Msg
     | DbInitialized (TaskPort.Result Bool)
     | ItemStateUpdated Int ItemState
     | CatCollapsedStateUpdate String Int CollapsedState
+    | ItemUpdated Item
+    | EndShopping

@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , CatsAndItems, initDb, queryAll, updateCatCollapsedState, updateItemState
+    , CatsAndItems, endShopping, initDb, queryAll, updateCatCollapsedState, updateItem, updateItemState
     )
 
 {-|
@@ -132,6 +132,30 @@ queryAllEffect onResult =
 
 
 
+-- SHARED UPDATES
+
+
+updateItemState : Int -> ItemState -> Effect msg
+updateItemState itemId state =
+    SendSharedMsg (Shared.Msg.ItemStateUpdated itemId state)
+
+
+updateItem : Item -> Effect msg
+updateItem item =
+    SendSharedMsg (Shared.Msg.ItemUpdated item)
+
+
+updateCatCollapsedState : String -> Int -> CollapsedState -> Effect msg
+updateCatCollapsedState pagePath catId state =
+    SendSharedMsg (Shared.Msg.CatCollapsedStateUpdate pagePath catId state)
+
+
+endShopping : Effect msg
+endShopping =
+    SendSharedMsg Shared.Msg.EndShopping
+
+
+
 -- BASICS
 
 
@@ -163,20 +187,6 @@ sendMsg msg =
     Task.succeed msg
         |> Task.perform identity
         |> SendCmd
-
-
-
--- SHARED UPDATES
-
-
-updateItemState : Int -> ItemState -> Effect msg
-updateItemState itemId state =
-    SendSharedMsg (Shared.Msg.ItemStateUpdated itemId state)
-
-
-updateCatCollapsedState : String -> Int -> CollapsedState -> Effect msg
-updateCatCollapsedState pagePath catId state =
-    SendSharedMsg (Shared.Msg.CatCollapsedStateUpdate pagePath catId state)
 
 
 

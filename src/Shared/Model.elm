@@ -20,9 +20,6 @@ type alias DbConfig =
     }
 
 
-
-
-
 type alias CollapsedCats =
     Dict String (Set Int)
 
@@ -39,4 +36,5 @@ type alias Model =
     , uiState : UiState
     , items : Dict String Item
     , categories : List Category
+    , titlePrefix : String
     }

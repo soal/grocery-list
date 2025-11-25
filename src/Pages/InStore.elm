@@ -1,23 +1,19 @@
 module Pages.InStore exposing (Model, Msg, page)
 
-import Components.Category.Body as CategoryBody
-import Components.Category.Header
 import Components.Counter
 import Components.Item.List
-import Components.Item.ListElement
 import Db.Categories exposing (Category, CollapsedState(..))
 import Db.Items exposing (Item, ItemState(..), Quantity(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, button, div, h3, text)
 import Html.Attributes exposing (class, classList)
-import Html.Keyed
+import Html.Events exposing (onClick)
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
-import Shared.Model
-import Utils exposing (getCatStateForPage, getCollapsesCatsForPage)
+import Utils exposing (getCollapsesCatsForPage)
 import View exposing (View)
 
 
@@ -76,6 +72,7 @@ init () =
 type Msg
     = CollapseClicked Int CollapsedState
     | ItemClicked Int ItemState
+    | EndShopping
     | NoOp
 
 
@@ -89,6 +86,9 @@ update msg model =
             ( model
             , Effect.updateItemState id (toggleItemState currentState)
             )
+
+        EndShopping ->
+            ( model, Effect.endShopping )
 
         NoOp ->
             ( model
@@ -118,49 +118,62 @@ view shared _ =
         categories =
             filterCategories items shared.categories
     in
-    { title = "В магазине"
+    { title = shared.titlePrefix ++ "В магазине"
     , body =
-        [ Components.Item.List.new
-            { items = items
-            , categories = categories
-            , checkedSates = [ InBasket ]
-            , collapsedCatIds =
-                getCollapsesCatsForPage "in-store" shared.uiState.collapsedCatsMap
-            , pageName = "in-store"
-            }
-            |> Components.Item.List.withMark
-            |> Components.Item.List.view
-            |> Html.map
-                (\msg ->
-                    case msg of
-                        Components.Item.List.CollapseClicked id state ->
-                            CollapseClicked id state
+        if Dict.size items > 0 then
+            [ Components.Item.List.new
+                { items = items
+                , categories = categories
+                , checkedSates = [ InBasket ]
+                , collapsedCatIds =
+                    getCollapsesCatsForPage
+                        "in-store"
+                        shared.uiState.collapsedCatsMap
+                , pageName = "in-store"
+                }
+                |> Components.Item.List.withMark
+                |> Components.Item.List.withCounter
+                |> Components.Item.List.view
+                |> Html.map
+                    (\msg ->
+                        case msg of
+                            Components.Item.List.CollapseClicked id state ->
+                                CollapseClicked id state
 
-                        Components.Item.List.ItemClicked id state ->
-                            ItemClicked id state
+                            Components.Item.List.ItemClicked id state ->
+                                ItemClicked id state
 
-                        _ ->
-                            NoOp
-                )
-        , button
-            [ class "end-shopping-button"
-            , classList [ ( "all-done", isAllDone items ) ]
+                            _ ->
+                                NoOp
+                    )
+            , button
+                [ class "end-shopping-button"
+                , classList [ ( "all-done", isAllDone items ) ]
+                , onClick EndShopping
+                ]
+                [ Components.Counter.view
+                    (Dict.map (\_ item -> item.state) items)
+                    (Dict.keys items)
+                    InBasket
+                , text "Закончить покупки"
+                ]
             ]
-            [ Components.Counter.view
-                (Dict.map (\_ item -> item.state) items)
-                (Dict.keys items)
-                InBasket
-            , text "Закончить покупки"
-            ]
-        ]
+
+        else
+            [ viewEmpty ]
     }
+
+
+viewEmpty : Html msg
+viewEmpty =
+    div [ class "empty-page" ] [ h3 [] [ text "Всё куплено!" ] ]
 
 
 isAllDone : Dict String Item -> Bool
 isAllDone itemStates =
     let
         statesLength =
-            List.length (Dict.values itemStates)
+            Dict.size itemStates
     in
     statesLength > 0 && statesLength <= getInBasketLength itemStates
 

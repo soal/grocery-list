@@ -5,6 +5,7 @@ module Components.Item.List exposing
     , view
     , withLink
     , withMark
+    , withCounter
     )
 
 import Components.Category.Body
@@ -67,6 +68,9 @@ withMark : ItemsList -> ItemsList
 withMark (Settings settings) =
     Settings { settings | mark = True }
 
+withCounter : ItemsList -> ItemsList
+withCounter (Settings settings) =
+    Settings { settings | counter = True }
 
 type Msg
     = CollapseClicked Int CollapsedState

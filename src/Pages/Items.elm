@@ -96,7 +96,7 @@ subscriptions _ =
 
 view : Shared.Model -> Model -> View Msg
 view shared _ =
-    { title = "Всё сразу"
+    { title = shared.titlePrefix ++ "Всё сразу"
     , body =
         [ Components.Item.List.new
             { items = shared.items
