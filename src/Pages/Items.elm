@@ -2,7 +2,7 @@ module Pages.Items exposing (Model, Msg, page)
 
 import Components.Item.List
 import Db.Categories exposing (CollapsedState(..))
-import Db.Items exposing (ItemState(..), Quantity(..))
+import Db.Items exposing (ItemQuantity(..), ItemState(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html

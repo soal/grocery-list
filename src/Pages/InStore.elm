@@ -3,7 +3,7 @@ module Pages.InStore exposing (Model, Msg, page)
 import Components.Counter
 import Components.Item.List
 import Db.Categories exposing (Category, CollapsedState(..))
-import Db.Items exposing (Item, ItemState(..), Quantity(..))
+import Db.Items exposing (Item, ItemQuantity(..), ItemState(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, button, div, h3, text)

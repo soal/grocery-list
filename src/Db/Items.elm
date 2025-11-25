@@ -33,14 +33,14 @@ stringToItemState stateStr =
             Stuffed
 
 
-type Quantity
-    = Quantity Int String
+type ItemQuantity
+    = ItemQuantity Int String
 
 
-quantityDec : D.Decoder Quantity
+quantityDec : D.Decoder ItemQuantity
 quantityDec =
     D.map2
-        (\number unit -> Quantity number unit)
+        (\number unit -> ItemQuantity number unit)
         (D.field "count" D.int)
         (D.field "unit" D.string)
 
@@ -48,7 +48,7 @@ quantityDec =
 type alias Item =
     { id : Int
     , name : String
-    , quantity : Quantity
+    , quantity : ItemQuantity
     , comment : Maybe String
     , slug : String
     , symbol : Maybe String
@@ -98,7 +98,7 @@ items =
           , Item
                 1
                 "Хлеб"
-                (Quantity 1 "батон")
+                (ItemQuantity 1 "батон")
                 (Just "лучше побольше")
                 "хлеб"
                 Nothing
@@ -110,7 +110,7 @@ items =
           , Item
                 2
                 "Бананы"
-                (Quantity 6 "штук")
+                (ItemQuantity 6 "штук")
                 Nothing
                 "бананы"
                 (Just "🍌")
@@ -122,7 +122,7 @@ items =
           , Item
                 3
                 "Яблоки"
-                (Quantity 4 "штук")
+                (ItemQuantity 4 "штук")
                 (Just "Если большие и красивые")
                 "Яблоки"
                 (Just "🍏")
@@ -134,7 +134,7 @@ items =
           , Item
                 4
                 "Томатный соус"
-                (Quantity 1 "банка")
+                (ItemQuantity 1 "банка")
                 (Just
                     """
                     Если есть в Пятёрочке, а ещё лучше вообще зашоплифитить бесплатно,
@@ -151,7 +151,7 @@ items =
           , Item
                 5
                 "Какое-нибудь мясо"
-                (Quantity 500 "г.")
+                (ItemQuantity 500 "г.")
                 Nothing
                 "мясо"
                 Nothing

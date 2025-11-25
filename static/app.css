@@ -1,5 +1,5 @@
 html {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 /* :root { */
@@ -251,8 +251,15 @@ button {
 }
 
 .item-page {
+  font-size: 1.2em;
+
   .quantity {
     font-size: 1.5em;
+  }
+
+  .item-page-quantity {
+    display: inline-block;
+    margin-right: 0.4em;
   }
 }
 

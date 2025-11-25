@@ -1,11 +1,12 @@
 module Pages.Items.Item_ exposing (Model, Msg, page)
 
-import Db.Items exposing (Item, Quantity(..))
+import Db.Items exposing (Item, ItemQuantity(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect)
-import Html exposing (Html, b, div, h1, input, p, small, span, text, textarea)
+import Html exposing (Html, b, div, h1, i, input, p, small, span, text, textarea)
 import Html.Attributes exposing (class, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
+import Json.Decode exposing (Error(..))
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
@@ -45,6 +46,10 @@ type FieldName
     | QUnit (Maybe String)
     | Comment (Maybe String)
     | Symbol (Maybe String)
+
+
+
+-- | Quantity (Maybe ItemQuantity)
 
 
 type ItemField
@@ -88,33 +93,70 @@ makeItemFromFields fields item =
             (\field acc ->
                 case field of
                     ItemField (Name data) _ ->
-                        case data of
-                            Just value ->
-                                { acc | name = value }
-
-                            Nothing ->
-                                acc
+                        guardStrField
+                            (\obj value -> { obj | name = value })
+                            acc
+                            data
 
                     ItemField (Comment data) _ ->
-                        case data of
-                            Just value ->
-                                { acc | comment = Just value }
-
-                            Nothing ->
-                                acc
+                        guardStrField
+                            (\obj value -> { obj | comment = Just value })
+                            acc
+                            data
 
                     ItemField (Symbol data) _ ->
+                        guardStrField
+                            (\obj value -> { obj | symbol = Just value })
+                            acc
+                            data
+
+                    ItemField (QUnit data) _ ->
                         case data of
                             Just value ->
-                                { acc | symbol = Just value }
+                                let
+                                    quantity =
+                                        case acc.quantity of
+                                            ItemQuantity count _ ->
+                                                ItemQuantity count value
+                                in
+                                { acc | quantity = quantity }
 
                             Nothing ->
                                 acc
 
-                    _ ->
-                        acc
+                    ItemField (QCount data) _ ->
+                        case data of
+                            Just value ->
+                                let
+                                    quantity =
+                                        case acc.quantity of
+                                            ItemQuantity _ unit ->
+                                                ItemQuantity value unit
+                                in
+                                { acc | quantity = quantity }
+
+                            Nothing ->
+                                acc
             )
             item
+
+
+guardStrField : (Item -> String -> Item) -> Item -> Maybe String -> Item
+guardStrField mapper item data =
+    data
+        |> Maybe.map
+            (\value ->
+                let
+                    ready =
+                        String.trim value
+                in
+                if ready == "" then
+                    item
+
+                else
+                    mapper item ready
+            )
+        |> Maybe.withDefault item
 
 
 
@@ -134,10 +176,11 @@ update shared msg model =
         StartEditing field data ->
             ( { model
                 | fields =
-                    updateFields
-                        (updateMode EditMode >> updateData data)
-                        model.fields
-                        field
+                    model.fields
+                        |> allFieldsToView
+                        |> updateFields
+                            (updateMode EditMode >> updateData data)
+                            field
               }
             , Effect.none
             )
@@ -151,8 +194,8 @@ update shared msg model =
                 | fields =
                     updateFields
                         (updateMode ViewMode)
-                        model.fields
                         field
+                        model.fields
               }
             , case eixisting of
                 Just item ->
@@ -167,8 +210,8 @@ update shared msg model =
                 | fields =
                     updateFields
                         (updateData data)
-                        model.fields
                         field
+                        model.fields
               }
             , Effect.none
             )
@@ -212,10 +255,10 @@ updateData data field =
 
 updateFields :
     (ItemField -> ItemField)
-    -> List ItemField
     -> ItemField
     -> List ItemField
-updateFields mapper fields field =
+    -> List ItemField
+updateFields mapper field fields =
     List.map
         (\existing ->
             if existing == field then
@@ -223,6 +266,17 @@ updateFields mapper fields field =
 
             else
                 existing
+        )
+        fields
+
+
+allFieldsToView : List ItemField -> List ItemField
+allFieldsToView fields =
+    List.map
+        (\field ->
+            case field of
+                ItemField fieldName _ ->
+                    ItemField fieldName ViewMode
         )
         fields
 
@@ -263,30 +317,6 @@ viewItemPage fields sharedItem =
     div [ class "item-page" ] <| List.map (viewField sharedItem) fields
 
 
-
---     [ h1 []
---         [ viewName fields.name sharedItem.name localItem.name
---         , span []
---             [ text
---                 (Maybe.withDefault ""
---                     sharedItem.symbol
---                 )
---             ]
---         ]
---     , div [ class "quantity" ]
---         (viewQuantity sharedItem.quantity)
---     , div []
---         [ case
---             sharedItem.comment
---           of
---             Just comment ->
---                 text comment
---             Nothing ->
---                 text ""
---         ]
--- ]
-
-
 viewField : Item -> ItemField -> Html Msg
 viewField item field =
     case field of
@@ -296,23 +326,14 @@ viewField item field =
         ItemField (Comment _) _ ->
             viewComment field item.comment
 
+        ItemField (QCount _) _ ->
+            viewQCount field item.quantity
+
+        ItemField (QUnit _) _ ->
+            viewQUnit field item.quantity
+
         _ ->
             div [] []
-
-
-viewQuantity : Quantity -> List (Html msg)
-viewQuantity (Quantity quantity unit) =
-    [ b [] [ text (String.fromInt quantity) ]
-    , small [] [ text (" " ++ unit) ]
-    ]
-
-
-getItem : Dict String Item -> String -> Maybe Item
-getItem items slug =
-    items
-        |> Dict.filter (\_ v -> slug == v.slug)
-        |> Dict.values
-        |> List.head
 
 
 viewName : ItemField -> String -> Html Msg
@@ -350,7 +371,65 @@ viewComment field existing =
         _ ->
             case existing of
                 Just comment ->
-                    p [ onClick (StartEditing field existing) ] [ text comment ]
+                    p [ onClick (StartEditing field existing) ]
+                        [ i [] [ text comment ] ]
 
                 Nothing ->
-                    p [] [ text "Добавить комментарий" ]
+                    p []
+                        [ i [] [ text "Добавить комментарий" ] ]
+
+
+viewQUnit : ItemField -> ItemQuantity -> Html Msg
+viewQUnit field existing =
+    div [ class "item-page-quantity item-quantity unit" ]
+        [ case field of
+            ItemField (QUnit unit) EditMode ->
+                input
+                    [ type_ "text"
+                    , value (Maybe.withDefault "штук" unit)
+                    , onInput (Just >> UpdateField field)
+                    , onBlur (FinishEditing field)
+                    ]
+                    []
+
+            _ ->
+                case existing of
+                    ItemQuantity _ unit ->
+                        span [ onClick (StartEditing field (Just unit)) ]
+                            [ text unit ]
+        ]
+
+
+viewQCount : ItemField -> ItemQuantity -> Html Msg
+viewQCount field existing =
+    div [ class "item-page-quantity item-quantity count" ]
+        [ case field of
+            ItemField (QCount count) EditMode ->
+                input
+                    [ type_ "number"
+                    , value <| String.fromInt <| Maybe.withDefault 1 count
+                    , onInput (Just >> UpdateField field)
+                    , onBlur (FinishEditing field)
+                    ]
+                    []
+
+            _ ->
+                case existing of
+                    ItemQuantity count _ ->
+                        b
+                            [ count
+                                |> String.fromInt
+                                |> Just
+                                |> StartEditing field
+                                |> onClick
+                            ]
+                            [ text (String.fromInt count) ]
+        ]
+
+
+getItem : Dict String Item -> String -> Maybe Item
+getItem items slug =
+    items
+        |> Dict.filter (\_ v -> slug == v.slug)
+        |> Dict.values
+        |> List.head

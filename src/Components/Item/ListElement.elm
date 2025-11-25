@@ -7,7 +7,7 @@ module Components.Item.ListElement exposing
     , withMark
     )
 
-import Db.Items exposing (Item, ItemState(..), Quantity(..))
+import Db.Items exposing (Item, ItemQuantity(..), ItemState(..))
 import FeatherIcons as Icons
 import Html
     exposing
@@ -17,10 +17,8 @@ import Html
         , b
         , div
         , h4
-        , i
         , input
         , label
-        , small
         , span
         , text
         )
@@ -68,15 +66,14 @@ view (Settings settings) =
     let
         link =
             if settings.link == True then
-                [ a
+                a
                     [ Route.Path.href
                         (Route.Path.Items_Item_ { item = settings.item.slug })
                     ]
                     [ Icons.chevronRight |> Icons.toHtml [] ]
-                ]
 
             else
-                []
+                text ""
 
         checkMark =
             settings.mark && settings.item.state == InBasket
@@ -110,17 +107,18 @@ view (Settings settings) =
                 [ class "item-quantity" ]
                 (viewQuantity settings.item.quantity)
             ]
-        , div [] <|
-            i [ class "item-comment" ]
+        , div []
+            [ span [ class "item-comment" ]
                 [ text (Maybe.withDefault "" settings.item.comment) ]
-                :: link
+            , link
+            ]
         ]
 
 
-viewQuantity : Quantity -> List (Html msg)
-viewQuantity (Quantity quantity unit) =
+viewQuantity : ItemQuantity -> List (Html msg)
+viewQuantity (ItemQuantity quantity unit) =
     [ b [] [ text (String.fromInt quantity) ]
-    , small [] [ text unit ]
+    , span [] [ text unit ]
     ]
 
 
