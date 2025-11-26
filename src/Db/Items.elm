@@ -54,14 +54,14 @@ stateEncoder state =
 
 
 type ItemQuantity
-    = ItemQuantity Int String
+    = ItemQuantity Float String
 
 
 quantityDec : JD.Decoder ItemQuantity
 quantityDec =
     JD.map2
         (\number unit -> ItemQuantity number unit)
-        (JD.field "count" JD.int)
+        (JD.field "count" JD.float)
         (JD.field "unit" JD.string)
 
 
@@ -70,7 +70,7 @@ quantityEncoder quantity =
     case quantity of
         ItemQuantity count unit ->
             JE.object
-                [ ( "count", JE.int count )
+                [ ( "count", JE.float count )
                 , ( "unit", JE.string unit )
                 ]
 

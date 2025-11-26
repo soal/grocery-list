@@ -50,7 +50,7 @@ type FieldMode
 
 type FieldName
     = Name (Maybe String)
-    | QCount (Maybe Int)
+    | QCount (Maybe Float)
     | QUnit (Maybe String)
     | Comment (Maybe String)
     | Symbol (Maybe String)
@@ -253,7 +253,7 @@ updateData data field =
                     ItemField (QUnit data) mode
 
                 QCount _ ->
-                    ItemField (QCount (Maybe.andThen String.toInt data)) mode
+                    ItemField (QCount (Maybe.andThen String.toFloat data)) mode
 
                 Comment _ ->
                     ItemField (Comment data) mode
@@ -442,7 +442,7 @@ viewQCount field existing =
         ItemField (QCount maybeCount) EditMode ->
             let
                 fieldData =
-                    String.fromInt <| Maybe.withDefault 1 maybeCount
+                    String.fromFloat <| Maybe.withDefault 1 maybeCount
             in
             input
                 [ type_ "number"
@@ -459,12 +459,12 @@ viewQCount field existing =
                 ItemQuantity count _ ->
                     b
                         [ count
-                            |> String.fromInt
+                            |> String.fromFloat
                             |> Just
                             |> StartEditing field
                             |> onClick
                         ]
-                        [ text (String.fromInt count) ]
+                        [ text (String.fromFloat count) ]
 
 
 getItem : Dict String Item -> String -> Maybe Item

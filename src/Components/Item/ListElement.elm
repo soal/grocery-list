@@ -117,7 +117,7 @@ view (Settings settings) =
 
 viewQuantity : ItemQuantity -> List (Html msg)
 viewQuantity (ItemQuantity quantity unit) =
-    [ b [] [ text (String.fromInt quantity) ]
+    [ b [] [ text (String.fromFloat quantity) ]
     , span [] [ text unit ]
     ]
 
