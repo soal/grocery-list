@@ -1,20 +1,22 @@
 module Db.Items exposing (..)
 
 import Dict exposing (Dict)
-import Json.Decode as D
+import Json.Decode as JD
+import Json.Encode as JE
+import Json.Encode.Extra as JEE
 import Time
-
-
-type ItemState
-    = Stuffed
-    | Required
-    | InBasket
 
 
 type alias Image =
     { url : String
     , alt : String
     }
+
+
+type ItemState
+    = Stuffed
+    | Required
+    | InBasket
 
 
 stringToItemState : String -> ItemState
@@ -33,16 +35,44 @@ stringToItemState stateStr =
             Stuffed
 
 
+itemStateToString : ItemState -> String
+itemStateToString state =
+    case state of
+        Stuffed ->
+            "stuffed"
+
+        Required ->
+            "required"
+
+        InBasket ->
+            "in-basket"
+
+
+stateEncoder : ItemState -> JE.Value
+stateEncoder state =
+    state |> itemStateToString |> JE.string
+
+
 type ItemQuantity
     = ItemQuantity Int String
 
 
-quantityDec : D.Decoder ItemQuantity
+quantityDec : JD.Decoder ItemQuantity
 quantityDec =
-    D.map2
+    JD.map2
         (\number unit -> ItemQuantity number unit)
-        (D.field "count" D.int)
-        (D.field "unit" D.string)
+        (JD.field "count" JD.int)
+        (JD.field "unit" JD.string)
+
+
+quantityEncoder : ItemQuantity -> JE.Value
+quantityEncoder quantity =
+    case quantity of
+        ItemQuantity count unit ->
+            JE.object
+                [ ( "count", JE.int count )
+                , ( "unit", JE.string unit )
+                ]
 
 
 type alias Item =
@@ -58,23 +88,38 @@ type alias Item =
     }
 
 
-itemDec : D.Decoder Item
-itemDec =
-    D.map7
+itemDecoder : JD.Decoder Item
+itemDecoder =
+    JD.map7
         Item
-        (D.field "id" D.int)
-        (D.field "name" D.string)
-        (D.field "quantity" quantityDec)
-        (D.field "comment" <| D.maybe D.string)
-        (D.field "slug" D.string)
-        (D.field "symbol" <| D.maybe D.string)
-        (D.field "state" <| D.map stringToItemState D.string)
-        |> D.andThen
+        (JD.field "id" JD.int)
+        (JD.field "name" JD.string)
+        (JD.field "quantity" quantityDec)
+        (JD.field "comment" <| JD.maybe JD.string)
+        (JD.field "slug" JD.string)
+        (JD.field "symbol" <| JD.maybe JD.string)
+        (JD.field "state" <| JD.map stringToItemState JD.string)
+        |> JD.andThen
             (\partial ->
-                D.map2 partial
-                    (D.field "created" <| D.map Time.millisToPosix D.int)
-                    (D.field "updated" <| D.map Time.millisToPosix D.int)
+                JD.map2 partial
+                    (JD.field "created" <| JD.map Time.millisToPosix JD.int)
+                    (JD.field "updated" <| JD.map Time.millisToPosix JD.int)
             )
+
+
+itemEncoder : Item -> JE.Value
+itemEncoder item =
+    JE.object
+        [ ( "id", JE.int item.id )
+        , ( "name", JE.string item.name )
+        , ( "quantity", quantityEncoder item.quantity )
+        , ( "comment", JEE.maybe JE.string item.comment )
+        , ( "slug", JE.string item.slug )
+        , ( "symbol", JEE.maybe JE.string item.symbol )
+        , ( "state", stateEncoder item.state )
+        , ( "created", JE.int <| Time.posixToMillis item.created )
+        , ( "updated", JE.int <| Time.posixToMillis item.updated )
+        ]
 
 
 updateItemState : Dict String Item -> Int -> ItemState -> Dict String Item

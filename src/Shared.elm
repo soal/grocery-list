@@ -67,6 +67,7 @@ init _ route =
       , items = items
       , categories = categories
       , titlePrefix = "Покупки: "
+      , error = Nothing
       }
     , Effect.initDb Shared.Msg.DbInitialized
     )
@@ -129,8 +130,20 @@ update _ msg model =
 
         Shared.Msg.ItemUpdated item ->
             ( { model | items = updateItem model.items item }
-            , Effect.none
+            , Effect.storeItem
+                (\res ->
+                    case res of
+                        Ok True ->
+                            Shared.Msg.NoOp
+
+                        _ ->
+                            Shared.Msg.Error
+                )
+                item
             )
+
+        Shared.Msg.Error ->
+            ( model, Effect.none )
 
 
 updateDbStatus : DbConfig -> DbStatus -> DbConfig

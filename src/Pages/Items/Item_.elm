@@ -4,7 +4,7 @@ import Db.Items exposing (Item, ItemQuantity(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, b, div, h1, i, input, p, span, text, textarea)
-import Html.Attributes exposing (autofocus, class, id, name, type_, value)
+import Html.Attributes exposing (autofocus, class, classList, id, name, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Html.Extra exposing (nothing)
 import Json.Decode exposing (Error(..))
@@ -331,23 +331,34 @@ viewItemPage fields sharedItem =
 
 viewField : Item -> ItemField -> Html Msg
 viewField item field =
-    div [ class "item-page with-click-ouside" ]
-        [ case field of
-            ItemField (Name _) _ ->
-                viewName field item.name
+    case field of
+        ItemField (Name _) _ ->
+            viewFieldWrap [] (viewName field item.name)
 
-            ItemField (Comment _) _ ->
-                viewComment field item.comment
+        ItemField (Comment _) _ ->
+            viewFieldWrap [] (viewComment field item.comment)
 
-            ItemField (QCount _) _ ->
-                viewQCount field item.quantity
+        ItemField (QCount _) _ ->
+            viewFieldWrap
+                [ "item-page-quantity", "item-quantity", "unit" ]
+                (viewQCount field item.quantity)
 
-            ItemField (QUnit _) _ ->
-                viewQUnit field item.quantity
+        ItemField (QUnit _) _ ->
+            viewFieldWrap
+                [ "item-page-quantity", "item-quantity", "count" ]
+                (viewQUnit field item.quantity)
 
-            _ ->
-                nothing
+        _ ->
+            nothing
+
+
+viewFieldWrap : List String -> Html Msg -> Html Msg
+viewFieldWrap classes content =
+    div
+        [ class "item-page-field with-click-outside"
+        , classList <| List.map (\c -> ( c, True )) classes
         ]
+        [ content ]
 
 
 viewName : ItemField -> String -> Html Msg
@@ -402,62 +413,58 @@ viewComment field existing =
 
 viewQUnit : ItemField -> ItemQuantity -> Html Msg
 viewQUnit field existing =
-    div [ class "item-page-quantity item-quantity unit" ]
-        [ case field of
-            ItemField (QUnit maybeUnit) EditMode ->
-                let
-                    fieldData =
-                        Maybe.withDefault "штук" maybeUnit
-                in
-                input
-                    [ type_ "text"
-                    , value fieldData
-                    , onInput (Just >> UpdateField field)
-                    , onBlur (FinishEditing field)
-                    , name <| "item-quantity-unit-" ++ fieldData
-                    , id <| "item-quantity-unit-" ++ fieldData
-                    ]
-                    []
+    case field of
+        ItemField (QUnit maybeUnit) EditMode ->
+            let
+                fieldData =
+                    Maybe.withDefault "штук" maybeUnit
+            in
+            input
+                [ type_ "text"
+                , value fieldData
+                , onInput (Just >> UpdateField field)
+                , onBlur (FinishEditing field)
+                , name <| "item-quantity-unit-" ++ fieldData
+                , id <| "item-quantity-unit-" ++ fieldData
+                ]
+                []
 
-            _ ->
-                case existing of
-                    ItemQuantity _ unit ->
-                        span [ onClick (StartEditing field (Just unit)) ]
-                            [ text unit ]
-        ]
+        _ ->
+            case existing of
+                ItemQuantity _ unit ->
+                    span [ onClick (StartEditing field (Just unit)) ]
+                        [ text unit ]
 
 
 viewQCount : ItemField -> ItemQuantity -> Html Msg
 viewQCount field existing =
-    div [ class "item-page-quantity item-quantity count" ]
-        [ case field of
-            ItemField (QCount maybeCount) EditMode ->
-                let
-                    fieldData =
-                        String.fromInt <| Maybe.withDefault 1 maybeCount
-                in
-                input
-                    [ type_ "number"
-                    , value fieldData
-                    , onInput (Just >> UpdateField field)
-                    , onBlur (FinishEditing field)
-                    , name <| "item-quantity-count-" ++ fieldData
-                    , id <| "item-quantity-count-" ++ fieldData
-                    ]
-                    []
+    case field of
+        ItemField (QCount maybeCount) EditMode ->
+            let
+                fieldData =
+                    String.fromInt <| Maybe.withDefault 1 maybeCount
+            in
+            input
+                [ type_ "number"
+                , value fieldData
+                , onInput (Just >> UpdateField field)
+                , onBlur (FinishEditing field)
+                , name <| "item-quantity-count-" ++ fieldData
+                , id <| "item-quantity-count-" ++ fieldData
+                ]
+                []
 
-            _ ->
-                case existing of
-                    ItemQuantity count _ ->
-                        b
-                            [ count
-                                |> String.fromInt
-                                |> Just
-                                |> StartEditing field
-                                |> onClick
-                            ]
-                            [ text (String.fromInt count) ]
-        ]
+        _ ->
+            case existing of
+                ItemQuantity count _ ->
+                    b
+                        [ count
+                            |> String.fromInt
+                            |> Just
+                            |> StartEditing field
+                            |> onClick
+                        ]
+                        [ text (String.fromInt count) ]
 
 
 getItem : Dict String Item -> String -> Maybe Item

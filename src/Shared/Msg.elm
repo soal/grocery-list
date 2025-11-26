@@ -12,3 +12,4 @@ type Msg
     | CatCollapsedStateUpdate String Int CollapsedState
     | ItemUpdated Item
     | EndShopping
+    | Error

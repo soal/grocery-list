@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , CatsAndItems, endShopping, initDb, queryAll, updateCatCollapsedState, updateItem, updateItemState
+    , CatsAndItems, endShopping, initDb, queryAll, storeItem, updateCatCollapsedState, updateItem, updateItemState
     )
 
 {-|
@@ -18,6 +18,7 @@ module Effect exposing
 
 @docs pushRoute, replaceRoute
 @docs pushRoutePath, replaceRoutePath
+
 @docs loadExternalUrl, back
 
 @docs map, toCmd
@@ -26,7 +27,7 @@ module Effect exposing
 
 import Browser.Navigation
 import Db.Categories exposing (Category, CollapsedState, categoryDec)
-import Db.Items exposing (Item, ItemState(..), itemDec)
+import Db.Items exposing (Item, ItemState(..), itemDecoder, itemEncoder)
 import Dict exposing (Dict)
 import Json.Decode as D
 import Json.Encode as E
@@ -55,6 +56,7 @@ type Effect msg
       -- INTEROP
     | InitDb (TaskPort.Result Bool -> msg)
     | QueryAllCatsAndItems (TaskPort.Result CatsAndItems -> msg)
+    | StoreItem (TaskPort.Result Bool -> msg) Item
 
 
 type alias CatsAndItems =
@@ -113,14 +115,14 @@ queryAll onResult =
     QueryAllCatsAndItems onResult
 
 
-queryAllEffect : (Result TaskPort.Error CatsAndItems -> msg) -> Cmd msg
+queryAllEffect : (TaskPort.Result CatsAndItems -> msg) -> Cmd msg
 queryAllEffect onResult =
     let
         valueDecoder =
             D.map2
                 CatsAndItems
                 (D.field "categories" <| D.list categoryDec)
-                (D.field "items" <| D.map convertKeys <| D.dict itemDec)
+                (D.field "items" <| D.map convertKeys <| D.dict itemDecoder)
 
         call =
             TaskPort.callNoArgs
@@ -129,6 +131,28 @@ queryAllEffect onResult =
                 }
     in
     Task.attempt onResult call
+
+
+
+-- DATA STORING
+
+
+storeItem : (TaskPort.Result Bool -> msg) -> Item -> Effect msg
+storeItem onResult item =
+    StoreItem onResult item
+
+
+storeItemEffect : (TaskPort.Result Bool -> msg) -> Item -> Cmd msg
+storeItemEffect onResult item =
+    let
+        call =
+            TaskPort.call
+                { function = "storeItem"
+                , valueDecoder = D.bool
+                , argsEncoder = itemEncoder
+                }
+    in
+    Task.attempt onResult <| call item
 
 
 
@@ -281,10 +305,13 @@ map fn effect =
             SendSharedMsg sharedMsg
 
         InitDb onResult ->
-            InitDb (\res -> fn (onResult res))
+            InitDb (\res -> fn <| onResult res)
 
         QueryAllCatsAndItems onResult ->
-            QueryAllCatsAndItems (\res -> fn (onResult res))
+            QueryAllCatsAndItems (\res -> fn <| onResult res)
+
+        StoreItem onResult item ->
+            StoreItem (\res -> fn <| onResult res) item
 
 
 {-| Elm Land depends on this function to perform your effects.
@@ -331,3 +358,6 @@ toCmd options effect =
 
         QueryAllCatsAndItems onResult ->
             queryAllEffect onResult
+
+        StoreItem onResult item ->
+            storeItemEffect onResult item

@@ -2,7 +2,7 @@ export class ClickOutside extends HTMLElement {
 	onMouseDown: (evt: MouseEvent) => void;
 	connectedCallback() {
 		this.onMouseDown = (evt) => {
-			const popups = document.querySelectorAll(".with-click-ouside");
+			const popups = document.querySelectorAll(".with-click-outside");
 
 			const insiderIds = Array.from(popups.values())
 				.filter((node) => node.contains(evt.target as Node))

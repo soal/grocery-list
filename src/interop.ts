@@ -39,7 +39,13 @@ type Category = {
 	updated: number;
 };
 
-let db: Dexie | null = null;
+type DB = Dexie & {
+	settings: EntityTable<AppSettings, "id">;
+	items: EntityTable<Item, "id">;
+	categories: EntityTable<Category, "id">;
+};
+
+let db: DB | null = null;
 
 async function initDb({
 	name,
@@ -50,11 +56,7 @@ async function initDb({
 }): Promise<boolean | Error> {
 	try {
 		console.log("INIT DB IN jS", name, version);
-		db = new Dexie(name) as Dexie & {
-			settings: EntityTable<AppSettings, "id">;
-			items: EntityTable<Item, "id">;
-			categories: EntityTable<Category, "id">;
-		};
+		db = new Dexie(name) as DB;
 
 		db.version(version).stores({
 			settings: "id, theme",
@@ -79,8 +81,18 @@ async function queryAllCatsAndItems() {
 	};
 }
 
+async function storeItem(item: Item) {
+	if (db) {
+		console.log("STORE", item)
+		await db.items.put(item);
+		return true;
+	}
+	false;
+}
+
 TaskPort.register("initDb", initDb);
 TaskPort.register("queryAllCatsAndItems", queryAllCatsAndItems);
+TaskPort.register("storeItem", storeItem);
 
 export const flags = ({ env }) => ({
 	settings: {

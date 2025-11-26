@@ -37,4 +37,5 @@ type alias Model =
     , items : Dict String Item
     , categories : List Category
     , titlePrefix : String
+    , error : Maybe String
     }
