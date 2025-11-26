@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , CatsAndItems, endShopping, initDb, queryAll, storeItem, updateCatCollapsedState, updateItem, updateItemState
+    , endShopping, exportData, importData, initDb, queryAll, storeAllItems, storeDump, storeItem, updateCatCollapsedState, updateItem, updateItemState
     )
 
 {-|
@@ -26,11 +26,13 @@ module Effect exposing
 -}
 
 import Browser.Navigation
-import Db.Categories exposing (Category, CollapsedState, categoryDec)
-import Db.Items exposing (Item, ItemState(..), itemDecoder, itemEncoder)
+import Db.Categories exposing (CollapsedState, categoryDec, encodeCategory)
+import Db.Items exposing (Item, ItemState(..), encodeItem, itemDecoder)
+import Db.Settings exposing (CatsAndItems, DataDump, dumpDecoder, encodeDump)
 import Dict exposing (Dict)
-import Json.Decode as D
-import Json.Encode as E
+import File.Download
+import Json.Decode as JD
+import Json.Encode as JE
 import Route
 import Route.Path
 import Shared.Model
@@ -38,7 +40,6 @@ import Shared.Msg
 import Task
 import TaskPort
 import Url exposing (Url)
-import Utils exposing (convertKeys)
 
 
 type Effect msg
@@ -57,12 +58,9 @@ type Effect msg
     | InitDb (TaskPort.Result Bool -> msg)
     | QueryAllCatsAndItems (TaskPort.Result CatsAndItems -> msg)
     | StoreItem (TaskPort.Result Bool -> msg) Item
-
-
-type alias CatsAndItems =
-    { categories : List Category
-    , items : Dict Int Item
-    }
+    | StoreAllItems (TaskPort.Result Bool -> msg) (Dict String Item)
+    | StoreDump (TaskPort.Result Bool -> msg) DataDump
+    | ExportData
 
 
 
@@ -86,15 +84,15 @@ initDbEffect shared onResult =
             }
 
         encoder args =
-            E.object
-                [ ( "name", E.string args.name )
-                , ( "version", E.int args.version )
+            JE.object
+                [ ( "name", JE.string args.name )
+                , ( "version", JE.int args.version )
                 ]
 
         call =
             TaskPort.call
                 { function = "initDb"
-                , valueDecoder = D.bool
+                , valueDecoder = JD.bool
                 , argsEncoder = encoder
                 }
     in
@@ -106,10 +104,7 @@ initDbEffect shared onResult =
 
 
 queryAll :
-    (TaskPort.Result
-        { categories : List Category, items : Dict Int Item }
-     -> msg
-    )
+    (TaskPort.Result CatsAndItems -> msg)
     -> Effect msg
 queryAll onResult =
     QueryAllCatsAndItems onResult
@@ -119,10 +114,10 @@ queryAllEffect : (TaskPort.Result CatsAndItems -> msg) -> Cmd msg
 queryAllEffect onResult =
     let
         valueDecoder =
-            D.map2
+            JD.map2
                 CatsAndItems
-                (D.field "categories" <| D.list categoryDec)
-                (D.field "items" <| D.map convertKeys <| D.dict itemDecoder)
+                (JD.field "categories" <| JD.list categoryDec)
+                (JD.field "items" <| JD.dict itemDecoder)
 
         call =
             TaskPort.callNoArgs
@@ -148,20 +143,91 @@ storeItemEffect onResult item =
         call =
             TaskPort.call
                 { function = "storeItem"
-                , valueDecoder = D.bool
-                , argsEncoder = itemEncoder
+                , valueDecoder = JD.bool
+                , argsEncoder = encodeItem
                 }
     in
     Task.attempt onResult <| call item
+
+
+storeAllItems : (TaskPort.Result Bool -> msg) -> Dict String Item -> Effect msg
+storeAllItems onResult items =
+    StoreAllItems onResult items
+
+
+storeAllItemsEffect : (TaskPort.Result Bool -> msg) -> Dict String Item -> Cmd msg
+storeAllItemsEffect onResult items =
+    let
+        call =
+            TaskPort.call
+                { function = "storeAllItems"
+                , valueDecoder = JD.bool
+                , argsEncoder = JE.dict identity encodeItem
+                }
+    in
+    Task.attempt onResult <| call items
+
+
+storeDump : (TaskPort.Result Bool -> msg) -> DataDump -> Effect msg
+storeDump onResult dump =
+    StoreDump onResult dump
+
+
+storeDumpEffect : (TaskPort.Result Bool -> msg) -> DataDump -> Cmd msg
+storeDumpEffect onResult dump =
+    let
+        call =
+            TaskPort.call
+                { function = "storeDump"
+                , valueDecoder = JD.bool
+                , argsEncoder = encodeDump
+                }
+    in
+    Task.attempt onResult <| call dump
+
+
+
+-- EXPORT AND IMPORT
+
+
+exportData : Effect msg
+exportData =
+    ExportData
+
+
+exportDataEffect : DataDump -> Cmd msg
+exportDataEffect data =
+    JE.object
+        [ ( "version", JE.int data.version )
+        , ( "categories", JE.list encodeCategory data.categories )
+        , ( "items", JE.dict identity encodeItem data.items )
+        ]
+        |> JE.encode 2
+        |> File.Download.string
+            "grocery-list-backup.json"
+            "application/json"
+
+
+importData : String -> Effect msg
+importData content =
+    case JD.decodeString dumpDecoder content of
+        Ok parsed ->
+            SendSharedMsg (Shared.Msg.ImportData (Debug.log "PARSED DUMP" parsed))
+
+        Err err ->
+            JD.errorToString err
+                |> Just
+                |> Shared.Msg.Error
+                |> SendSharedMsg
 
 
 
 -- SHARED UPDATES
 
 
-updateItemState : Int -> ItemState -> Effect msg
-updateItemState itemId state =
-    SendSharedMsg (Shared.Msg.ItemStateUpdated itemId state)
+updateItemState : Item -> ItemState -> Effect msg
+updateItemState item state =
+    SendSharedMsg (Shared.Msg.ItemStateUpdated item state)
 
 
 updateItem : Item -> Effect msg
@@ -313,6 +379,15 @@ map fn effect =
         StoreItem onResult item ->
             StoreItem (\res -> fn <| onResult res) item
 
+        StoreAllItems onResult items ->
+            StoreAllItems (\res -> fn <| onResult res) items
+
+        ExportData ->
+            ExportData
+
+        StoreDump onResult dump ->
+            StoreDump (\res -> fn <| onResult res) dump
+
 
 {-| Elm Land depends on this function to perform your effects.
 -}
@@ -361,3 +436,16 @@ toCmd options effect =
 
         StoreItem onResult item ->
             storeItemEffect onResult item
+
+        StoreAllItems onResult items ->
+            storeAllItemsEffect onResult items
+
+        ExportData ->
+            exportDataEffect <|
+                DataDump
+                    options.shared.dbConfig.version
+                    options.shared.items
+                    options.shared.categories
+
+        StoreDump onResult dump ->
+            storeDumpEffect onResult dump

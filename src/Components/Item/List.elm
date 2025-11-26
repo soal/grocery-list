@@ -3,9 +3,9 @@ module Components.Item.List exposing
     , Msg(..)
     , new
     , view
+    , withCounter
     , withLink
     , withMark
-    , withCounter
     )
 
 import Components.Category.Body
@@ -68,14 +68,16 @@ withMark : ItemsList -> ItemsList
 withMark (Settings settings) =
     Settings { settings | mark = True }
 
+
 withCounter : ItemsList -> ItemsList
 withCounter (Settings settings) =
     Settings { settings | counter = True }
 
+
 type Msg
     = CollapseClicked Int CollapsedState
-    | ItemClicked Int ItemState
-    | ItemChecked Int Bool
+    | ItemClicked Item ItemState
+    | ItemChecked Item Bool
     | NoOp
 
 
@@ -170,9 +172,9 @@ viewItems options category =
 
 getCatItems : ( Dict String Item, Category ) -> List ( String, Item )
 getCatItems ( allItems, category ) =
-    List.map (\id -> Dict.get (String.fromInt id) allItems) category.items
+    List.map (\id -> Dict.get id allItems) category.items
         |> List.filterMap identity
-        |> List.map (\item -> ( String.fromInt item.id, item ))
+        |> List.map (\item -> ( item.id, item ))
 
 
 viewItem : Item -> Bool -> Bool -> List ItemState -> Html Msg
@@ -195,9 +197,9 @@ viewItem item mark link checkedStates =
         |> Html.map
             (\msg ->
                 case msg of
-                    Components.Item.ListElement.ItemChecked id check ->
-                        ItemChecked id check
+                    Components.Item.ListElement.ItemChecked clickedItem check ->
+                        ItemChecked clickedItem check
 
-                    Components.Item.ListElement.ItemClicked id state ->
-                        ItemClicked id state
+                    Components.Item.ListElement.ItemClicked clickedItem state ->
+                        ItemClicked clickedItem state
             )

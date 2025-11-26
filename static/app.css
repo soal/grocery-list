@@ -51,12 +51,37 @@ button {
 }
 
 .main-nav {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+
+  & ul {
+    flex-grow: 1;
+    justify-content: center;
+    column-gap: 1em;
+
+    /* &:last-child { */
+    /* margin-left: auto; */
+    /* flex-grow: 0; */
+    /* } */
+  }
+
+  & li {
+    &:last-child {
+      justify-self: flex-end;
+      flex-grow: 0;
+    }
+  }
+
   .link {
     color: var(--pico-secondary);
     display: inline-flex;
     align-items: center;
     text-decoration: none;
     column-gap: 0.4em;
+    padding-inline: var(--pico-form-element-spacing-horizontal);
+
+
 
     &.active {
       color: white;
@@ -68,6 +93,7 @@ button {
       &:active {
         text-decoration: none;
       }
+
 
     }
   }

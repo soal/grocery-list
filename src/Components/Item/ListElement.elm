@@ -57,8 +57,8 @@ withMark (Settings settings) =
 
 
 type Msg
-    = ItemClicked Int ItemState
-    | ItemChecked Int Bool
+    = ItemClicked Item ItemState
+    | ItemChecked Item Bool
 
 
 view : ItemListElement -> Html Msg
@@ -81,7 +81,7 @@ view (Settings settings) =
     article
         [ class "grocery-item"
         , classList [ ( "in-basket", checkMark ) ]
-        , onClick (ItemClicked settings.item.id settings.item.state)
+        , onClick (ItemClicked settings.item settings.item.state)
         ]
         [ div []
             [ label []
@@ -94,7 +94,7 @@ view (Settings settings) =
                             settings.item.state
                             settings.checkedSates
                         )
-                    , onCheck (ItemChecked settings.item.id)
+                    , onCheck (ItemChecked settings.item)
                     ]
                     []
                 , h4 []

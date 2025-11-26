@@ -1,13 +1,16 @@
 module Pages.Settings exposing (Model, Msg, page)
 
 import Effect exposing (Effect)
-import Html exposing (button, div, h1, h2, input, text)
-import Html.Attributes exposing (type_)
+import File exposing (File)
+import File.Select
+import Html exposing (button, div, h1, h2, text)
+import Html.Events exposing (onClick)
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
 import Shared.Msg exposing (Msg(..))
+import Task
 import View exposing (View)
 
 
@@ -32,12 +35,12 @@ toLayout _ =
 
 
 type alias Model =
-    {}
+    { imported : Maybe String }
 
 
 init : () -> ( Model, Effect Msg )
 init () =
-    ( {}
+    ( { imported = Nothing }
     , Effect.none
     )
 
@@ -48,6 +51,10 @@ init () =
 
 type Msg
     = NoOp
+    | ExportRequested
+    | ImportRequested
+    | ImportFileSelected File
+    | ImportFileLoaded String
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -57,6 +64,26 @@ update msg model =
             ( model
             , Effect.none
             )
+
+        ExportRequested ->
+            ( model, Effect.exportData )
+
+        ImportRequested ->
+            ( model
+            , Effect.sendCmd <|
+                File.Select.file
+                    [ "application/json" ]
+                    ImportFileSelected
+            )
+
+        ImportFileSelected file ->
+            ( model
+            , Effect.sendCmd <|
+                Task.perform ImportFileLoaded (File.toString file)
+            )
+
+        ImportFileLoaded content ->
+            ( model, Effect.importData content )
 
 
 
@@ -81,8 +108,8 @@ view shared _ =
             [ h2 [] [ text "Тема" ] ]
         , div []
             [ h2 [] [ text "Экспорт и импорт" ]
-            , button [] [ text "Экспорт данных" ]
-            , input [ type_ "file" ] [ text "Импорт из файла" ]
+            , button [ onClick ExportRequested ] [ text "Экспорт данных" ]
+            , button [ onClick ImportRequested ] [ text "Импорт из файла" ]
             ]
         ]
     }

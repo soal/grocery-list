@@ -2,7 +2,7 @@ module Pages.Items exposing (Model, Msg, page)
 
 import Components.Item.List
 import Db.Categories exposing (CollapsedState(..))
-import Db.Items exposing (ItemQuantity(..), ItemState(..))
+import Db.Items exposing (Item, ItemQuantity(..), ItemState(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html
@@ -52,7 +52,7 @@ init () =
 
 type Msg
     = CollapseClicked Int CollapsedState
-    | ItemChecked Int Bool
+    | ItemChecked Item Bool
     | NoOp
 
 
@@ -62,7 +62,7 @@ update msg model =
         CollapseClicked id state ->
             ( model, Effect.updateCatCollapsedState "all" id state )
 
-        ItemChecked id checked ->
+        ItemChecked item checked ->
             let
                 newState =
                     if checked == True then
@@ -72,7 +72,7 @@ update msg model =
                         Stuffed
             in
             ( model
-            , Effect.updateItemState id newState
+            , Effect.updateItemState item newState
             )
 
         NoOp ->
@@ -111,11 +111,11 @@ view shared _ =
             |> Html.map
                 (\msg ->
                     case msg of
-                        Components.Item.List.CollapseClicked id state ->
-                            CollapseClicked id state
+                        Components.Item.List.CollapseClicked clickedItem state ->
+                            CollapseClicked clickedItem state
 
-                        Components.Item.List.ItemChecked id check ->
-                            ItemChecked id check
+                        Components.Item.List.ItemChecked checkedItem check ->
+                            ItemChecked checkedItem check
 
                         _ ->
                             NoOp

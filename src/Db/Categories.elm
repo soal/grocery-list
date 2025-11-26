@@ -1,6 +1,7 @@
 module Db.Categories exposing (..)
 
-import Json.Decode as D
+import Json.Decode as JD
+import Json.Encode as JE
 import Time
 
 
@@ -22,47 +23,45 @@ stringToCollapsedState stateStr =
             Open
 
 
+collapsedStateToString : CollapsedState -> String
+collapsedStateToString state =
+    case state of
+        Open ->
+            "open"
+
+        Collapsed ->
+            "collapsed"
+
+
 type alias Category =
     { id : Int
     , name : String
-    , items : List Int
-    , state : CollapsedState
+    , items : List String
+
+    -- , state : CollapsedState
     , created : Time.Posix
     , updated : Time.Posix
     }
 
 
-categoryDec : D.Decoder Category
+categoryDec : JD.Decoder Category
 categoryDec =
-    D.map6
+    JD.map5
         Category
-        (D.field "id" D.int)
-        (D.field "name" D.string)
-        (D.field "items" <| D.list D.int)
-        (D.field "state" <| D.map stringToCollapsedState D.string)
-        (D.field "created" <| D.map Time.millisToPosix D.int)
-        (D.field "updated" <| D.map Time.millisToPosix D.int)
+        (JD.field "id" JD.int)
+        (JD.field "name" JD.string)
+        (JD.field "items" <| JD.list JD.string)
+        -- (JD.field "state" <| JD.map stringToCollapsedState JD.string)
+        (JD.field "created" <| JD.map Time.millisToPosix JD.int)
+        (JD.field "updated" <| JD.map Time.millisToPosix JD.int)
 
 
-categories : List Category
-categories =
-    [ Category 1
-        "Бакалея"
-        [ 1, 4 ]
-        Open
-        (Time.millisToPosix 10)
-        (Time.millisToPosix 10)
-    , Category
-        2
-        "Фрукты и овощи"
-        [ 2, 3 ]
-        Open
-        (Time.millisToPosix 10)
-        (Time.millisToPosix 10)
-    , Category 3
-        "Прочее"
-        [ 5 ]
-        Open
-        (Time.millisToPosix 10)
-        (Time.millisToPosix 10)
-    ]
+encodeCategory : Category -> JE.Value
+encodeCategory cat =
+    JE.object
+        [ ( "id", JE.int cat.id )
+        , ( "name", JE.string cat.name )
+        , ( "items", JE.list JE.string cat.items )
+        , ( "created", JE.int <| Time.posixToMillis cat.created )
+        , ( "updated", JE.int <| Time.posixToMillis cat.updated )
+        ]

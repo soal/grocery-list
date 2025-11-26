@@ -3,7 +3,6 @@ module Components.Category.Header exposing
     , Msg(..)
     , init
     , new
-    , toggleCategory
     , view
     , withCounter
     )
@@ -89,27 +88,14 @@ view (Settings settings) =
         )
 
 
-viewOptionalCounter : Dict String Item -> List Int -> Bool -> List (Html msg)
+viewOptionalCounter : Dict String Item -> List String -> Bool -> List (Html msg)
 viewOptionalCounter items catItemIs counter =
     if counter == True then
         [ Components.Counter.view
             (Dict.map (\_ item -> item.state) items)
-            (List.map String.fromInt catItemIs)
+            catItemIs
             InBasket
         ]
 
     else
         []
-
-
-toggleCategory : List Category -> Int -> CollapsedState -> List Category
-toggleCategory categories toggledId state =
-    List.map
-        (\cat ->
-            if cat.id == toggledId then
-                { cat | state = state }
-
-            else
-                cat
-        )
-        categories

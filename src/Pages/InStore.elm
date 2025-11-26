@@ -52,7 +52,7 @@ filterCategories items categories =
     List.filter
         (\cat ->
             List.any
-                (\id -> Dict.member (String.fromInt id) items)
+                (\id -> Dict.member id items)
                 cat.items
         )
         categories
@@ -71,7 +71,7 @@ init () =
 
 type Msg
     = CollapseClicked Int CollapsedState
-    | ItemClicked Int ItemState
+    | ItemClicked Item ItemState
     | EndShopping
     | NoOp
 
@@ -82,9 +82,9 @@ update msg model =
         CollapseClicked id state ->
             ( model, Effect.updateCatCollapsedState "in-store" id state )
 
-        ItemClicked id currentState ->
+        ItemClicked item currentState ->
             ( model
-            , Effect.updateItemState id (toggleItemState currentState)
+            , Effect.updateItemState item (toggleItemState currentState)
             )
 
         EndShopping ->
@@ -140,8 +140,8 @@ view shared _ =
                             Components.Item.List.CollapseClicked id state ->
                                 CollapseClicked id state
 
-                            Components.Item.List.ItemClicked id state ->
-                                ItemClicked id state
+                            Components.Item.List.ItemClicked item state ->
+                                ItemClicked item state
 
                             _ ->
                                 NoOp

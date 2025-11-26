@@ -18,6 +18,14 @@ convertKeys someDict =
         |> Dict.fromList
 
 
+keysAsStrings : Dict Int v -> Dict String v
+keysAsStrings someDict =
+    Dict.toList someDict
+        |> List.indexedMap
+            (\_ ( k, v ) -> ( String.fromInt k, v ))
+        |> Dict.fromList
+
+
 getCatStateForPage : String -> Shared.Model.CollapsedCats -> Category -> CollapsedState
 getCatStateForPage pageName collapsedMap category =
     if

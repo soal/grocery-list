@@ -48,8 +48,8 @@ itemStateToString state =
             "in-basket"
 
 
-stateEncoder : ItemState -> JE.Value
-stateEncoder state =
+encodeState : ItemState -> JE.Value
+encodeState state =
     state |> itemStateToString |> JE.string
 
 
@@ -57,16 +57,16 @@ type ItemQuantity
     = ItemQuantity Float String
 
 
-quantityDec : JD.Decoder ItemQuantity
-quantityDec =
+quantityDecoder : JD.Decoder ItemQuantity
+quantityDecoder =
     JD.map2
         (\number unit -> ItemQuantity number unit)
         (JD.field "count" JD.float)
         (JD.field "unit" JD.string)
 
 
-quantityEncoder : ItemQuantity -> JE.Value
-quantityEncoder quantity =
+encodeQuantity : ItemQuantity -> JE.Value
+encodeQuantity quantity =
     case quantity of
         ItemQuantity count unit ->
             JE.object
@@ -76,7 +76,7 @@ quantityEncoder quantity =
 
 
 type alias Item =
-    { id : Int
+    { id : String
     , name : String
     , quantity : ItemQuantity
     , comment : Maybe String
@@ -92,9 +92,9 @@ itemDecoder : JD.Decoder Item
 itemDecoder =
     JD.map7
         Item
-        (JD.field "id" JD.int)
+        (JD.field "id" JD.string)
         (JD.field "name" JD.string)
-        (JD.field "quantity" quantityDec)
+        (JD.field "quantity" quantityDecoder)
         (JD.field "comment" <| JD.maybe JD.string)
         (JD.field "slug" JD.string)
         (JD.field "symbol" <| JD.maybe JD.string)
@@ -107,101 +107,30 @@ itemDecoder =
             )
 
 
-itemEncoder : Item -> JE.Value
-itemEncoder item =
+encodeItem : Item -> JE.Value
+encodeItem item =
     JE.object
-        [ ( "id", JE.int item.id )
+        [ ( "id", JE.string item.id )
         , ( "name", JE.string item.name )
-        , ( "quantity", quantityEncoder item.quantity )
+        , ( "quantity", encodeQuantity item.quantity )
         , ( "comment", JEE.maybe JE.string item.comment )
         , ( "slug", JE.string item.slug )
         , ( "symbol", JEE.maybe JE.string item.symbol )
-        , ( "state", stateEncoder item.state )
+        , ( "state", encodeState item.state )
         , ( "created", JE.int <| Time.posixToMillis item.created )
         , ( "updated", JE.int <| Time.posixToMillis item.updated )
         ]
 
 
-updateItemState : Dict String Item -> Int -> ItemState -> Dict String Item
+updateItemState : Dict String Item -> String -> ItemState -> Dict String Item
 updateItemState allItems id state =
-    Dict.update (String.fromInt id)
+    Dict.update id
         (Maybe.map (\found -> { found | state = state }))
         allItems
 
 
 updateItem : Dict String Item -> Item -> Dict String Item
 updateItem allItems item =
-    Dict.update (String.fromInt item.id)
+    Dict.update item.id
         (Maybe.map (always item))
         allItems
-
-
-items : Dict String Item
-items =
-    Dict.fromList
-        [ ( "1"
-          , Item
-                1
-                "Хлеб"
-                (ItemQuantity 1 "батон")
-                (Just "лучше побольше")
-                "хлеб"
-                Nothing
-                Stuffed
-                (Time.millisToPosix 10)
-                (Time.millisToPosix 10)
-          )
-        , ( "2"
-          , Item
-                2
-                "Бананы"
-                (ItemQuantity 6 "штук")
-                Nothing
-                "бананы"
-                (Just "🍌")
-                Stuffed
-                (Time.millisToPosix 10)
-                (Time.millisToPosix 10)
-          )
-        , ( "3"
-          , Item
-                3
-                "Яблоки"
-                (ItemQuantity 4 "штук")
-                (Just "Если большие и красивые")
-                "Яблоки"
-                (Just "🍏")
-                Stuffed
-                (Time.millisToPosix 10)
-                (Time.millisToPosix 10)
-          )
-        , ( "4"
-          , Item
-                4
-                "Томатный соус"
-                (ItemQuantity 1 "банка")
-                (Just
-                    """
-                    Если есть в Пятёрочке, а ещё лучше вообще зашоплифитить бесплатно,
-                    они там вобще офанарели
-                    """
-                )
-                "томатный-соус"
-                Nothing
-                Stuffed
-                (Time.millisToPosix 10)
-                (Time.millisToPosix 10)
-          )
-        , ( "5"
-          , Item
-                5
-                "Какое-нибудь мясо"
-                (ItemQuantity 500 "г.")
-                Nothing
-                "мясо"
-                Nothing
-                Stuffed
-                (Time.millisToPosix 10)
-                (Time.millisToPosix 10)
-          )
-        ]

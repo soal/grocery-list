@@ -10,7 +10,6 @@ type AppSettings = {
 	id: number;
 	theme: "auto" | "light" | "dark";
 };
-
 type ItemState = "stuffed" | "required";
 
 type Item = {
@@ -37,6 +36,12 @@ type Category = {
 	state: CollapsedState;
 	created: number;
 	updated: number;
+};
+
+type DataDump = {
+	version: number;
+	items: Record<string, Item>;
+	categories: Category[];
 };
 
 type DB = Dexie & {
@@ -73,7 +78,17 @@ async function initDb({
 
 async function queryAllCatsAndItems() {
 	if (db) {
-		console.log("Query!");
+		const items = await db.items.toArray().then((itemArray) =>
+			itemArray.reduce((acc, item) => {
+				acc[item.id] = item;
+				return acc;
+			}, {}),
+		);
+		console.log("!!!", items);
+		return {
+			categories: await db.categories.toArray(),
+			items,
+		};
 	}
 	return {
 		categories: [],
@@ -83,16 +98,38 @@ async function queryAllCatsAndItems() {
 
 async function storeItem(item: Item) {
 	if (db) {
-		console.log("STORE", item)
+		console.log("STORE ITEM", item);
 		await db.items.put(item);
 		return true;
 	}
 	false;
 }
 
+async function storeAllItems(items: Item[]) {
+	if (db) {
+		await db.items.bulkPut(Object.values(items));
+		return true;
+	}
+	false;
+}
+
+async function storeDump(dump: DataDump) {
+	if (db) {
+		console.log("DUMP", dump);
+		await db.categories.clear();
+		await db.categories.bulkAdd(dump.categories);
+		await db.items.clear();
+		await db.items.bulkAdd(Object.values(dump.items));
+		return true;
+	}
+	return false;
+}
+
 TaskPort.register("initDb", initDb);
 TaskPort.register("queryAllCatsAndItems", queryAllCatsAndItems);
 TaskPort.register("storeItem", storeItem);
+TaskPort.register("storeAllItems", storeAllItems);
+TaskPort.register("storeDump", storeDump);
 
 export const flags = ({ env }) => ({
 	settings: {

@@ -12,8 +12,8 @@ module Shared exposing
 
 -}
 
-import Db.Categories exposing (CollapsedState(..), categories)
-import Db.Items exposing (Item, ItemState(..), items, updateItem, updateItemState)
+import Db.Categories exposing (CollapsedState(..))
+import Db.Items exposing (Item, ItemState(..), updateItem, updateItemState)
 import Db.Settings exposing (AppSettings, AppTheme(..), settingsDec)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
@@ -22,7 +22,7 @@ import Route exposing (Route)
 import Route.Path exposing (toString)
 import Set
 import Shared.Model exposing (CollapsedCats, DbConfig, DbStatus(..))
-import Shared.Msg
+import Shared.Msg exposing (Msg(..))
 
 
 
@@ -64,8 +64,8 @@ init _ route =
                     , ( "in-store", Set.empty )
                     ]
             }
-      , items = items
-      , categories = categories
+      , items = Dict.empty
+      , categories = []
       , titlePrefix = "Покупки: "
       , error = Nothing
       }
@@ -90,24 +90,48 @@ update _ msg model =
             )
 
         Shared.Msg.DbInitialized result ->
-            ( { model
-                | dbConfig =
-                    updateDbStatus
-                        model.dbConfig
-                        (case result of
-                            Ok _ ->
-                                Shared.Model.DbReady
+            let
+                res =
+                    case result of
+                        Ok _ ->
+                            Shared.Model.DbReady
 
+                        Err _ ->
+                            Shared.Model.DbError
+            in
+            ( { model | dbConfig = updateDbStatus model.dbConfig res }
+            , if res == Shared.Model.DbReady then
+                Effect.queryAll
+                    (\loaded ->
+                        case loaded of
+                            Ok data ->
+                                Shared.Msg.LoadInitial data
+
+                            -- Err err ->
                             Err _ ->
-                                Shared.Model.DbError
-                        )
-              }
-            , Effect.none
+                                -- err
+                                --     |> Json.Decode.errorToString
+                                --     |> Just
+                                --     |> Shared.Msg.Error
+                                Shared.Msg.Error Nothing
+                    )
+
+              else
+                Effect.none
             )
 
-        Shared.Msg.ItemStateUpdated itemId state ->
-            ( { model | items = updateItemState model.items itemId state }
-            , Effect.none
+        Shared.Msg.ItemStateUpdated item state ->
+            ( { model | items = updateItemState model.items item.id state }
+            , Effect.storeItem
+                (\res ->
+                    case res of
+                        Ok True ->
+                            Shared.Msg.NoOp
+
+                        _ ->
+                            Shared.Msg.Error Nothing
+                )
+                { item | state = state }
             )
 
         Shared.Msg.CatCollapsedStateUpdate pagePath catId state ->
@@ -126,7 +150,22 @@ update _ msg model =
             )
 
         Shared.Msg.EndShopping ->
-            ( { model | items = endShopping model.items }, Effect.none )
+            let
+                updated =
+                    endShopping model.items
+            in
+            ( { model | items = updated }
+            , Effect.storeAllItems
+                (\res ->
+                    case res of
+                        Ok True ->
+                            Shared.Msg.NoOp
+
+                        _ ->
+                            Shared.Msg.Error Nothing
+                )
+                updated
+            )
 
         Shared.Msg.ItemUpdated item ->
             ( { model | items = updateItem model.items item }
@@ -137,13 +176,31 @@ update _ msg model =
                             Shared.Msg.NoOp
 
                         _ ->
-                            Shared.Msg.Error
+                            Shared.Msg.Error Nothing
                 )
                 item
             )
 
-        Shared.Msg.Error ->
-            ( model, Effect.none )
+        Shared.Msg.Error error ->
+            ( { model | error = error }, Effect.none )
+
+        Shared.Msg.ImportData imported ->
+            ( { model
+                | categories = imported.categories
+                , items = imported.items
+                , dbConfig =
+                    { name = model.dbConfig.name
+                    , version = imported.version
+                    , status = model.dbConfig.status
+                    }
+              }
+            , Effect.storeDump (\_ -> NoOp) imported
+            )
+
+        Shared.Msg.LoadInitial data ->
+            ( { model | categories = data.categories, items = data.items }
+            , Effect.none
+            )
 
 
 updateDbStatus : DbConfig -> DbStatus -> DbConfig

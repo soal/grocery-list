@@ -12,8 +12,6 @@ import Route exposing (Route)
 import Route.Path exposing (Path)
 import Shared
 import Shared.Msg exposing (Msg(..))
-import Task
-import Time
 import View exposing (View)
 
 
@@ -68,10 +66,11 @@ init route () =
               , text = "Всё"
               , icon = Icons.list
               }
-            , { path = Route.Path.ToBuy
-              , text = "Купить"
-              , icon = Icons.shoppingBag
-              }
+
+            -- , { path = Route.Path.ToBuy
+            --   , text = "Купить"
+            --   , icon = Icons.shoppingBag
+            --   }
             , { path = Route.Path.InStore
               , text = "В магазине"
               , icon = Icons.shoppingCart
@@ -95,7 +94,7 @@ type Msg
 
 
 update : Props contentMsg -> Msg -> Model -> ( Model, Effect Msg )
-update props msg model =
+update _ msg model =
     case msg of
         UrlChanged { to } ->
             ( { model | currentRoute = to }
@@ -131,7 +130,10 @@ view props { model, content } =
     { title = content.title
     , body =
         [ Html.node "on-click-outside"
-            [ on "clickoutside" <| Json.Decode.succeed <| props.onClickedOutside ]
+            [ on "clickoutside" <|
+                Json.Decode.succeed <|
+                    props.onClickedOutside
+            ]
             [ header [ class "nav-header container" ] [ viewNavBar model ]
             , main_ [ class "app-main container" ] content.body
             , footer [ class "nav-footer container" ]
@@ -145,14 +147,15 @@ viewNavBar : Model -> Html msg
 viewNavBar model =
     nav [ class "main-nav" ]
         [ ul [ class "group" ] <|
-            List.map
+            (List.map
                 (viewNavLink model.currentRoute)
-            <|
+             <|
                 model.links
-        , ul []
-            [ viewNavLink model.currentRoute
-                (NavLink Route.Path.Settings "" Icons.settings)
-            ]
+            )
+                -- , ul []
+                ++ [ viewNavLink model.currentRoute
+                        (NavLink Route.Path.Settings "" Icons.settings)
+                   ]
         ]
 
 
