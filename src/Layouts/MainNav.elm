@@ -1,27 +1,43 @@
-module Layouts.MainNav exposing (Model, Msg, Props, layout)
+module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
 import Dict
 import Effect exposing (Effect)
 import FeatherIcons as Icons
 import Html exposing (Html, a, footer, header, li, main_, nav, text, ul)
 import Html.Attributes exposing (class, classList)
+import Html.Events exposing (on)
+import Json.Decode
 import Layout exposing (Layout)
 import Route exposing (Route)
 import Route.Path exposing (Path)
 import Shared
+import Shared.Msg exposing (Msg(..))
+import Task
+import Time
 import View exposing (View)
 
 
-type alias Props =
-    {}
+type alias Props contentMsg =
+    { onClickedOutside : contentMsg
+    }
 
 
-layout : Props -> Shared.Model -> Route () -> Layout () Model Msg contentMsg
-layout _ _ route =
+map : (msg1 -> msg2) -> Props msg1 -> Props msg2
+map fn props =
+    { onClickedOutside = fn props.onClickedOutside
+    }
+
+
+layout :
+    Props contentMsg
+    -> Shared.Model
+    -> Route ()
+    -> Layout () Model Msg contentMsg
+layout props _ route =
     Layout.new
         { init = init route
-        , update = update
-        , view = view
+        , update = update props
+        , view = view props
         , subscriptions = subscriptions
         }
         |> Layout.withOnUrlChanged UrlChanged
@@ -74,13 +90,22 @@ type Msg
     = UrlChanged { from : Route (), to : Route () }
 
 
-update : Msg -> Model -> ( Model, Effect Msg )
-update msg model =
+
+-- | ClickedOutside
+
+
+update : Props contentMsg -> Msg -> Model -> ( Model, Effect Msg )
+update props msg model =
     case msg of
         UrlChanged { to } ->
             ( { model | currentRoute = to }
             , Effect.none
             )
+
+
+
+-- ClickedOutside ->
+--     ( model, Task.perform props.onClickedOutside Time.now )
 
 
 subscriptions : Model -> Sub Msg
@@ -93,20 +118,25 @@ subscriptions _ =
 
 
 view :
-    { toContentMsg :
-        Msg
-        -> contentMsg
-    , content : View contentMsg
-    , model : Model
-    }
+    Props contentMsg
+    ->
+        { toContentMsg :
+            Msg
+            -> contentMsg
+        , content : View contentMsg
+        , model : Model
+        }
     -> View contentMsg
-view { model, content } =
+view props { model, content } =
     { title = content.title
     , body =
-        [ header [ class "nav-header container" ] [ viewNavBar model ]
-        , main_ [ class "app-main container" ] content.body
-        , footer [ class "nav-footer container" ]
-            [ viewNavBar model ]
+        [ Html.node "on-click-outside"
+            [ on "clickoutside" <| Json.Decode.succeed <| props.onClickedOutside ]
+            [ header [ class "nav-header container" ] [ viewNavBar model ]
+            , main_ [ class "app-main container" ] content.body
+            , footer [ class "nav-footer container" ]
+                [ viewNavBar model ]
+            ]
         ]
     }
 

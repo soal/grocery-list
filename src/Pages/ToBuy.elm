@@ -22,7 +22,7 @@ page _ _ =
 
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
-    Layouts.MainNav {}
+    Layouts.MainNav { onClickedOutside = NoOp }
 
 
 

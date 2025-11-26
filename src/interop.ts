@@ -1,5 +1,8 @@
 import Dexie, { type EntityTable } from "dexie";
 import * as TaskPort from "elm-taskport";
+import { ClickOutside } from "./web-components/clickOutside.js";
+
+window.customElements.define("on-click-outside", ClickOutside);
 
 TaskPort.install({ logCallErrors: true, logInteropErrors: true });
 

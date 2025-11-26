@@ -4,13 +4,15 @@ import Db.Items exposing (Item, ItemQuantity(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, b, div, h1, i, input, p, span, text, textarea)
-import Html.Attributes exposing (class, type_, value)
+import Html.Attributes exposing (autofocus, class, id, name, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
+import Html.Extra exposing (nothing)
 import Json.Decode exposing (Error(..))
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
+import Shared.Msg exposing (Msg(..))
 import Url exposing (percentDecode)
 import View exposing (View)
 
@@ -28,7 +30,9 @@ page shared route =
 
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
-    Layouts.MainNav {}
+    Layouts.MainNav
+        { onClickedOutside = ClickedOutside
+        }
 
 
 
@@ -38,6 +42,10 @@ toLayout _ =
 type FieldMode
     = ViewMode
     | EditMode
+
+
+
+-- | EditMode
 
 
 type FieldName
@@ -167,6 +175,7 @@ type Msg
     = StartEditing ItemField (Maybe String)
     | FinishEditing ItemField
     | UpdateField ItemField (Maybe String)
+    | ClickedOutside
     | NoOp
 
 
@@ -215,6 +224,9 @@ update shared msg model =
               }
             , Effect.none
             )
+
+        ClickedOutside ->
+            ( { model | fields = allFieldsToView model.fields }, Effect.none )
 
         NoOp ->
             ( model
@@ -319,33 +331,42 @@ viewItemPage fields sharedItem =
 
 viewField : Item -> ItemField -> Html Msg
 viewField item field =
-    case field of
-        ItemField (Name _) _ ->
-            viewName field item.name
+    div [ class "item-page with-click-ouside" ]
+        [ case field of
+            ItemField (Name _) _ ->
+                viewName field item.name
 
-        ItemField (Comment _) _ ->
-            viewComment field item.comment
+            ItemField (Comment _) _ ->
+                viewComment field item.comment
 
-        ItemField (QCount _) _ ->
-            viewQCount field item.quantity
+            ItemField (QCount _) _ ->
+                viewQCount field item.quantity
 
-        ItemField (QUnit _) _ ->
-            viewQUnit field item.quantity
+            ItemField (QUnit _) _ ->
+                viewQUnit field item.quantity
 
-        _ ->
-            div [] []
+            _ ->
+                nothing
+        ]
 
 
 viewName : ItemField -> String -> Html Msg
 viewName field sharedName =
     case field of
-        ItemField (Name name) EditMode ->
+        ItemField (Name maybeName) EditMode ->
+            let
+                fieldData =
+                    Maybe.withDefault sharedName maybeName
+            in
             h1 []
                 [ input
                     [ type_ "text"
-                    , value (Maybe.withDefault sharedName name)
+                    , value fieldData
                     , onInput (Just >> UpdateField field)
                     , onBlur (FinishEditing field)
+                    , autofocus True
+                    , name <| "item-name-" ++ fieldData
+                    , id <| "item-name-" ++ fieldData
                     ]
                     []
                 ]
@@ -383,12 +404,18 @@ viewQUnit : ItemField -> ItemQuantity -> Html Msg
 viewQUnit field existing =
     div [ class "item-page-quantity item-quantity unit" ]
         [ case field of
-            ItemField (QUnit unit) EditMode ->
+            ItemField (QUnit maybeUnit) EditMode ->
+                let
+                    fieldData =
+                        Maybe.withDefault "штук" maybeUnit
+                in
                 input
                     [ type_ "text"
-                    , value (Maybe.withDefault "штук" unit)
+                    , value fieldData
                     , onInput (Just >> UpdateField field)
                     , onBlur (FinishEditing field)
+                    , name <| "item-quantity-unit-" ++ fieldData
+                    , id <| "item-quantity-unit-" ++ fieldData
                     ]
                     []
 
@@ -404,12 +431,18 @@ viewQCount : ItemField -> ItemQuantity -> Html Msg
 viewQCount field existing =
     div [ class "item-page-quantity item-quantity count" ]
         [ case field of
-            ItemField (QCount count) EditMode ->
+            ItemField (QCount maybeCount) EditMode ->
+                let
+                    fieldData =
+                        String.fromInt <| Maybe.withDefault 1 maybeCount
+                in
                 input
                     [ type_ "number"
-                    , value <| String.fromInt <| Maybe.withDefault 1 count
+                    , value fieldData
                     , onInput (Just >> UpdateField field)
                     , onBlur (FinishEditing field)
+                    , name <| "item-quantity-count-" ++ fieldData
+                    , id <| "item-quantity-count-" ++ fieldData
                     ]
                     []
 
