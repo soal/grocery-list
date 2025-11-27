@@ -12,20 +12,20 @@ viewField : Item -> ItemForm.ItemField -> Html ItemForm.Msg
 viewField item field =
     case field of
         ItemField (Name _) _ ->
-            viewFieldWrap [] (viewName field item.name)
+            viewFieldWrap [] (viewName field item.id item.name)
 
         ItemForm.ItemField (Comment _) _ ->
-            viewFieldWrap [] (viewComment field item.comment)
+            viewFieldWrap [] (viewComment field item.id item.comment)
 
         ItemForm.ItemField (QCount _) _ ->
             viewFieldWrap
                 [ "item-page-quantity", "item-quantity", "unit" ]
-                (viewQCount field item.quantity)
+                (viewQCount field item.id item.quantity)
 
         ItemForm.ItemField (QUnit _) _ ->
             viewFieldWrap
                 [ "item-page-quantity", "item-quantity", "count" ]
-                (viewQUnit field item.quantity)
+                (viewQUnit field item.id item.quantity)
 
         _ ->
             nothing
@@ -40,8 +40,8 @@ viewFieldWrap classes content =
         [ content ]
 
 
-viewName : ItemField -> String -> Html ItemForm.Msg
-viewName field sharedName =
+viewName : ItemField -> String -> String -> Html ItemForm.Msg
+viewName field itemId sharedName =
     case field of
         ItemField (Name maybeName) EditMode ->
             let
@@ -54,8 +54,8 @@ viewName field sharedName =
                     , value fieldData
                     , onInput (Just >> ItemForm.UpdateField field)
                     , onBlur (ItemForm.FinishEditing field)
-                    , name <| "item-name-" ++ fieldData
-                    , id <| "item-name-" ++ fieldData
+                    , name <| "item-name-" ++ itemId
+                    , id <| "item-name-" ++ itemId
                     ]
                     []
                 ]
@@ -67,14 +67,15 @@ viewName field sharedName =
                 [ text sharedName ]
 
 
-viewComment : ItemField -> Maybe String -> Html ItemForm.Msg
-viewComment field existing =
+viewComment : ItemField -> String -> Maybe String -> Html ItemForm.Msg
+viewComment field itemId existing =
     case field of
         ItemField (Comment comment) EditMode ->
             textarea
                 [ value (Maybe.withDefault "" comment)
                 , onInput (Just >> ItemForm.UpdateField field)
                 , onBlur (ItemForm.FinishEditing field)
+                , id <| "item-comment-" ++ itemId
                 ]
                 []
 
@@ -89,8 +90,8 @@ viewComment field existing =
                         [ i [] [ text "Добавить комментарий" ] ]
 
 
-viewQUnit : ItemField -> ItemQuantity -> Html ItemForm.Msg
-viewQUnit field existing =
+viewQUnit : ItemField -> String -> ItemQuantity -> Html ItemForm.Msg
+viewQUnit field itemId existing =
     case field of
         ItemField (QUnit maybeUnit) EditMode ->
             let
@@ -102,8 +103,8 @@ viewQUnit field existing =
                 , value fieldData
                 , onInput (Just >> ItemForm.UpdateField field)
                 , onBlur (ItemForm.FinishEditing field)
-                , name <| "item-quantity-unit-" ++ fieldData
-                , id <| "item-quantity-unit-" ++ fieldData
+                , name <| "item-quantity-unit-" ++ itemId
+                , id <| "item-quantity-unit-" ++ itemId
                 ]
                 []
 
@@ -114,8 +115,8 @@ viewQUnit field existing =
                         [ text unit ]
 
 
-viewQCount : ItemField -> ItemQuantity -> Html ItemForm.Msg
-viewQCount field existing =
+viewQCount : ItemField -> String -> ItemQuantity -> Html ItemForm.Msg
+viewQCount field itemId existing =
     case field of
         ItemField (QCount maybeCount) EditMode ->
             let
@@ -127,8 +128,8 @@ viewQCount field existing =
                 , value fieldData
                 , onInput (Just >> ItemForm.UpdateField field)
                 , onBlur (ItemForm.FinishEditing field)
-                , name <| "item-quantity-count-" ++ fieldData
-                , id <| "item-quantity-count-" ++ fieldData
+                , name <| "item-quantity-count-" ++ itemId
+                , id <| "item-quantity-count-" ++ itemId
                 ]
                 []
 

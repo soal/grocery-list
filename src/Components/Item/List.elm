@@ -266,11 +266,8 @@ viewItem { item, mark, link, switch, checkedStates } =
 viewDraft : Maybe Int -> Item -> Category -> List ItemField -> Html Msg
 viewDraft catWithDraft draft category fields =
     let
-        fieldId =
-            String.fromInt category.id ++ draft.id
-
         nameFieldId =
-            "draft-item-name-" ++ fieldId
+            "item-name-" ++ draft.id
     in
     case Maybe.map (\id -> id == category.id) catWithDraft of
         Just True ->
