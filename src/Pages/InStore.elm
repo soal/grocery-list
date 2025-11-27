@@ -7,7 +7,7 @@ import Db.Items exposing (Item, ItemQuantity(..), ItemState(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, button, div, h3, text)
-import Html.Attributes exposing (class, classList)
+import Html.Attributes exposing (class, classList, disabled)
 import Html.Events exposing (onClick)
 import Layouts
 import Page exposing (Page)
@@ -149,6 +149,7 @@ view shared _ =
                 [ class "end-shopping-button"
                 , classList [ ( "all-done", isAllDone items ) ]
                 , onClick EndShopping
+                , disabled (getInBasketLength items <= 0)
                 ]
                 [ Components.Counter.view
                     (Dict.map (\_ item -> item.state) items)
@@ -169,12 +170,12 @@ viewEmpty =
 
 
 isAllDone : Dict String Item -> Bool
-isAllDone itemStates =
+isAllDone items =
     let
         statesLength =
-            Dict.size itemStates
+            Dict.size items
     in
-    statesLength > 0 && statesLength <= getInBasketLength itemStates
+    statesLength > 0 && statesLength <= getInBasketLength items
 
 
 getInBasketLength : Dict String Item -> Int
