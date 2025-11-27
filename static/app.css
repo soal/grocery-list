@@ -137,11 +137,11 @@ button {
 
   &.in-basket {
     @media (prefers-color-scheme: dark) {
-      opacity: 0.8;
+      opacity: 0.7;
     }
 
     @media (prefers-color-scheme: light) {
-      opacity: 0.8;
+      opacity: 0.7;
     }
   }
 

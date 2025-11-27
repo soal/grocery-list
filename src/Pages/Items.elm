@@ -7,7 +7,16 @@ import Db.Items exposing (DraftState(..), Item, ItemQuantity(..), ItemState(..))
 import Effect exposing (Effect)
 import Html
 import Html.Attributes exposing (checked)
-import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..), fields)
+import ItemForm
+    exposing
+        ( FieldMode(..)
+        , FieldName(..)
+        , ItemField(..)
+        , itemFields
+        , updateData
+        , updateFields
+        , updateMode
+        )
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
@@ -46,13 +55,17 @@ type alias Model =
 init : () -> ( Model, Effect Msg )
 init () =
     ( { catWithDraft = Nothing
-      , draftFields =
-            List.map
-                (\(ItemField name _) -> ItemField name EditMode)
-                fields
+      , draftFields = buildFields itemFields
       }
     , Effect.none
     )
+
+
+buildFields : List ItemField -> List ItemField
+buildFields fields =
+    List.map
+        (\(ItemField name _) -> ItemField name EditMode)
+        fields
 
 
 
@@ -64,7 +77,7 @@ type Msg
     | ItemChecked Item Bool
     | DraftOpened Category String
     | DraftClosed Category
-    | DraftUpdated Item
+    | DraftFieldUpdated ItemField (Maybe String)
     | NoOp
 
 
@@ -88,12 +101,20 @@ update msg model =
             )
 
         DraftOpened category fieldId ->
-            ( { model | catWithDraft = Just category.id }
+            ( { model
+                | catWithDraft = Just category.id
+                , draftFields = buildFields itemFields
+              }
             , Effect.sendCmd <| Task.attempt (\_ -> NoOp) (Dom.focus fieldId)
             )
 
-        DraftUpdated draft ->
-            ( model, Effect.updateDraft draft )
+        DraftFieldUpdated field data ->
+            ( { model
+                | draftFields =
+                    updateFields (updateData data) field model.draftFields
+              }
+            , Effect.none
+            )
 
         DraftClosed category ->
             ( { model | catWithDraft = Just category.id }, Effect.none )
@@ -147,9 +168,11 @@ view shared model =
                         Components.Item.List.DraftOpened category fieldId ->
                             DraftOpened category fieldId
 
-                        Components.Item.List.DraftUpdated draft ->
-                            DraftUpdated draft
+                        Components.Item.List.DraftFieldUpdated field data ->
+                            DraftFieldUpdated field data
 
+                        -- Components.Item.List.StartEditing field data ->
+                        --     DraftFieldUpdated field data
                         _ ->
                             NoOp
                 )

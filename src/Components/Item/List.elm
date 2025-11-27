@@ -18,10 +18,10 @@ import Db.Categories exposing (Category, CollapsedState(..))
 import Db.Items exposing (DraftState(..), Item, ItemState(..))
 import Dict exposing (Dict)
 import FeatherIcons as Icons
-import Html exposing (Html, article, button, div, h3, input, text)
-import Html.Attributes exposing (class, id, name, placeholder, type_, value)
-import Html.Events exposing (onClick, onInput)
-import Html.Extra exposing (nothing, viewMaybe)
+import Html exposing (Html, article, button, div, h3, text)
+import Html.Attributes exposing (class, id)
+import Html.Events exposing (onClick)
+import Html.Extra exposing (nothing)
 import Html.Keyed
 import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..))
 import Set exposing (Set)
@@ -111,10 +111,8 @@ type Msg
     | DraftOpened Category String
     | StartEditing ItemField (Maybe String)
     | FinishEditing ItemField
-    | UpdateField ItemField (Maybe String)
+    | DraftFieldUpdated ItemField (Maybe String)
     | DraftClosed Category
-    | DraftUpdated Item
-    | UpdateDraftField ItemField
     | NoOp
 
 
@@ -295,12 +293,12 @@ viewMappedField draft field =
         |> Html.map
             (\msg ->
                 case msg of
-                    ItemForm.StartEditing _ _ ->
-                        NoOp
+                    ItemForm.StartEditing draftField data ->
+                        StartEditing draftField data
 
                     ItemForm.FinishEditing _ ->
                         NoOp
 
-                    ItemForm.UpdateField _ _ ->
-                        NoOp
+                    ItemForm.UpdateField draftField data ->
+                        DraftFieldUpdated draftField data
             )

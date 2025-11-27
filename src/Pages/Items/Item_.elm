@@ -7,7 +7,7 @@ import Html exposing (Html, b, div, h1, i, input, p, span, text, textarea)
 import Html.Attributes exposing (class, classList, id, name, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Html.Extra exposing (nothing)
-import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..), fields)
+import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..), itemFields)
 import Json.Decode exposing (Error(..))
 import Layouts
 import Page exposing (Page)
@@ -59,7 +59,7 @@ init shared { item } _ =
     in
     ( { slug = slug
       , draft = filtered
-      , fields = fields
+      , fields = itemFields
       }
     , Effect.none
     )
@@ -67,7 +67,7 @@ init shared { item } _ =
 
 makeItemFromFields : List ItemField -> Item -> Item
 makeItemFromFields fields item =
-    fields
+    itemFields
         |> List.foldl
             (\field acc ->
                 case field of
@@ -253,7 +253,7 @@ updateFields mapper field fields =
             else
                 existing
         )
-        fields
+        itemFields
 
 
 allFieldsToView : List ItemField -> List ItemField
@@ -264,7 +264,7 @@ allFieldsToView fields =
                 ItemField fieldName _ ->
                     ItemField fieldName ViewMode
         )
-        fields
+        itemFields
 
 
 
@@ -300,7 +300,7 @@ view shared model =
 
 viewItemPage : List ItemField -> Item -> Html.Html Msg
 viewItemPage fields sharedItem =
-    div [ class "item-page" ] <| List.map (viewField sharedItem) fields
+    div [ class "item-page" ] <| List.map (viewField sharedItem) itemFields
 
 
 viewField : Item -> ItemField -> Html Msg
