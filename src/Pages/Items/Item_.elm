@@ -14,6 +14,7 @@ import Route exposing (Route)
 import Shared
 import Shared.Msg exposing (Msg(..))
 import Url exposing (percentDecode)
+import Utils exposing (slugify)
 import View exposing (View)
 
 
@@ -102,7 +103,14 @@ makeItemFromFields fields item =
                 case field of
                     ItemField (Name data) _ ->
                         guardStrField
-                            (\obj value -> { obj | name = value })
+                            (\obj value ->
+                                { obj
+                                    | name = value
+
+                                    -- TODO Return error when we cannot meaningfully slugify
+                                    , slug = slugify value
+                                }
+                            )
                             acc
                             data
 

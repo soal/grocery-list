@@ -2,11 +2,6 @@ html {
   font-size: 14px;
 }
 
-/* :root { */
-/* --pico-form-element-spacing-vertical: 0.5rem; */
-/* --pico-form-element-spacing-horizontal: 0.665rem; */
-/* } */
-
 button {
   .button-body {
     display: flex;
@@ -41,6 +36,8 @@ button {
 
 
 .app-main {
+  padding-top: var(--pico-block-spacing-vertical);
+
   @media screen and (width < 451px) {
     margin-bottom: 100px;
   }
@@ -51,25 +48,19 @@ button {
 }
 
 .main-nav {
-  display: flex;
-  width: 100%;
-  justify-content: center;
-
   & ul {
-    flex-grow: 1;
-    justify-content: center;
     column-gap: 1em;
-
-    /* &:last-child { */
-    /* margin-left: auto; */
-    /* flex-grow: 0; */
-    /* } */
   }
 
   & li {
     &:last-child {
       justify-self: flex-end;
       flex-grow: 0;
+      margin-left: auto;
+
+      & span {
+        border-bottom: 0;
+      }
     }
   }
 

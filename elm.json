@@ -17,12 +17,14 @@
             "elm/url": "1.0.0",
             "elm-community/html-extra": "3.4.0",
             "elm-community/json-extra": "4.3.0",
+            "hecrj/elm-slug": "1.0.2",
             "lobanov/elm-taskport": "2.0.1"
         },
         "indirect": {
             "elm/bytes": "1.0.8",
             "elm/http": "2.0.0",
             "elm/parser": "1.1.0",
+            "elm/regex": "1.0.0",
             "elm/svg": "1.0.1",
             "elm/virtual-dom": "1.0.3",
             "rtfeldman/elm-iso8601-date-strings": "1.1.4"

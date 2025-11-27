@@ -4,6 +4,7 @@ import Db.Categories exposing (Category, CollapsedState(..))
 import Dict exposing (Dict)
 import Set exposing (Set)
 import Shared.Model
+import Slug
 
 
 convertKeys : Dict String v -> Dict Int v
@@ -42,3 +43,11 @@ getCatStateForPage pageName collapsedMap category =
 getCollapsesCatsForPage : String -> Shared.Model.CollapsedCats -> Set Int
 getCollapsesCatsForPage pageName collapsedMap =
     Maybe.withDefault Set.empty (Dict.get pageName collapsedMap)
+
+
+slugify : String -> String
+slugify str =
+    str
+        |> Slug.generate
+        |> Maybe.map Slug.toString
+        |> Maybe.withDefault ""

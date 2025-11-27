@@ -3,9 +3,10 @@ module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 import Dict
 import Effect exposing (Effect)
 import FeatherIcons as Icons
-import Html exposing (Html, a, footer, header, li, main_, nav, text, ul)
+import Html exposing (Html, a, footer, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on)
+import Html.Extra exposing (nothing)
 import Json.Decode
 import Layout exposing (Layout)
 import Route exposing (Route)
@@ -146,16 +147,22 @@ view props { model, content } =
 viewNavBar : Model -> Html msg
 viewNavBar model =
     nav [ class "main-nav" ]
-        [ ul [ class "group" ] <|
+        [ ul []
+            [ li []
+                [ span [ class "link" ]
+                    [ Icons.cloudOff |> Icons.toHtml [] ]
+                ]
+            ]
+        , ul [ class "group" ] <|
             (List.map
                 (viewNavLink model.currentRoute)
              <|
                 model.links
             )
-                -- , ul []
-                ++ [ viewNavLink model.currentRoute
-                        (NavLink Route.Path.Settings "" Icons.settings)
-                   ]
+        , ul []
+            [ viewNavLink model.currentRoute
+                (NavLink Route.Path.Settings "" Icons.settings)
+            ]
         ]
 
 
