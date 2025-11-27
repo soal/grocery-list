@@ -5,6 +5,7 @@ module Components.Item.ListElement exposing
     , view
     , withLink
     , withMark
+    , withSwitch
     )
 
 import Db.Items exposing (Item, ItemQuantity(..), ItemState(..))
@@ -22,7 +23,8 @@ import Html
         , span
         , text
         )
-import Html.Attributes exposing (checked, class, classList, name, type_)
+import Html.Attributes exposing (attribute, checked, class, classList, id, name, type_)
+import Html.Attributes.Extra exposing (attributeIf, role)
 import Html.Events exposing (onCheck, onClick)
 import Route.Path
 
@@ -33,6 +35,7 @@ type ItemListElement
         , link : Bool
         , checkedSates : List ItemState
         , mark : Bool
+        , switch : Bool
         }
 
 
@@ -42,6 +45,7 @@ new props =
         { item = props.item
         , link = False
         , mark = False
+        , switch = False
         , checkedSates = props.checkedSates
         }
 
@@ -54,6 +58,11 @@ withLink (Settings settings) =
 withMark : ItemListElement -> ItemListElement
 withMark (Settings settings) =
     Settings { settings | mark = True }
+
+
+withSwitch : ItemListElement -> ItemListElement
+withSwitch (Settings settings) =
+    Settings { settings | switch = True }
 
 
 type Msg
@@ -83,30 +92,32 @@ view (Settings settings) =
         , classList [ ( "in-basket", checkMark ) ]
         , onClick (ItemClicked settings.item settings.item.state)
         ]
-        [ div []
-            [ label []
-                [ input
-                    [ type_ "checkbox"
-                    , name "to-buy"
-                    , class "contrast"
-                    , checked
-                        (itemStateToBool
-                            settings.item.state
-                            settings.checkedSates
-                        )
-                    , onCheck (ItemChecked settings.item)
-                    ]
-                    []
-                , h4 []
-                    [ span [] [ text settings.item.name ]
-                    , span []
-                        [ text (Maybe.withDefault " " settings.item.symbol) ]
-                    ]
+        [ label []
+            [ input
+                [ type_ "checkbox"
+                , attributeIf settings.switch (role "switch")
+                , attributeIf
+                    (not settings.switch && checkMark)
+                    (attribute "aria-invalid" "false")
+                , id "to-buy"
+                , class "contrast"
+                , checked
+                    (itemStateToBool
+                        settings.item.state
+                        settings.checkedSates
+                    )
+                , onCheck (ItemChecked settings.item)
                 ]
-            , span
-                [ class "item-quantity" ]
-                (viewQuantity settings.item.quantity)
+                []
+            , h4 []
+                [ span [] [ text settings.item.name ]
+                , span []
+                    [ text (Maybe.withDefault " " settings.item.symbol) ]
+                ]
             ]
+        , span
+            [ class "item-quantity" ]
+            (viewQuantity settings.item.quantity)
         , div []
             [ span [ class "item-comment" ]
                 [ text (Maybe.withDefault "" settings.item.comment) ]

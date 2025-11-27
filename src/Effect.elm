@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , endShopping, exportData, importData, initDb, queryAll, storeAllItems, storeDump, storeItem, updateCatCollapsedState, updateItem, updateItemState
+    , endShopping, exportData, importData, initDb, queryAll, requestUuid, storeAllItems, storeDump, storeItem, updateCatCollapsedState, updateDraft, updateItem, updateItemState
     )
 
 {-|
@@ -57,6 +57,7 @@ type Effect msg
       -- INTEROP
     | InitDb (TaskPort.Result Bool -> msg)
     | QueryAllCatsAndItems (TaskPort.Result CatsAndItems -> msg)
+    | RequestUuid (TaskPort.Result String -> msg)
     | StoreItem (TaskPort.Result Bool -> msg) Item
     | StoreAllItems (TaskPort.Result Bool -> msg) (Dict String Item)
     | StoreDump (TaskPort.Result Bool -> msg) DataDump
@@ -150,12 +151,18 @@ storeItemEffect onResult item =
     Task.attempt onResult <| call item
 
 
-storeAllItems : (TaskPort.Result Bool -> msg) -> Dict String Item -> Effect msg
+storeAllItems :
+    (TaskPort.Result Bool -> msg)
+    -> Dict String Item
+    -> Effect msg
 storeAllItems onResult items =
     StoreAllItems onResult items
 
 
-storeAllItemsEffect : (TaskPort.Result Bool -> msg) -> Dict String Item -> Cmd msg
+storeAllItemsEffect :
+    (TaskPort.Result Bool -> msg)
+    -> Dict String Item
+    -> Cmd msg
 storeAllItemsEffect onResult items =
     let
         call =
@@ -184,6 +191,23 @@ storeDumpEffect onResult dump =
                 }
     in
     Task.attempt onResult <| call dump
+
+
+requestUuid : (TaskPort.Result String -> msg) -> Effect msg
+requestUuid onResult =
+    RequestUuid onResult
+
+
+requestUuidEffect : (TaskPort.Result String -> msg) -> Cmd msg
+requestUuidEffect onResult =
+    let
+        call =
+            TaskPort.callNoArgs
+                { function = "getUuid"
+                , valueDecoder = JD.string
+                }
+    in
+    Task.attempt onResult <| call
 
 
 
@@ -243,6 +267,11 @@ updateCatCollapsedState pagePath catId state =
 endShopping : Effect msg
 endShopping =
     SendSharedMsg Shared.Msg.EndShopping
+
+
+updateDraft : Item -> Effect msg
+updateDraft item =
+    SendSharedMsg (Shared.Msg.DraftUpdated item)
 
 
 
@@ -376,6 +405,9 @@ map fn effect =
         QueryAllCatsAndItems onResult ->
             QueryAllCatsAndItems (\res -> fn <| onResult res)
 
+        RequestUuid onResult ->
+            RequestUuid (\res -> fn <| onResult res)
+
         StoreItem onResult item ->
             StoreItem (\res -> fn <| onResult res) item
 
@@ -433,6 +465,9 @@ toCmd options effect =
 
         QueryAllCatsAndItems onResult ->
             queryAllEffect onResult
+
+        RequestUuid onResult ->
+            requestUuidEffect onResult
 
         StoreItem onResult item ->
             storeItemEffect onResult item

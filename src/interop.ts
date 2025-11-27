@@ -125,11 +125,16 @@ async function storeDump(dump: DataDump) {
 	return false;
 }
 
+function getUuid() {
+	return window.crypto.randomUUID();
+}
+
 TaskPort.register("initDb", initDb);
 TaskPort.register("queryAllCatsAndItems", queryAllCatsAndItems);
 TaskPort.register("storeItem", storeItem);
 TaskPort.register("storeAllItems", storeAllItems);
 TaskPort.register("storeDump", storeDump);
+TaskPort.register("getUuid", getUuid);
 
 export const flags = ({ env }) => ({
 	settings: {

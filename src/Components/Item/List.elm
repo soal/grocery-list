@@ -4,32 +4,41 @@ module Components.Item.List exposing
     , new
     , view
     , withCounter
+    , withDraft
     , withLink
     , withMark
+    , withSwitch
     )
 
 import Components.Category.Body
 import Components.Category.Header
+import Components.Item.Form exposing (viewField)
 import Components.Item.ListElement
 import Db.Categories exposing (Category, CollapsedState(..))
-import Db.Items exposing (Item, ItemState)
+import Db.Items exposing (DraftState(..), Item, ItemState(..))
 import Dict exposing (Dict)
-import Html exposing (Html, div, h3, text)
-import Html.Attributes exposing (class)
+import FeatherIcons as Icons
+import Html exposing (Html, article, button, div, h3, input, text)
+import Html.Attributes exposing (class, id, name, placeholder, type_, value)
+import Html.Events exposing (onClick, onInput)
+import Html.Extra exposing (nothing, viewMaybe)
 import Html.Keyed
+import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..))
 import Set exposing (Set)
 
 
 type alias Options =
     { items : Dict String Item
+    , draftFields : Maybe (List ItemField)
+    , draft : Maybe Item
+    , catWithDraft : Maybe Int
     , categories : List Category
     , collapsedCatIds : Set Int
     , link : Bool
     , mark : Bool
+    , switch : Bool
     , counter : Bool
     , checkedStates : List ItemState
-    , pageName : String
-    , emptyText : String
     }
 
 
@@ -42,20 +51,21 @@ new :
     , categories : List Category
     , collapsedCatIds : Set Int
     , checkedSates : List ItemState
-    , pageName : String
     }
     -> ItemsList
 new props =
     Settings
         { items = props.items
+        , draftFields = Nothing
+        , draft = Nothing
+        , catWithDraft = Nothing
         , categories = props.categories
         , collapsedCatIds = props.collapsedCatIds
         , link = False
         , mark = False
+        , switch = False
         , counter = False
         , checkedStates = props.checkedSates
-        , pageName = props.pageName
-        , emptyText = "Пусто"
         }
 
 
@@ -74,10 +84,37 @@ withCounter (Settings settings) =
     Settings { settings | counter = True }
 
 
+withSwitch : ItemsList -> ItemsList
+withSwitch (Settings settings) =
+    Settings { settings | switch = True }
+
+
+withDraft :
+    Maybe Int
+    -> Maybe (List ItemField)
+    -> Maybe Item
+    -> ItemsList
+    -> ItemsList
+withDraft catWithDraft draftFields draft (Settings settings) =
+    Settings
+        { settings
+            | draft = draft
+            , catWithDraft = catWithDraft
+            , draftFields = draftFields
+        }
+
+
 type Msg
     = CollapseClicked Int CollapsedState
     | ItemClicked Item ItemState
     | ItemChecked Item Bool
+    | DraftOpened Category String
+    | StartEditing ItemField (Maybe String)
+    | FinishEditing ItemField
+    | UpdateField ItemField (Maybe String)
+    | DraftClosed Category
+    | DraftUpdated Item
+    | UpdateDraftField ItemField
     | NoOp
 
 
@@ -114,7 +151,15 @@ viewCategory options category =
     ( String.fromInt category.id
     , div [ class "grocery-category" ]
         [ catHeader state category
-        , Components.Category.Body.view state (viewItems options category)
+        , Components.Category.Body.view state
+            [ viewItems options category
+            , case ( options.draft, options.draftFields ) of
+                ( Just draft, Just fields ) ->
+                    viewDraft options.catWithDraft draft category fields
+
+                ( _, _ ) ->
+                    nothing
+            ]
         ]
     )
 
@@ -161,10 +206,12 @@ viewItems options category =
             (\( id, item ) ->
                 ( id
                 , viewItem
-                    item
-                    options.mark
-                    options.link
-                    options.checkedStates
+                    { item = item
+                    , mark = options.mark
+                    , link = options.link
+                    , switch = options.switch
+                    , checkedStates = options.checkedStates
+                    }
                 )
             )
         |> Html.Keyed.node "div" []
@@ -177,8 +224,15 @@ getCatItems ( allItems, category ) =
         |> List.map (\item -> ( item.id, item ))
 
 
-viewItem : Item -> Bool -> Bool -> List ItemState -> Html Msg
-viewItem item mark link checkedStates =
+viewItem :
+    { item : Item
+    , mark : Bool
+    , link : Bool
+    , switch : Bool
+    , checkedStates : List ItemState
+    }
+    -> Html Msg
+viewItem { item, mark, link, switch, checkedStates } =
     Components.Item.ListElement.new
         { item = item, checkedSates = checkedStates }
         |> (if link == True then
@@ -193,6 +247,12 @@ viewItem item mark link checkedStates =
             else
                 identity
            )
+        |> (if switch == True then
+                Components.Item.ListElement.withSwitch
+
+            else
+                identity
+           )
         |> Components.Item.ListElement.view
         |> Html.map
             (\msg ->
@@ -202,4 +262,45 @@ viewItem item mark link checkedStates =
 
                     Components.Item.ListElement.ItemClicked clickedItem state ->
                         ItemClicked clickedItem state
+            )
+
+
+viewDraft : Maybe Int -> Item -> Category -> List ItemField -> Html Msg
+viewDraft catWithDraft draft category fields =
+    let
+        fieldId =
+            String.fromInt category.id ++ draft.id
+
+        nameFieldId =
+            "draft-item-name-" ++ fieldId
+    in
+    case Maybe.map (\id -> id == category.id) catWithDraft of
+        Just True ->
+            article [ class "grocery-item" ] <|
+                List.map
+                    (viewMappedField draft)
+                    fields
+
+        _ ->
+            button
+                [ class "add-item-button outline"
+                , onClick (DraftOpened category nameFieldId)
+                ]
+                [ Icons.plusCircle |> Icons.toHtml [] ]
+
+
+viewMappedField : Item -> ItemField -> Html Msg
+viewMappedField draft field =
+    viewField draft field
+        |> Html.map
+            (\msg ->
+                case msg of
+                    ItemForm.StartEditing _ _ ->
+                        NoOp
+
+                    ItemForm.FinishEditing _ ->
+                        NoOp
+
+                    ItemForm.UpdateField _ _ ->
+                        NoOp
             )

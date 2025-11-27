@@ -38,6 +38,7 @@ type alias UiState =
 type alias Model =
     { settings : AppSettings
     , dbConfig : DbConfig
+    , draft : Maybe Item
     , uiState : UiState
     , items : Dict String Item
     , categories : List Category

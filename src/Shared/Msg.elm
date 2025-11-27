@@ -15,4 +15,7 @@ type Msg
     | EndShopping
     | ImportData DataDump
     | LoadInitial CatsAndItems
+    | GotUuid (TaskPort.Result String)
+    | DraftUpdated Item
+    | DraftSaving Item
     | Error (Maybe String)

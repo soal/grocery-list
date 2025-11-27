@@ -4,9 +4,10 @@ import Db.Items exposing (Item, ItemQuantity(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, b, div, h1, i, input, p, span, text, textarea)
-import Html.Attributes exposing (autofocus, class, classList, id, name, type_, value)
+import Html.Attributes exposing (class, classList, id, name, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Html.Extra exposing (nothing)
+import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..), fields)
 import Json.Decode exposing (Error(..))
 import Layouts
 import Page exposing (Page)
@@ -39,31 +40,6 @@ toLayout _ =
 -- INIT
 
 
-type FieldMode
-    = ViewMode
-    | EditMode
-
-
-
--- | EditMode
-
-
-type FieldName
-    = Name (Maybe String)
-    | QCount (Maybe Float)
-    | QUnit (Maybe String)
-    | Comment (Maybe String)
-    | Symbol (Maybe String)
-
-
-
--- | Quantity (Maybe ItemQuantity)
-
-
-type ItemField
-    = ItemField FieldName FieldMode
-
-
 type alias Model =
     { slug : String
     , draft : Maybe Item
@@ -82,13 +58,7 @@ init shared { item } _ =
     in
     ( { slug = slug
       , draft = filtered
-      , fields =
-            [ ItemField (Name Nothing) ViewMode
-            , ItemField (QCount Nothing) ViewMode
-            , ItemField (QUnit Nothing) ViewMode
-            , ItemField (Comment Nothing) ViewMode
-            , ItemField (Symbol Nothing) ViewMode
-            ]
+      , fields = fields
       }
     , Effect.none
     )
@@ -216,11 +186,7 @@ update shared msg model =
 
         UpdateField field data ->
             ( { model
-                | fields =
-                    updateFields
-                        (updateData data)
-                        field
-                        model.fields
+                | fields = updateFields (updateData data) field model.fields
               }
             , Effect.none
             )
@@ -375,7 +341,6 @@ viewName field sharedName =
                     , value fieldData
                     , onInput (Just >> UpdateField field)
                     , onBlur (FinishEditing field)
-                    , autofocus True
                     , name <| "item-name-" ++ fieldData
                     , id <| "item-name-" ++ fieldData
                     ]

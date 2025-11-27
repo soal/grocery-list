@@ -13,6 +13,11 @@ type alias Image =
     }
 
 
+type DraftState
+    = Editing
+    | StandBy
+
+
 type ItemState
     = Stuffed
     | Required
@@ -57,22 +62,30 @@ type ItemQuantity
     = ItemQuantity Float String
 
 
+getCount : ItemQuantity -> Float
+getCount (ItemQuantity count _) =
+    count
+
+
+getUnit : ItemQuantity -> String
+getUnit (ItemQuantity _ unit) =
+    unit
+
+
 quantityDecoder : JD.Decoder ItemQuantity
 quantityDecoder =
     JD.map2
-        (\number unit -> ItemQuantity number unit)
+        ItemQuantity
         (JD.field "count" JD.float)
         (JD.field "unit" JD.string)
 
 
 encodeQuantity : ItemQuantity -> JE.Value
 encodeQuantity quantity =
-    case quantity of
-        ItemQuantity count unit ->
-            JE.object
-                [ ( "count", JE.float count )
-                , ( "unit", JE.string unit )
-                ]
+    JE.object
+        [ ( "count", JE.float <| getCount quantity )
+        , ( "unit", JE.string <| getUnit quantity )
+        ]
 
 
 type alias Item =
@@ -134,3 +147,8 @@ updateItem allItems item =
     Dict.update item.id
         (Maybe.map (always item))
         allItems
+
+
+setItemId : String -> Item -> Item
+setItemId id draft =
+    { draft | id = id }

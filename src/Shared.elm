@@ -13,7 +13,7 @@ module Shared exposing
 -}
 
 import Db.Categories exposing (CollapsedState(..))
-import Db.Items exposing (Item, ItemState(..), updateItem, updateItemState)
+import Db.Items exposing (Item, ItemQuantity(..), ItemState(..), setItemId, updateItem, updateItemState)
 import Db.Settings exposing (AppSettings, AppTheme(..), settingsDec)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
@@ -23,6 +23,7 @@ import Route.Path exposing (toString)
 import Set
 import Shared.Model exposing (CollapsedCats, DbConfig, DbStatus(..))
 import Shared.Msg exposing (Msg(..))
+import Time
 
 
 
@@ -68,8 +69,22 @@ init _ route =
       , categories = []
       , titlePrefix = "Покупки: "
       , error = Nothing
+      , draft =
+            Just <|
+                Item "0"
+                    ""
+                    (ItemQuantity 1 "штук")
+                    Nothing
+                    ""
+                    Nothing
+                    Required
+                    (Time.millisToPosix 0)
+                    (Time.millisToPosix 0)
       }
-    , Effect.initDb Shared.Msg.DbInitialized
+    , Effect.batch
+        [ Effect.requestUuid Shared.Msg.GotUuid
+        , Effect.initDb Shared.Msg.DbInitialized
+        ]
     )
 
 
@@ -89,6 +104,16 @@ update _ msg model =
             , Effect.none
             )
 
+        Shared.Msg.GotUuid uuid ->
+            case ( Result.toMaybe uuid, model.draft ) of
+                ( Just id, Just draft ) ->
+                    ( { model | draft = Just (setItemId id draft) }
+                    , Effect.none
+                    )
+
+                ( _, _ ) ->
+                    ( model, Effect.none )
+
         Shared.Msg.DbInitialized result ->
             let
                 res =
@@ -107,7 +132,6 @@ update _ msg model =
                             Ok data ->
                                 Shared.Msg.LoadInitial data
 
-                            -- Err err ->
                             Err _ ->
                                 -- err
                                 --     |> Json.Decode.errorToString
@@ -179,6 +203,15 @@ update _ msg model =
                             Shared.Msg.Error Nothing
                 )
                 item
+            )
+
+        Shared.Msg.DraftUpdated item ->
+            ( { model | draft = Just item }, Effect.none )
+
+        Shared.Msg.DraftSaving item ->
+            ( model
+            , Effect.batch
+                [ Effect.requestUuid GotUuid ]
             )
 
         Shared.Msg.Error error ->

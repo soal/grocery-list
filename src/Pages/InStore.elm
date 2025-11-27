@@ -129,7 +129,6 @@ view shared _ =
                     getCollapsesCatsForPage
                         "in-store"
                         shared.uiState.collapsedCatsMap
-                , pageName = "in-store"
                 }
                 |> Components.Item.List.withMark
                 |> Components.Item.List.withCounter
