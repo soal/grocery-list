@@ -8,7 +8,7 @@ module Components.Item.ListElement exposing
     , withSwitch
     )
 
-import Db.Items exposing (Item, ItemQuantity(..), ItemState(..))
+import Db.Items as Items
 import FeatherIcons as Icons
 import Html
     exposing
@@ -23,7 +23,7 @@ import Html
         , span
         , text
         )
-import Html.Attributes exposing (attribute, checked, class, classList, id, name, type_)
+import Html.Attributes exposing (attribute, checked, class, classList, id, type_)
 import Html.Attributes.Extra exposing (attributeIf, role)
 import Html.Events exposing (onCheck, onClick)
 import Route.Path
@@ -31,15 +31,15 @@ import Route.Path
 
 type ItemListElement
     = Settings
-        { item : Item
+        { item : Items.Item
         , link : Bool
-        , checkedSates : List ItemState
+        , checkedSates : List Items.State
         , mark : Bool
         , switch : Bool
         }
 
 
-new : { item : Item, checkedSates : List ItemState } -> ItemListElement
+new : { item : Items.Item, checkedSates : List Items.State } -> ItemListElement
 new props =
     Settings
         { item = props.item
@@ -66,8 +66,8 @@ withSwitch (Settings settings) =
 
 
 type Msg
-    = ItemClicked Item ItemState
-    | ItemChecked Item Bool
+    = ItemClicked Items.Item Items.State
+    | ItemChecked Items.Item Bool
 
 
 view : ItemListElement -> Html Msg
@@ -85,7 +85,7 @@ view (Settings settings) =
                 text ""
 
         checkMark =
-            settings.mark && settings.item.state == InBasket
+            settings.mark && settings.item.state == Items.InBasket
     in
     article
         [ class "grocery-item"
@@ -126,13 +126,13 @@ view (Settings settings) =
         ]
 
 
-viewQuantity : ItemQuantity -> List (Html msg)
-viewQuantity (ItemQuantity quantity unit) =
+viewQuantity : Items.Quantity -> List (Html msg)
+viewQuantity (Items.Quantity quantity unit) =
     [ b [] [ text (String.fromFloat quantity) ]
     , span [] [ text unit ]
     ]
 
 
-itemStateToBool : ItemState -> List ItemState -> Bool
+itemStateToBool : Items.State -> List Items.State -> Bool
 itemStateToBool state checkedSates =
     List.member state checkedSates

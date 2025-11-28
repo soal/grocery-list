@@ -34,12 +34,12 @@ type Msg
     | UpdateField ItemField (Maybe String)
 
 
-updateFields :
+alter :
     (ItemField -> ItemField)
     -> ItemField
     -> List ItemField
     -> List ItemField
-updateFields mapper field fields =
+alter mapper field fields =
     List.map
         (\existing ->
             if existing == field then
@@ -51,8 +51,8 @@ updateFields mapper field fields =
         fields
 
 
-allFieldsToView : List ItemField -> List ItemField
-allFieldsToView fields =
+allToView : List ItemField -> List ItemField
+allToView fields =
     List.map
         (\field ->
             case field of
@@ -62,15 +62,15 @@ allFieldsToView fields =
         fields
 
 
-updateMode : FieldMode -> ItemField -> ItemField
-updateMode mode field =
+alterMode : FieldMode -> ItemField -> ItemField
+alterMode mode field =
     case field of
         ItemField fieldName _ ->
             ItemField fieldName mode
 
 
-updateData : Maybe String -> ItemField -> ItemField
-updateData data field =
+alterContent : Maybe String -> ItemField -> ItemField
+alterContent data field =
     case field of
         ItemField fieldName mode ->
             case fieldName of

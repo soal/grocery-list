@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , endShopping, exportData, importData, initDb, queryAll, requestUuid, storeAllItems, storeDump, storeItem, updateCatCollapsedState, updateDraft, updateItem, updateItemState
+    , exportData, importData, initDb, queryAll, requestUuid, storeAllItems, storeDump, storeItem
     )
 
 {-|
@@ -26,8 +26,8 @@ module Effect exposing
 -}
 
 import Browser.Navigation
-import Db.Categories exposing (CollapsedState, categoryDec, encodeCategory)
-import Db.Items exposing (Item, ItemState(..), encodeItem, itemDecoder)
+import Db.Categories as Cats
+import Db.Items as Items
 import Db.Settings exposing (CatsAndItems, DataDump, dumpDecoder, encodeDump)
 import Dict exposing (Dict)
 import File.Download
@@ -36,7 +36,7 @@ import Json.Encode as JE
 import Route
 import Route.Path
 import Shared.Model
-import Shared.Msg
+import Shared.Msg exposing (Msg(..))
 import Task
 import TaskPort
 import Url exposing (Url)
@@ -58,13 +58,14 @@ type Effect msg
     | InitDb (TaskPort.Result Bool -> msg)
     | QueryAllCatsAndItems (TaskPort.Result CatsAndItems -> msg)
     | RequestUuid (TaskPort.Result String -> msg)
-    | StoreItem (TaskPort.Result Bool -> msg) Item
-    | StoreAllItems (TaskPort.Result Bool -> msg) (Dict String Item)
+    | StoreItem (TaskPort.Result Bool -> msg) Items.Item
+    | StoreAllItems (TaskPort.Result Bool -> msg) (Dict String Items.Item)
     | StoreDump (TaskPort.Result Bool -> msg) DataDump
-    | ExportData
+    | QueryItem (TaskPort.Result Items.Item -> msg) String
 
 
 
+-- | ExportData
 -- INIT DB
 
 
@@ -117,8 +118,8 @@ queryAllEffect onResult =
         valueDecoder =
             JD.map2
                 CatsAndItems
-                (JD.field "categories" <| JD.list categoryDec)
-                (JD.field "items" <| JD.dict itemDecoder)
+                (JD.field "categories" <| JD.list Cats.decoder)
+                (JD.field "items" <| JD.dict Items.decoder)
 
         call =
             TaskPort.callNoArgs
@@ -133,46 +134,17 @@ queryAllEffect onResult =
 -- DATA STORING
 
 
-storeItem : (TaskPort.Result Bool -> msg) -> Item -> Effect msg
+storeItem : (TaskPort.Result Bool -> msg) -> Items.Item -> Effect msg
 storeItem onResult item =
     StoreItem onResult item
 
 
-storeItemEffect : (TaskPort.Result Bool -> msg) -> Item -> Cmd msg
-storeItemEffect onResult item =
-    let
-        call =
-            TaskPort.call
-                { function = "storeItem"
-                , valueDecoder = JD.bool
-                , argsEncoder = encodeItem
-                }
-    in
-    Task.attempt onResult <| call item
-
-
 storeAllItems :
     (TaskPort.Result Bool -> msg)
-    -> Dict String Item
+    -> Dict String Items.Item
     -> Effect msg
 storeAllItems onResult items =
     StoreAllItems onResult items
-
-
-storeAllItemsEffect :
-    (TaskPort.Result Bool -> msg)
-    -> Dict String Item
-    -> Cmd msg
-storeAllItemsEffect onResult items =
-    let
-        call =
-            TaskPort.call
-                { function = "storeAllItems"
-                , valueDecoder = JD.bool
-                , argsEncoder = JE.dict identity encodeItem
-                }
-    in
-    Task.attempt onResult <| call items
 
 
 storeDump : (TaskPort.Result Bool -> msg) -> DataDump -> Effect msg
@@ -216,15 +188,16 @@ requestUuidEffect onResult =
 
 exportData : Effect msg
 exportData =
-    ExportData
+    -- ExportData
+    none
 
 
 exportDataEffect : DataDump -> Cmd msg
 exportDataEffect data =
     JE.object
         [ ( "version", JE.int data.version )
-        , ( "categories", JE.list encodeCategory data.categories )
-        , ( "items", JE.dict identity encodeItem data.items )
+        , ( "categories", JE.list Cats.encode data.categories )
+        , ( "items", JE.dict identity Items.encode data.items )
         ]
         |> JE.encode 2
         |> File.Download.string
@@ -243,35 +216,6 @@ importData content =
                 |> Just
                 |> Shared.Msg.Error
                 |> SendSharedMsg
-
-
-
--- SHARED UPDATES
-
-
-updateItemState : Item -> ItemState -> Effect msg
-updateItemState item state =
-    SendSharedMsg (Shared.Msg.ItemStateUpdated item state)
-
-
-updateItem : Item -> Effect msg
-updateItem item =
-    SendSharedMsg (Shared.Msg.ItemUpdated item)
-
-
-updateCatCollapsedState : String -> Int -> CollapsedState -> Effect msg
-updateCatCollapsedState pagePath catId state =
-    SendSharedMsg (Shared.Msg.CatCollapsedStateUpdate pagePath catId state)
-
-
-endShopping : Effect msg
-endShopping =
-    SendSharedMsg Shared.Msg.EndShopping
-
-
-updateDraft : Item -> Effect msg
-updateDraft item =
-    SendSharedMsg (Shared.Msg.DraftUpdated item)
 
 
 
@@ -405,6 +349,9 @@ map fn effect =
         QueryAllCatsAndItems onResult ->
             QueryAllCatsAndItems (\res -> fn <| onResult res)
 
+        QueryItem onResult slug ->
+            QueryItem (\res -> fn <| onResult res) slug
+
         RequestUuid onResult ->
             RequestUuid (\res -> fn <| onResult res)
 
@@ -414,9 +361,8 @@ map fn effect =
         StoreAllItems onResult items ->
             StoreAllItems (\res -> fn <| onResult res) items
 
-        ExportData ->
-            ExportData
-
+        -- ExportData ->
+        --     ExportData
         StoreDump onResult dump ->
             StoreDump (\res -> fn <| onResult res) dump
 
@@ -466,21 +412,23 @@ toCmd options effect =
         QueryAllCatsAndItems onResult ->
             queryAllEffect onResult
 
+        QueryItem onResult slug ->
+            Items.queryBySlug onResult slug
+
         RequestUuid onResult ->
             requestUuidEffect onResult
 
         StoreItem onResult item ->
-            storeItemEffect onResult item
+            Items.store onResult item
 
         StoreAllItems onResult items ->
-            storeAllItemsEffect onResult items
+            Items.storeAll onResult items
 
-        ExportData ->
-            exportDataEffect <|
-                DataDump
-                    options.shared.dbConfig.version
-                    options.shared.items
-                    options.shared.categories
-
+        -- ExportData ->
+        --     exportDataEffect <|
+        --         DataDump
+        --             options.shared.dbConfig.version
+        --             options.shared.items
+        --             options.shared.categories
         StoreDump onResult dump ->
             storeDumpEffect onResult dump

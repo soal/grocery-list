@@ -14,33 +14,32 @@ import Components.Category.Body
 import Components.Category.Header
 import Components.Item.Form exposing (viewField)
 import Components.Item.ListElement
-import Db.Categories exposing (Category, CollapsedState(..))
-import Db.Items exposing (DraftState(..), Item, ItemState(..))
+import Db.Categories as Cats
+import Db.Items as Items
 import Dict exposing (Dict)
 import FeatherIcons as Icons
 import Html exposing (Html, article, button, div, h3, input, label, text)
-import Html.Attributes exposing (checked, class, id, type_)
+import Html.Attributes exposing (checked, class, disabled, id, type_)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (nothing)
 import Html.Keyed
 import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..))
 import Set exposing (Set)
-import Html.Attributes exposing (disabled)
 
 
 type alias Options =
-    { items : Dict String Item
+    { items : Dict String Items.Item
     , draftFields : Maybe (List ItemField)
-    , draft : Maybe Item
+    , draft : Maybe Items.Item
     , catWithDraft : Maybe Int
-    , categories : List Category
+    , categories : List Cats.Category
     , collapsedCatIds : Set Int
     , link : Bool
     , mark : Bool
     , switch : Bool
     , counter : Bool
-    , checkedStates : List ItemState
+    , checkedStates : List Items.State
     }
 
 
@@ -49,10 +48,10 @@ type ItemsList
 
 
 new :
-    { items : Dict String Item
-    , categories : List Category
+    { items : Dict String Items.Item
+    , categories : List Cats.Category
     , collapsedCatIds : Set Int
-    , checkedSates : List ItemState
+    , checkedSates : List Items.State
     }
     -> ItemsList
 new props =
@@ -94,7 +93,7 @@ withSwitch (Settings settings) =
 withDraft :
     Maybe Int
     -> Maybe (List ItemField)
-    -> Maybe Item
+    -> Maybe Items.Item
     -> ItemsList
     -> ItemsList
 withDraft catWithDraft draftFields draft (Settings settings) =
@@ -107,14 +106,14 @@ withDraft catWithDraft draftFields draft (Settings settings) =
 
 
 type Msg
-    = CollapseClicked Int CollapsedState
-    | ItemClicked Item ItemState
-    | ItemChecked Item Bool
-    | DraftOpened Category String
+    = CollapseClicked Int Cats.CollapsedState
+    | ItemClicked Items.Item Items.State
+    | ItemChecked Items.Item Bool
+    | DraftOpened Cats.Category String
     | StartEditing ItemField (Maybe String)
     | FinishEditing ItemField
     | DraftFieldUpdated ItemField (Maybe String)
-    | DraftClosed Category
+    | DraftClosed Cats.Category
     | NoOp
 
 
@@ -134,16 +133,16 @@ view (Settings settings) =
 
 viewCategory :
     Options
-    -> Category
+    -> Cats.Category
     -> ( String, Html Msg )
 viewCategory options category =
     let
         state =
             if Set.member category.id options.collapsedCatIds then
-                Collapsed
+                Cats.Collapsed
 
             else
-                Open
+                Cats.Open
 
         catHeader =
             viewCatHeader options
@@ -166,8 +165,8 @@ viewCategory options category =
 
 viewCatHeader :
     Options
-    -> CollapsedState
-    -> Category
+    -> Cats.CollapsedState
+    -> Cats.Category
     -> Html Msg
 viewCatHeader options state category =
     Components.Category.Header.new
@@ -187,17 +186,17 @@ viewCatHeader options state category =
                 case msg of
                     Components.Category.Header.Toggle id ->
                         CollapseClicked id <|
-                            if state == Open then
-                                Collapsed
+                            if state == Cats.Open then
+                                Cats.Collapsed
 
                             else
-                                Open
+                                Cats.Open
             )
 
 
 viewItems :
     Options
-    -> Category
+    -> Cats.Category
     -> Html Msg
 viewItems options category =
     ( options.items, category )
@@ -217,7 +216,9 @@ viewItems options category =
         |> Html.Keyed.node "div" []
 
 
-getCatItems : ( Dict String Item, Category ) -> List ( String, Item )
+getCatItems :
+    ( Dict String Items.Item, Cats.Category )
+    -> List ( String, Items.Item )
 getCatItems ( allItems, category ) =
     List.map (\id -> Dict.get id allItems) category.items
         |> List.filterMap identity
@@ -225,11 +226,11 @@ getCatItems ( allItems, category ) =
 
 
 viewItem :
-    { item : Item
+    { item : Items.Item
     , mark : Bool
     , link : Bool
     , switch : Bool
-    , checkedStates : List ItemState
+    , checkedStates : List Items.State
     }
     -> Html Msg
 viewItem { item, mark, link, switch, checkedStates } =
@@ -265,7 +266,12 @@ viewItem { item, mark, link, switch, checkedStates } =
             )
 
 
-viewDraft : Maybe Int -> Item -> Category -> List ItemField -> Html Msg
+viewDraft :
+    Maybe Int
+    -> Items.Item
+    -> Cats.Category
+    -> List ItemField
+    -> Html Msg
 viewDraft catWithDraft draft category fields =
     let
         nameFieldId =
@@ -297,7 +303,7 @@ viewDraft catWithDraft draft category fields =
                 [ Icons.plusCircle |> Icons.toHtml [] ]
 
 
-viewMappedField : Item -> ItemField -> Html Msg
+viewMappedField : Items.Item -> ItemField -> Html Msg
 viewMappedField draft field =
     viewField draft field
         |> Html.map

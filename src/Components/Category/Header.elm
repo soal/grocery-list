@@ -8,8 +8,8 @@ module Components.Category.Header exposing
     )
 
 import Components.Counter
-import Db.Categories exposing (Category, CollapsedState(..))
-import Db.Items exposing (Item, ItemState(..))
+import Db.Categories as Cats
+import Db.Items as Items
 import Dict exposing (Dict)
 import FeatherIcons as Icons
 import Html exposing (Html, h3, span, text)
@@ -19,17 +19,17 @@ import Html.Events exposing (onClick)
 
 type CategoryHeader
     = Settings
-        { category : Category
-        , state : CollapsedState
-        , items : Dict String Item
+        { category : Cats.Category
+        , state : Cats.CollapsedState
+        , items : Dict String Items.Item
         , counter : Bool
         }
 
 
 new :
-    { category : Category
-    , items : Dict String Item
-    , state : CollapsedState
+    { category : Cats.Category
+    , items : Dict String Items.Item
+    , state : Cats.CollapsedState
     }
     -> CategoryHeader
 new props =
@@ -67,7 +67,7 @@ view (Settings settings) =
                 [ class "chevron"
                 , onClick (Toggle settings.category.id)
                 ]
-                [ if settings.state == Open then
+                [ if settings.state == Cats.Open then
                     Icons.chevronDown |> Icons.toHtml []
 
                   else
@@ -88,13 +88,17 @@ view (Settings settings) =
         )
 
 
-viewOptionalCounter : Dict String Item -> List String -> Bool -> List (Html msg)
+viewOptionalCounter :
+    Dict String Items.Item
+    -> List String
+    -> Bool
+    -> List (Html msg)
 viewOptionalCounter items catItemIs counter =
     if counter == True then
         [ Components.Counter.view
             (Dict.map (\_ item -> item.state) items)
             catItemIs
-            InBasket
+            Items.InBasket
         ]
 
     else

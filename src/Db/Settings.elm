@@ -1,22 +1,22 @@
 module Db.Settings exposing (..)
 
-import Db.Categories exposing (Category, categoryDec, encodeCategory)
-import Db.Items exposing (Item, encodeItem, itemDecoder)
+import Db.Categories as Cats
+import Db.Items as Items
 import Dict exposing (Dict)
 import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE
 
 
 type alias CatsAndItems =
-    { categories : List Category
-    , items : Dict String Item
+    { categories : List Cats.Category
+    , items : Dict String Items.Item
     }
 
 
 type alias DataDump =
     { version : Int
-    , items : Dict String Item
-    , categories : List Category
+    , items : Dict String Items.Item
+    , categories : List Cats.Category
     }
 
 
@@ -31,8 +31,8 @@ type alias AppSettings =
     }
 
 
-settingsDec : Decoder AppSettings
-settingsDec =
+decoder : Decoder AppSettings
+decoder =
     JD.map
         AppSettings
         (JD.field "theme" <| JD.map stringToTheme JD.string)
@@ -58,8 +58,8 @@ encodeDump : DataDump -> JE.Value
 encodeDump dump =
     JE.object
         [ ( "version", JE.int dump.version )
-        , ( "items", JE.dict identity encodeItem dump.items )
-        , ( "categories", JE.list encodeCategory dump.categories )
+        , ( "items", JE.dict identity Items.encode dump.items )
+        , ( "categories", JE.list Cats.encode dump.categories )
         ]
 
 
@@ -68,5 +68,5 @@ dumpDecoder =
     JD.map3
         DataDump
         (JD.field "version" JD.int)
-        (JD.field "items" <| JD.dict itemDecoder)
-        (JD.field "categories" <| JD.list categoryDec)
+        (JD.field "items" <| JD.dict Items.decoder)
+        (JD.field "categories" <| JD.list Cats.decoder)

@@ -1,6 +1,6 @@
 module Components.Item.Form exposing (..)
 
-import Db.Items exposing (Item, ItemQuantity(..))
+import Db.Items exposing (Item, Quantity(..))
 import Html exposing (Html, b, div, h1, i, input, p, span, text, textarea)
 import Html.Attributes exposing (attribute, class, classList, id, name, style, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
@@ -95,7 +95,7 @@ viewComment field itemId existing =
                         [ i [] [ text "Добавить комментарий" ] ]
 
 
-viewQUnit : ItemField -> String -> ItemQuantity -> Html ItemForm.Msg
+viewQUnit : ItemField -> String -> Quantity -> Html ItemForm.Msg
 viewQUnit field itemId existing =
     case field of
         ItemField (QUnit maybeUnit) EditMode ->
@@ -115,12 +115,12 @@ viewQUnit field itemId existing =
 
         _ ->
             case existing of
-                ItemQuantity _ unit ->
+                Quantity _ unit ->
                     span [ onClick (ItemForm.StartEditing field (Just unit)) ]
                         [ text unit ]
 
 
-viewQCount : ItemField -> String -> ItemQuantity -> Html ItemForm.Msg
+viewQCount : ItemField -> String -> Quantity -> Html ItemForm.Msg
 viewQCount field itemId existing =
     case field of
         ItemField (QCount maybeCount) EditMode ->
@@ -140,7 +140,7 @@ viewQCount field itemId existing =
 
         _ ->
             case existing of
-                ItemQuantity count _ ->
+                Quantity count _ ->
                     b
                         [ count
                             |> String.fromFloat

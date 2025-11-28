@@ -1,19 +1,48 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
+import Components.Item.List
+import Db.Categories as Cats
+import Db.Draft as Draft
+import Db.Items as Items
+import Db.Settings exposing (CatsAndItems)
+import Dict exposing (Dict)
+import Effect exposing (Effect)
 import Html
-import Html.Attributes as Attrs
+import Layouts
 import Page exposing (Page)
+import Route exposing (Route)
+import Set exposing (Set)
+import Shared
+import TaskPort
+import Time
+import Utils exposing (getCollapsesCatsForPage)
 import View exposing (View)
 
 
-page : Page Model Msg
-page =
-    Page.element
+page : Shared.Model -> Route () -> Page Model Msg
+page shared route =
+    Page.new
         { init = init
         , update = update
         , subscriptions = subscriptions
-        , view = view
+        , view = view shared
         }
+        |> Page.withLayout toLayout
+
+
+toLayout : Model -> Layouts.Layout Msg
+toLayout _ =
+    Layouts.MainNav
+        { onClickedOutside = GotClickOutside
+        }
+
+
+type alias CollapsedCats =
+    Dict String (Set Int)
+
+
+type alias UiState =
+    { collapsedCatsMap : CollapsedCats }
 
 
 
@@ -21,13 +50,57 @@ page =
 
 
 type alias Model =
-    {}
+    { draft : Maybe Items.Item
+    , uiState : UiState
+    , items : Dict String Items.Item
+    , categories : List Cats.Category
+    , titlePrefix : String
+    , error : Maybe String
+    }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( {}
-    , Cmd.none
+init : () -> ( Model, Effect Msg )
+init () =
+    ( { uiState =
+            { collapsedCatsMap =
+                Dict.fromList
+                    [ ( "all", Set.empty )
+                    , ( "in-store", Set.empty )
+                    ]
+            }
+      , items = Dict.empty
+      , categories = []
+      , titlePrefix = "Покупки: "
+      , error = Nothing
+      , draft =
+            Just <|
+                Items.Item "0"
+                    ""
+                    (Items.Quantity 1 "штук")
+                    Nothing
+                    ""
+                    Nothing
+                    Items.Required
+                    (Time.millisToPosix 0)
+                    (Time.millisToPosix 0)
+      }
+    , Effect.batch
+        [ Effect.requestUuid GotUuid
+        , Effect.queryAll
+            (\loaded ->
+                case loaded of
+                    Ok data ->
+                        GotCatsAndItems data
+
+                    Err _ ->
+                        -- err
+                        --     |> Json.Decode.errorToString
+                        --     |> Just
+                        --     |> Shared.Msg.Error
+                        -- Error err
+                        Error Nothing
+            )
+        ]
     )
 
 
@@ -37,15 +110,148 @@ init =
 
 type Msg
     = NoOp
+    | Error (Maybe String)
+    | GotItemMsg Items.Msg
+    | GotCatsMsg Cats.Msg
+    | GotCatsAndItems CatsAndItems
+    | GotUuid (TaskPort.Result String)
+    | GotDraftMsg Draft.Msg
+    | GotClickOutside
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         NoOp ->
             ( model
-            , Cmd.none
+            , Effect.none
             )
+
+        Error error ->
+            ( { model | error = error }, Effect.none )
+
+        GotUuid uuid ->
+            case ( Result.toMaybe uuid, model.draft ) of
+                ( Just id, Just draft ) ->
+                    ( { model | draft = Just (Items.setId id draft) }
+                    , Effect.none
+                    )
+
+                ( _, _ ) ->
+                    ( model, Effect.none )
+
+        GotClickOutside ->
+            ( model, Effect.none )
+
+        GotCatsAndItems data ->
+            ( { model | categories = data.categories, items = data.items }
+            , Effect.none
+            )
+
+        -- ITEM
+        GotItemMsg itemMsg ->
+            case itemMsg of
+                Items.GotNewState item state ->
+                    ( { model
+                        | items = Items.setState model.items item.id state
+                      }
+                    , Effect.storeItem
+                        (\res ->
+                            case res of
+                                Ok True ->
+                                    NoOp
+
+                                _ ->
+                                    Error Nothing
+                        )
+                        { item | state = state }
+                    )
+
+                Items.GotChange item ->
+                    ( { model | items = Items.alter model.items item }
+                    , Effect.storeItem
+                        (\res ->
+                            case res of
+                                Ok True ->
+                                    NoOp
+
+                                _ ->
+                                    Error Nothing
+                        )
+                        item
+                    )
+
+                Items.GotAllBought ->
+                    let
+                        updated =
+                            Items.setAllStuffed model.items
+                    in
+                    ( { model | items = updated }
+                    , Effect.storeAllItems
+                        (\res ->
+                            case res of
+                                Ok True ->
+                                    NoOp
+
+                                _ ->
+                                    Error Nothing
+                        )
+                        updated
+                    )
+
+        -- CATEGORIES
+        GotCatsMsg catsMsg ->
+            case catsMsg of
+                Cats.GotCollapsedChange section catId state ->
+                    let
+                        uiState =
+                            model.uiState
+                    in
+                    ( { model
+                        | uiState =
+                            { uiState
+                                | collapsedCatsMap =
+                                    alterCollapsedCats
+                                        section
+                                        catId
+                                        uiState.collapsedCatsMap
+                                        state
+                            }
+                      }
+                    , Effect.none
+                    )
+
+        -- DRAFT
+        GotDraftMsg draftMsg ->
+            case draftMsg of
+                Draft.GotChange draft ->
+                    ( { model | draft = Just draft }, Effect.none )
+
+                Draft.GotSave draft ->
+                    ( model
+                    , Effect.batch
+                        [ Effect.requestUuid GotUuid ]
+                    )
+
+
+alterCollapsedCats :
+    String
+    -> Int
+    -> CollapsedCats
+    -> Cats.CollapsedState
+    -> CollapsedCats
+alterCollapsedCats pageName catId catsMap state =
+    Dict.update pageName
+        (Maybe.map
+            (\ids ->
+                if state == Cats.Open then
+                    Set.remove catId ids
+
+                else
+                    Set.insert catId ids
+            )
+        )
+        catsMap
 
 
 
@@ -53,7 +259,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions model =
     Sub.none
 
 
@@ -61,10 +267,54 @@ subscriptions _ =
 -- VIEW
 
 
-view : Model -> View Msg
-view _ =
-    { title = "Homepage"
+view : Shared.Model -> Model -> View Msg
+view shared model =
+    { title = shared.titlePrefix ++ "Список"
     , body =
-        [ Html.div [ Attrs.class "container" ] [ Html.text "Main" ]
+        [ Components.Item.List.new
+            { items = model.items
+            , categories = model.categories
+            , checkedSates = [ Items.Required, Items.InBasket ]
+            , collapsedCatIds =
+                getCollapsesCatsForPage "all" model.uiState.collapsedCatsMap
+            }
+            |> Components.Item.List.withLink
+            |> Components.Item.List.withSwitch
+            -- |> Components.Item.List.withDraft
+            --     model.catWithDraft
+            --     (Just model.draftFields)
+            --     model.draft
+            |> Components.Item.List.view
+            |> Html.map
+                (\msg ->
+                    case msg of
+                        Components.Item.List.CollapseClicked clickedItem state ->
+                            GotCatsMsg <|
+                                Cats.GotCollapsedChange
+                                    "all"
+                                    clickedItem
+                                    state
+
+                        Components.Item.List.ItemChecked checkedItem check ->
+                            GotItemMsg <|
+                                Items.GotNewState checkedItem
+                                    (if check == True then
+                                        Items.Required
+
+                                     else
+                                        Items.Stuffed
+                                    )
+
+                        -- Components.Item.List.DraftOpened category fieldId ->
+                        --     DraftOpened category fieldId
+                        -- Components.Item.List.DraftFieldUpdated field data ->
+                        --     DraftFieldUpdated field data
+                        -- Components.Item.List.FinishEditing field ->
+                        --     DraftFieldFinished field
+                        -- Components.Item.List.StartEditing field data ->
+                        --     DraftFieldStarted field data
+                        _ ->
+                            NoOp
+                )
         ]
     }
