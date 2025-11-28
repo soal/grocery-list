@@ -12,6 +12,7 @@ import ItemForm
         ( FieldMode(..)
         , FieldName(..)
         , ItemField(..)
+        , allFieldsToView
         , itemFields
         , updateData
         , updateFields
@@ -64,7 +65,14 @@ init () =
 buildFields : List ItemField -> List ItemField
 buildFields fields =
     List.map
-        (\(ItemField name _) -> ItemField name EditMode)
+        (\(ItemField name _) ->
+            case name of
+                Name _ ->
+                    ItemField name EditMode
+
+                _ ->
+                    ItemField name ViewMode
+        )
         fields
 
 
@@ -78,6 +86,8 @@ type Msg
     | DraftOpened Category String
     | DraftClosed Category
     | DraftFieldUpdated ItemField (Maybe String)
+    | DraftFieldFinished ItemField
+    | DraftFieldStarted ItemField (Maybe String)
     | NoOp
 
 
@@ -118,6 +128,26 @@ update msg model =
 
         DraftClosed category ->
             ( { model | catWithDraft = Just category.id }, Effect.none )
+
+        DraftFieldFinished field ->
+            ( { model
+                | draftFields =
+                    updateFields (updateMode ViewMode) field model.draftFields
+              }
+            , Effect.none
+            )
+
+        DraftFieldStarted field data ->
+            ( { model
+                | draftFields =
+                    model.draftFields
+                        |> allFieldsToView
+                        |> updateFields
+                            (updateMode EditMode >> updateData data)
+                            field
+              }
+            , Effect.none
+            )
 
         NoOp ->
             ( model
@@ -171,8 +201,12 @@ view shared model =
                         Components.Item.List.DraftFieldUpdated field data ->
                             DraftFieldUpdated field data
 
-                        -- Components.Item.List.StartEditing field data ->
-                        --     DraftFieldUpdated field data
+                        Components.Item.List.FinishEditing field ->
+                            DraftFieldFinished field
+
+                        Components.Item.List.StartEditing field data ->
+                            DraftFieldStarted field data
+
                         _ ->
                             NoOp
                 )

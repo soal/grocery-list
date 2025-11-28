@@ -18,13 +18,15 @@ import Db.Categories exposing (Category, CollapsedState(..))
 import Db.Items exposing (DraftState(..), Item, ItemState(..))
 import Dict exposing (Dict)
 import FeatherIcons as Icons
-import Html exposing (Html, article, button, div, h3, text)
-import Html.Attributes exposing (class, id)
+import Html exposing (Html, article, button, div, h3, input, label, text)
+import Html.Attributes exposing (checked, class, id, type_)
+import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (nothing)
 import Html.Keyed
 import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..))
 import Set exposing (Set)
+import Html.Attributes exposing (disabled)
 
 
 type alias Options =
@@ -271,10 +273,21 @@ viewDraft catWithDraft draft category fields =
     in
     case Maybe.map (\id -> id == category.id) catWithDraft of
         Just True ->
-            article [ class "grocery-item" ] <|
-                List.map
-                    (viewMappedField draft)
-                    fields
+            article [ class "grocery-item item-draft" ] <|
+                label []
+                    [ input
+                        [ type_ "checkbox"
+                        , role "switch"
+                        , disabled True
+                        , id nameFieldId
+                        , class "contrast"
+                        , checked False
+                        ]
+                        []
+                    ]
+                    :: List.map
+                        (viewMappedField draft)
+                        fields
 
         _ ->
             button
@@ -293,8 +306,8 @@ viewMappedField draft field =
                     ItemForm.StartEditing draftField data ->
                         StartEditing draftField data
 
-                    ItemForm.FinishEditing _ ->
-                        NoOp
+                    ItemForm.FinishEditing draftField ->
+                        FinishEditing draftField
 
                     ItemForm.UpdateField draftField data ->
                         DraftFieldUpdated draftField data

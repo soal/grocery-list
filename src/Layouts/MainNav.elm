@@ -64,7 +64,7 @@ init route () =
     ( { currentRoute = route
       , links =
             [ { path = Route.Path.Items
-              , text = "Всё"
+              , text = "Список"
               , icon = Icons.list
               }
 

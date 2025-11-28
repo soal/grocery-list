@@ -2,7 +2,7 @@ module Components.Item.Form exposing (..)
 
 import Db.Items exposing (Item, ItemQuantity(..))
 import Html exposing (Html, b, div, h1, i, input, p, span, text, textarea)
-import Html.Attributes exposing (class, classList, id, name, type_, value)
+import Html.Attributes exposing (attribute, class, classList, id, name, style, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Html.Extra exposing (nothing)
 import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..))
@@ -12,7 +12,7 @@ viewField : Item -> ItemForm.ItemField -> Html ItemForm.Msg
 viewField item field =
     case field of
         ItemField (Name _) _ ->
-            viewFieldWrap [] (viewName field item.id item.name)
+            viewFieldWrap [ "item-name-field" ] (viewName field item.id item.name)
 
         ItemForm.ItemField (Comment _) _ ->
             viewFieldWrap [] (viewComment field item.id item.comment)
@@ -48,8 +48,13 @@ viewName field itemId sharedName =
                 fieldData =
                     Maybe.withDefault sharedName maybeName
             in
-            h1 []
-                [ input
+            span [ class "input-resize-containter" ]
+                [ span
+                    [ class "input-size-helper"
+                    , attribute "aria-hidden" "true"
+                    ]
+                    [ text fieldData ]
+                , input
                     [ type_ "text"
                     , value fieldData
                     , onInput (Just >> ItemForm.UpdateField field)
