@@ -1,13 +1,16 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
+import Components.Counter
 import Components.Item.List
 import Db.Categories as Cats
 import Db.Draft as Draft
-import Db.Items as Items
+import Db.Items as Items exposing (Msg(..))
 import Db.Settings exposing (CatsAndItems)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
-import Html
+import Html exposing (Html, button, div, h3, text)
+import Html.Attributes exposing (class, classList, disabled)
+import Html.Events exposing (onClick)
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
@@ -271,19 +274,72 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     { title = shared.titlePrefix ++ "Список"
     , body =
+        [ viewFullList shared model ]
+    }
+
+
+viewFullList : Shared.Model -> Model -> Html Msg
+viewFullList shared model =
+    Components.Item.List.new
+        { items = model.items
+        , categories = model.categories
+        , checkedSates = [ Items.Required, Items.InBasket ]
+        , collapsedCatIds =
+            getCollapsesCatsForPage "all" model.uiState.collapsedCatsMap
+        }
+        |> Components.Item.List.withLink
+        |> Components.Item.List.withSwitch
+        -- |> Components.Item.List.withDraft
+        --     model.catWithDraft
+        --     (Just model.draftFields)
+        --     model.draft
+        |> Components.Item.List.view
+        |> Html.map
+            (\msg ->
+                case msg of
+                    Components.Item.List.CollapseClicked clickedItem state ->
+                        GotCatsMsg <|
+                            Cats.GotCollapsedChange
+                                "all"
+                                clickedItem
+                                state
+
+                    Components.Item.List.ItemChecked checkedItem check ->
+                        GotItemMsg <|
+                            Items.GotNewState checkedItem
+                                (if check == True then
+                                    Items.Required
+
+                                 else
+                                    Items.Stuffed
+                                )
+
+                    -- Components.Item.List.DraftOpened category fieldId ->
+                    --     DraftOpened category fieldId
+                    -- Components.Item.List.DraftFieldUpdated field data ->
+                    --     DraftFieldUpdated field data
+                    -- Components.Item.List.FinishEditing field ->
+                    --     DraftFieldFinished field
+                    -- Components.Item.List.StartEditing field data ->
+                    --     DraftFieldStarted field data
+                    _ ->
+                        NoOp
+            )
+
+
+viewShopping : Shared.Model -> Model -> List (Html Msg)
+viewShopping shared model =
+    if Dict.size model.items > 0 then
         [ Components.Item.List.new
             { items = model.items
             , categories = model.categories
-            , checkedSates = [ Items.Required, Items.InBasket ]
+            , checkedSates = [ Items.InBasket ]
             , collapsedCatIds =
-                getCollapsesCatsForPage "all" model.uiState.collapsedCatsMap
+                getCollapsesCatsForPage "in-store"
+                    model.uiState.collapsedCatsMap
             }
-            |> Components.Item.List.withLink
-            |> Components.Item.List.withSwitch
-            -- |> Components.Item.List.withDraft
-            --     model.catWithDraft
-            --     (Just model.draftFields)
-            --     model.draft
+            |> Components.Item.List.withMark
+            |> Components.Item.List.withCounter
             |> Components.Item.List.view
             |> Html.map
                 (\msg ->
@@ -291,30 +347,34 @@ view shared model =
                         Components.Item.List.CollapseClicked clickedItem state ->
                             GotCatsMsg <|
                                 Cats.GotCollapsedChange
-                                    "all"
+                                    "in-store"
                                     clickedItem
                                     state
 
-                        Components.Item.List.ItemChecked checkedItem check ->
-                            GotItemMsg <|
-                                Items.GotNewState checkedItem
-                                    (if check == True then
-                                        Items.Required
+                        Components.Item.List.ItemClicked item state ->
+                            GotItemMsg (Items.GotNewState item state)
 
-                                     else
-                                        Items.Stuffed
-                                    )
-
-                        -- Components.Item.List.DraftOpened category fieldId ->
-                        --     DraftOpened category fieldId
-                        -- Components.Item.List.DraftFieldUpdated field data ->
-                        --     DraftFieldUpdated field data
-                        -- Components.Item.List.FinishEditing field ->
-                        --     DraftFieldFinished field
-                        -- Components.Item.List.StartEditing field data ->
-                        --     DraftFieldStarted field data
                         _ ->
                             NoOp
                 )
+        , button
+            [ class "end-shopping-button"
+            , classList [ ( "all-done", Items.isAllDone model.items ) ]
+            , onClick (GotItemMsg Items.GotAllBought)
+            , disabled (Items.getInBasketLength model.items <= 0)
+            ]
+            [ Components.Counter.view
+                (Dict.map (\_ item -> item.state) model.items)
+                (Dict.keys model.items)
+                Items.InBasket
+            , text "Закончить покупки"
+            ]
         ]
-    }
+
+    else
+        [ viewEmpty ]
+
+
+viewEmpty : Html msg
+viewEmpty =
+    div [ class "empty-page" ] [ h3 [] [ text "Всё куплено!" ] ]

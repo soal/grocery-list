@@ -6,12 +6,14 @@ module Db.Items exposing
     , alter
     , decoder
     , encode
+    , isAllDone
     , queryBySlug
     , setAllStuffed
     , setId
     , setState
     , store
     , storeAll
+    , getInBasketLength
     )
 
 import Dict exposing (Dict)
@@ -229,3 +231,19 @@ queryBySlug onResult slug =
                 }
     in
     Task.attempt onResult <| call slug
+
+
+getInBasketLength : Dict String Item -> Int
+getInBasketLength items =
+    Dict.values items
+        |> List.filter (\item -> item.state == InBasket)
+        |> List.length
+
+
+isAllDone : Dict String Item -> Bool
+isAllDone items =
+    let
+        statesLength =
+            Dict.size items
+    in
+    statesLength > 0 && statesLength <= getInBasketLength items

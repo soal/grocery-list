@@ -6,7 +6,6 @@ import FeatherIcons as Icons
 import Html exposing (Html, a, footer, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on)
-import Html.Extra exposing (nothing)
 import Json.Decode
 import Layout exposing (Layout)
 import Route exposing (Route)
@@ -63,19 +62,15 @@ init : Route () -> () -> ( Model, Effect Msg )
 init route () =
     ( { currentRoute = route
       , links =
-            [ { path = Route.Path.Items
+            [ { path = Route.Path.Home_
               , text = "Список"
               , icon = Icons.list
               }
 
-            -- , { path = Route.Path.ToBuy
-            --   , text = "Купить"
-            --   , icon = Icons.shoppingBag
+            -- , { path = Route.Path.InStore
+            --   , text = "В магазине"
+            --   , icon = Icons.shoppingCart
             --   }
-            , { path = Route.Path.InStore
-              , text = "В магазине"
-              , icon = Icons.shoppingCart
-              }
             ]
       }
     , Effect.none
