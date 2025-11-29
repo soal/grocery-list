@@ -11,10 +11,10 @@ import Components.Counter
 import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
-import FeatherIcons as Icons
 import Html exposing (Html, h3, span, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import LucideIcons as Icons
 
 
 type CategoryHeader
@@ -68,10 +68,10 @@ view (Settings settings) =
                 , onClick (Toggle settings.category.id)
                 ]
                 [ if settings.state == Cats.Open then
-                    Icons.chevronDown |> Icons.toHtml []
+                    Icons.chevronDownIcon []
 
                   else
-                    Icons.chevronRight |> Icons.toHtml []
+                    Icons.chevronRightIcon []
                 ]
 
         title =

@@ -6,6 +6,7 @@ module Db.Items exposing
     , alter
     , decoder
     , encode
+    , filterByStates
     , getInBasketLength
     , isAllDone
     , queryBySlug
@@ -14,7 +15,6 @@ module Db.Items exposing
     , setState
     , store
     , storeAll
-    , filterByStates
     )
 
 import Dict exposing (Dict)
@@ -39,7 +39,7 @@ type State
 
 
 type Msg
-    = GotNewState Item State
+    = GotStateToggle Item State
     | GotChange Item
     | GotAllBought
 
@@ -160,8 +160,8 @@ map fn items =
     Dict.map fn items
 
 
-setState : Dict String Item -> String -> State -> Dict String Item
-setState allItems id state =
+setState : State -> String -> Dict String Item -> Dict String Item
+setState state id allItems =
     Dict.update id
         (Maybe.map (\found -> { found | state = state }))
         allItems

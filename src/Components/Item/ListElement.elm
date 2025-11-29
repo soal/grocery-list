@@ -9,7 +9,6 @@ module Components.Item.ListElement exposing
     )
 
 import Db.Items as Items
-import FeatherIcons as Icons
 import Html
     exposing
         ( Html
@@ -26,7 +25,10 @@ import Html
 import Html.Attributes exposing (attribute, checked, class, classList, id, type_)
 import Html.Attributes.Extra exposing (attributeIf, role)
 import Html.Events exposing (onCheck, onClick)
+import LucideIcons as Icons
 import Route.Path
+import Svg
+import Svg.Attributes
 
 
 type ItemListElement
@@ -67,7 +69,7 @@ withSwitch (Settings settings) =
 
 type Msg
     = ItemClicked Items.Item Items.State
-    | ItemChecked Items.Item Bool
+    | ItemChecked Items.Item Items.State
 
 
 view : ItemListElement -> Html Msg
@@ -79,7 +81,7 @@ view (Settings settings) =
                     [ Route.Path.href
                         (Route.Path.Items_Item_ { item = settings.item.slug })
                     ]
-                    [ Icons.chevronRight |> Icons.toHtml [] ]
+                    [ Icons.chevronRightIcon [] ]
 
             else
                 text ""
@@ -92,23 +94,27 @@ view (Settings settings) =
         , classList [ ( "in-basket", checkMark ) ]
         , onClick (ItemClicked settings.item settings.item.state)
         ]
-        [ label []
-            [ input
-                [ type_ "checkbox"
-                , attributeIf settings.switch (role "switch")
-                , attributeIf
-                    (not settings.switch && checkMark)
-                    (attribute "aria-invalid" "false")
-                , id "to-buy"
-                , class "contrast"
-                , checked
-                    (itemStateToBool
-                        settings.item.state
-                        settings.checkedSates
-                    )
-                , onCheck (ItemChecked settings.item)
+        [ div [ class "label" ]
+            [ div
+                [ role "checkbox"
+                , attribute "aria-role" "checkbox"
+                , classList
+                    [ ( "checked"
+                      , itemStateToBool
+                            settings.item.state
+                            settings.checkedSates
+                      )
+                    , ( "in-basket", not settings.switch && checkMark )
+                    ]
+                , onClick
+                    (ItemChecked settings.item settings.item.state)
                 ]
-                []
+                [ if settings.switch then
+                    Icons.plusIcon [ Svg.Attributes.strokeWidth "3" ]
+
+                  else
+                    Icons.checkIcon [ Svg.Attributes.strokeWidth "3" ]
+                ]
             , h4 []
                 [ span [] [ text settings.item.name ]
                 , span []
@@ -118,7 +124,7 @@ view (Settings settings) =
         , span
             [ class "item-quantity" ]
             (viewQuantity settings.item.quantity)
-        , div []
+        , div [ class "item-comment-box"]
             [ span [ class "item-comment" ]
                 [ text (Maybe.withDefault "" settings.item.comment) ]
             , link

@@ -8,6 +8,8 @@ import File exposing (File)
 import File.Download
 import File.Select
 import Html exposing (button, div, h1, h2, text)
+import Html.Attributes exposing (class)
+import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
 import Json.Encode as JE
 import Layouts
@@ -132,7 +134,13 @@ view shared _ =
     , body =
         [ h1 [] [ text "Настройки" ]
         , div []
-            [ h2 [] [ text "Тема" ] ]
+            [ h2 [] [ text "Тема" ]
+            , div [ class "button-row", role "group" ]
+                [ button [] [ text "Как в системе" ]
+                , button [ class "secondary" ] [ text "Светлая" ]
+                , button [ class "secondary" ] [ text "Тёмная" ]
+                ]
+            ]
         , div []
             [ h2 [] [ text "Экспорт и импорт" ]
             , button [ onClick ExportRequested ] [ text "Экспорт данных" ]

@@ -72,5 +72,3 @@ encode cat =
         , ( "created", JE.int <| Time.posixToMillis cat.created )
         , ( "updated", JE.int <| Time.posixToMillis cat.updated )
         ]
-
-

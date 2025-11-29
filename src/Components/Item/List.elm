@@ -17,7 +17,6 @@ import Components.Item.ListElement
 import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
-import FeatherIcons as Icons
 import Html exposing (Html, article, button, div, h3, input, label, text)
 import Html.Attributes exposing (checked, class, disabled, id, type_)
 import Html.Attributes.Extra exposing (role)
@@ -25,6 +24,7 @@ import Html.Events exposing (onClick)
 import Html.Extra exposing (nothing)
 import Html.Keyed
 import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..))
+import LucideIcons as Icons
 import Set exposing (Set)
 
 
@@ -108,7 +108,7 @@ withDraft catWithDraft draftFields draft (Settings settings) =
 type Msg
     = CollapseClicked Int Cats.CollapsedState
     | ItemClicked Items.Item Items.State
-    | ItemChecked Items.Item Bool
+    | ItemChecked Items.Item Items.State
     | DraftOpened Cats.Category String
     | StartEditing ItemField (Maybe String)
     | FinishEditing ItemField
@@ -258,8 +258,8 @@ viewItem { item, mark, link, switch, checkedStates } =
         |> Html.map
             (\msg ->
                 case msg of
-                    Components.Item.ListElement.ItemChecked clickedItem check ->
-                        ItemChecked clickedItem check
+                    Components.Item.ListElement.ItemChecked clickedItem state ->
+                        ItemChecked clickedItem state
 
                     Components.Item.ListElement.ItemClicked clickedItem state ->
                         ItemClicked clickedItem state
@@ -300,7 +300,7 @@ viewDraft catWithDraft draft category fields =
                 [ class "add-item-button outline"
                 , onClick (DraftOpened category nameFieldId)
                 ]
-                [ Icons.plusCircle |> Icons.toHtml [] ]
+                [ Icons.plusCircleIcon [] ]
 
 
 viewMappedField : Items.Item -> ItemField -> Html Msg
