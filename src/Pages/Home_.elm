@@ -4,7 +4,7 @@ import Components.Counter
 import Components.Item.List
 import Db.Categories as Cats
 import Db.Draft as Draft
-import Db.Items as Items exposing (Msg(..))
+import Db.Items as Items exposing (Msg(..), State(..))
 import Db.Settings exposing (CatsAndItems)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
@@ -25,11 +25,13 @@ import View exposing (View)
 page : Shared.Model -> Route () -> Page Model Msg
 page shared route =
     Page.new
-        { init = init
+        { init = init route
         , update = update
         , subscriptions = subscriptions
         , view = view shared
         }
+        |> Page.withOnQueryParameterChanged
+            { key = "f", onChange = SectionChanged }
         |> Page.withLayout toLayout
 
 
@@ -42,6 +44,11 @@ toLayout _ =
 
 type alias CollapsedCats =
     Dict String (Set Int)
+
+
+type Section
+    = All
+    | Shopping
 
 
 type alias UiState =
@@ -58,12 +65,25 @@ type alias Model =
     , items : Dict String Items.Item
     , categories : List Cats.Category
     , titlePrefix : String
+    , section : Section
     , error : Maybe String
     }
 
 
-init : () -> ( Model, Effect Msg )
-init () =
+init : Route () -> () -> ( Model, Effect Msg )
+init route () =
+    let
+        section =
+            case Dict.get "f" route.query of
+                Just "all" ->
+                    All
+
+                Just "shopping" ->
+                    Shopping
+
+                _ ->
+                    All
+    in
     ( { uiState =
             { collapsedCatsMap =
                 Dict.fromList
@@ -75,6 +95,7 @@ init () =
       , categories = []
       , titlePrefix = "Покупки: "
       , error = Nothing
+      , section = section
       , draft =
             Just <|
                 Items.Item "0"
@@ -113,6 +134,7 @@ init () =
 
 type Msg
     = NoOp
+    | SectionChanged { from : Maybe String, to : Maybe String }
     | Error (Maybe String)
     | GotItemMsg Items.Msg
     | GotCatsMsg Cats.Msg
@@ -132,6 +154,21 @@ update msg model =
 
         Error error ->
             ( { model | error = error }, Effect.none )
+
+        SectionChanged { from, to } ->
+            if from /= to then
+                case to of
+                    Just "all" ->
+                        ( { model | section = All }, Effect.none )
+
+                    Just "shopping" ->
+                        ( { model | section = Shopping }, Effect.none )
+
+                    _ ->
+                        ( model, Effect.none )
+
+            else
+                ( model, Effect.none )
 
         GotUuid uuid ->
             case ( Result.toMaybe uuid, model.draft ) of
@@ -274,13 +311,18 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     { title = shared.titlePrefix ++ "Список"
     , body =
-        [ viewFullList shared model ]
+        case model.section of
+            All ->
+                viewFullList shared model
+
+            Shopping ->
+                viewShopping shared model
     }
 
 
-viewFullList : Shared.Model -> Model -> Html Msg
+viewFullList : Shared.Model -> Model -> List (Html Msg)
 viewFullList shared model =
-    Components.Item.List.new
+    [ Components.Item.List.new
         { items = model.items
         , categories = model.categories
         , checkedSates = [ Items.Required, Items.InBasket ]
@@ -325,14 +367,24 @@ viewFullList shared model =
                     _ ->
                         NoOp
             )
+    ]
 
 
 viewShopping : Shared.Model -> Model -> List (Html Msg)
 viewShopping shared model =
     if Dict.size model.items > 0 then
+        let
+            filtered =
+                Items.filterByStates
+                    model.items
+                    [ Items.Required, Items.InBasket ]
+
+            categories =
+                filterCategories filtered model.categories
+        in
         [ Components.Item.List.new
-            { items = model.items
-            , categories = model.categories
+            { items = filtered
+            , categories = categories
             , checkedSates = [ Items.InBasket ]
             , collapsedCatIds =
                 getCollapsesCatsForPage "in-store"
@@ -352,20 +404,30 @@ viewShopping shared model =
                                     state
 
                         Components.Item.List.ItemClicked item state ->
-                            GotItemMsg (Items.GotNewState item state)
+                            GotItemMsg <|
+                                Items.GotNewState item <|
+                                    case state of
+                                        Required ->
+                                            InBasket
+
+                                        InBasket ->
+                                            Required
+
+                                        _ ->
+                                            InBasket
 
                         _ ->
                             NoOp
                 )
         , button
             [ class "end-shopping-button"
-            , classList [ ( "all-done", Items.isAllDone model.items ) ]
+            , classList [ ( "all-done", Items.isAllDone filtered ) ]
             , onClick (GotItemMsg Items.GotAllBought)
-            , disabled (Items.getInBasketLength model.items <= 0)
+            , disabled (Items.getInBasketLength filtered <= 0)
             ]
             [ Components.Counter.view
-                (Dict.map (\_ item -> item.state) model.items)
-                (Dict.keys model.items)
+                (Dict.map (\_ item -> item.state) filtered)
+                (Dict.keys filtered)
                 Items.InBasket
             , text "Закончить покупки"
             ]
@@ -373,6 +435,20 @@ viewShopping shared model =
 
     else
         [ viewEmpty ]
+
+
+filterCategories :
+    Dict String Items.Item
+    -> List Cats.Category
+    -> List Cats.Category
+filterCategories items categories =
+    List.filter
+        (\cat ->
+            List.any
+                (\id -> Dict.member id items)
+                cat.items
+        )
+        categories
 
 
 viewEmpty : Html msg

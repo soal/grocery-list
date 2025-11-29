@@ -6,6 +6,7 @@ module Db.Items exposing
     , alter
     , decoder
     , encode
+    , getInBasketLength
     , isAllDone
     , queryBySlug
     , setAllStuffed
@@ -13,7 +14,7 @@ module Db.Items exposing
     , setState
     , store
     , storeAll
-    , getInBasketLength
+    , filterByStates
     )
 
 import Dict exposing (Dict)
@@ -247,3 +248,8 @@ isAllDone items =
             Dict.size items
     in
     statesLength > 0 && statesLength <= getInBasketLength items
+
+
+filterByStates : Dict String Item -> List State -> Dict String Item
+filterByStates items states =
+    Dict.filter (\_ item -> List.member item.state states) items

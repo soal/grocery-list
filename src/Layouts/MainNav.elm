@@ -1,6 +1,6 @@
 module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
-import Dict
+import Dict exposing (Dict)
 import Effect exposing (Effect)
 import FeatherIcons as Icons
 import Html exposing (Html, a, footer, header, li, main_, nav, span, text, ul)
@@ -48,6 +48,7 @@ layout props _ route =
 type alias NavLink =
     { path : Path
     , text : String
+    , query : Dict String String
     , icon : Icons.Icon
     }
 
@@ -64,13 +65,14 @@ init route () =
       , links =
             [ { path = Route.Path.Home_
               , text = "Список"
+              , query = Dict.fromList [ ( "f", "all" ) ]
               , icon = Icons.list
               }
-
-            -- , { path = Route.Path.InStore
-            --   , text = "В магазине"
-            --   , icon = Icons.shoppingCart
-            --   }
+            , { path = Route.Path.Home_
+              , text = "В магазине"
+              , query = Dict.fromList [ ( "f", "shopping" ) ]
+              , icon = Icons.shoppingCart
+              }
             ]
       }
     , Effect.none
@@ -156,7 +158,7 @@ viewNavBar model =
             )
         , ul []
             [ viewNavLink model.currentRoute
-                (NavLink Route.Path.Settings "" Icons.settings)
+                (NavLink Route.Path.Settings "" Dict.empty Icons.settings)
             ]
         ]
 
@@ -167,13 +169,16 @@ viewNavLink currentRoute page =
         [ a
             [ Route.href
                 { path = page.path
-                , query = Dict.empty
+                , query = page.query
                 , hash = Nothing
                 }
             , class "link"
             , classList
                 [ ( "active"
-                  , currentRoute.path == page.path
+                  , currentRoute.path
+                        == page.path
+                        && currentRoute.query
+                        == page.query
                   )
                 ]
             ]
