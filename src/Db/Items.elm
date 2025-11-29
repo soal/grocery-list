@@ -9,6 +9,7 @@ module Db.Items exposing
     , filterByStates
     , getInBasketLength
     , isAllDone
+    , map
     , queryBySlug
     , setAllStuffed
     , setId
@@ -155,9 +156,9 @@ encode item =
         ]
 
 
-map : (String -> Item -> Item) -> Dict String Item -> Dict String Item
+map : (Item -> a) -> Dict String Item -> Dict String a
 map fn items =
-    Dict.map fn items
+    Dict.map (\_ v -> fn v) items
 
 
 setState : State -> String -> Dict String Item -> Dict String Item
@@ -182,7 +183,7 @@ setId id draft =
 setAllStuffed : Dict String Item -> Dict String Item
 setAllStuffed items =
     map
-        (\_ item ->
+        (\item ->
             if item.state == InBasket then
                 { item | state = Stuffed }
 

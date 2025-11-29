@@ -10,7 +10,8 @@ view idsAndStates listOfIds desiredState =
     let
         inAskedState =
             listOfIds
-                |> List.filter (\id -> Dict.get id idsAndStates == Just desiredState)
+                |> List.filter
+                    (\id -> Dict.get id idsAndStates == Just desiredState)
                 |> List.length
 
         total =

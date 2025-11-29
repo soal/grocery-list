@@ -8,6 +8,9 @@ module Components.Item.ListElement exposing
     , withSwitch
     )
 
+-- import Components.Item.List exposing (Msg(..))
+
+import Components.Item.ListElement2 exposing (viewCheckbox, viewName)
 import Db.Items as Items
 import Html
     exposing
@@ -17,18 +20,15 @@ import Html
         , b
         , div
         , h4
-        , input
-        , label
         , span
         , text
         )
-import Html.Attributes exposing (attribute, checked, class, classList, id, type_)
-import Html.Attributes.Extra exposing (attributeIf, role)
-import Html.Events exposing (onCheck, onClick)
+import Html.Attributes exposing (class, classList)
+import Html.Events exposing (onClick)
+import Html.Extra exposing (viewMaybe)
 import LucideIcons as Icons
 import Route.Path
-import Svg
-import Svg.Attributes
+import Types exposing (CheckboxKind(..), ItemField(..))
 
 
 type ItemListElement
@@ -38,10 +38,11 @@ type ItemListElement
         , checkedSates : List Items.State
         , mark : Bool
         , switch : Bool
+        , open : Bool
         }
 
 
-new : { item : Items.Item, checkedSates : List Items.State } -> ItemListElement
+new : { item : Items.Item, checkedSates : List Items.State, open : Bool } -> ItemListElement
 new props =
     Settings
         { item = props.item
@@ -49,6 +50,7 @@ new props =
         , mark = False
         , switch = False
         , checkedSates = props.checkedSates
+        , open = props.open
         }
 
 
@@ -70,6 +72,9 @@ withSwitch (Settings settings) =
 type Msg
     = ItemClicked Items.Item Items.State
     | ItemChecked Items.Item Items.State
+    | EditStarted Items.Item ItemField
+    | InputChanged Items.Item ItemField String
+    | NoOp
 
 
 view : ItemListElement -> Html Msg
@@ -95,38 +100,40 @@ view (Settings settings) =
         , onClick (ItemClicked settings.item settings.item.state)
         ]
         [ div [ class "label" ]
-            [ div
-                [ role "checkbox"
-                , attribute "aria-role" "checkbox"
-                , classList
-                    [ ( "checked"
-                      , itemStateToBool
-                            settings.item.state
-                            settings.checkedSates
-                      )
-                    , ( "in-basket", not settings.switch && checkMark )
-                    ]
-                , onClick
-                    (ItemChecked settings.item settings.item.state)
-                ]
-                [ if settings.switch then
-                    Icons.plusIcon [ Svg.Attributes.strokeWidth "3" ]
+            [ viewCheckbox
+                (\_ -> ItemChecked settings.item settings.item.state)
+                False
+                (if settings.switch then
+                    Plus
 
-                  else
-                    Icons.checkIcon [ Svg.Attributes.strokeWidth "3" ]
-                ]
+                 else
+                    Check
+                )
+                (itemStateToBool
+                    settings.item.state
+                    settings.checkedSates
+                )
             , h4 []
-                [ span [] [ text settings.item.name ]
-                , span []
-                    [ text (Maybe.withDefault " " settings.item.symbol) ]
+                [ viewName
+                    { itemId = settings.item.id
+                    , static = not settings.switch
+                    , onOpen = EditStarted settings.item
+                    , blurred = Just NoOp
+                    , focused = Just NoOp
+                    , inputChange = Just <| InputChanged settings.item Name
+                    , content = settings.item.name
+                    , open = settings.open
+                    }
+                , viewMaybe (\s -> span [] [ text s ]) settings.item.symbol
                 ]
             ]
         , span
             [ class "item-quantity" ]
             (viewQuantity settings.item.quantity)
-        , div [ class "item-comment-box"]
-            [ span [ class "item-comment" ]
-                [ text (Maybe.withDefault "" settings.item.comment) ]
+        , div [ class "item-comment-box" ]
+            [ viewMaybe
+                (\c -> span [ class "item-comment" ] [ text c ])
+                settings.item.comment
             , link
             ]
         ]

@@ -8,10 +8,10 @@ import Db.Items as Items
 import Db.Settings exposing (CatsAndItems)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
-import Html exposing (Html, button, div, h3, text)
+import Html exposing (Html, button, div, h3, section, text)
 import Html.Attributes exposing (class, classList, disabled)
 import Html.Events exposing (onClick)
-import Html.Extra exposing (viewIf)
+import Html.Extra exposing (nothing)
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
@@ -19,6 +19,7 @@ import Set exposing (Set)
 import Shared
 import TaskPort
 import Time
+import Types exposing (ItemField(..))
 import Utils exposing (getCollapsesCatsForPage)
 import View exposing (View)
 
@@ -57,11 +58,31 @@ type alias UiState =
 
 
 
+-- type FieldMode
+--     = ViewMode
+--     | EditMode
+-- type FieldName
+--     = Name (Maybe String)
+--     | QCount (Maybe Float)
+--     | QUnit (Maybe String)
+--     | Comment (Maybe String)
+--     | Symbol (Maybe String)
+-- type ItemField
+--     = ItemField FieldName FieldMode
+-- itemFields : List ItemField
+-- itemFields =
+--     [ ItemField (Name Nothing) ViewMode
+--     , ItemField (QCount Nothing) ViewMode
+--     , ItemField (QUnit Nothing) ViewMode
+--     , ItemField (Comment Nothing) ViewMode
+--     , ItemField (Symbol Nothing) ViewMode
+--     ]
 -- INIT
 
 
 type alias Model =
     { draft : Maybe Items.Item
+    , tempItem : Maybe Items.Item
     , uiState : UiState
     , items : Dict String Items.Item
     , categories : List Cats.Category
@@ -108,6 +129,7 @@ init route () =
                     Items.Required
                     (Time.millisToPosix 0)
                     (Time.millisToPosix 0)
+      , tempItem = Nothing
       }
     , Effect.batch
         [ Effect.requestUuid GotUuid
@@ -127,6 +149,29 @@ init route () =
             )
         ]
     )
+
+
+emptyItem : Items.Item
+emptyItem =
+    Items.Item "empty"
+        ""
+        (Items.Quantity 1 "штук")
+        Nothing
+        ""
+        Nothing
+        Items.Required
+        (Time.millisToPosix 0)
+        (Time.millisToPosix 0)
+
+
+alterTempItem : Maybe Items.Item -> ItemField -> String -> Maybe Items.Item
+alterTempItem tempItem field content =
+    case ( tempItem, field ) of
+        ( Just item, Name ) ->
+            Just { item | name = content }
+
+        ( _, _ ) ->
+            tempItem
 
 
 
@@ -183,7 +228,7 @@ update msg model =
                     ( model, Effect.none )
 
         GotClickOutside ->
-            ( model, Effect.none )
+            endEditing model
 
         GotCatsAndItems data ->
             ( { model | categories = data.categories, items = data.items }
@@ -235,6 +280,17 @@ update msg model =
                     else
                         ( model, Effect.none )
 
+                Components.Item.List.EditStarted item _ ->
+                        ( { model | tempItem = Just item }, Effect.none )
+
+                Components.Item.List.InputChanged item field content ->
+                    ( { model
+                        | tempItem =
+                            alterTempItem model.tempItem field content
+                      }
+                    , Effect.none
+                    )
+
                 _ ->
                     ( model, Effect.none )
 
@@ -281,7 +337,7 @@ update msg model =
                 Draft.GotChange draft ->
                     ( { model | draft = Just draft }, Effect.none )
 
-                Draft.GotSave draft ->
+                Draft.GotSave _ ->
                     ( model
                     , Effect.batch
                         [ Effect.requestUuid GotUuid ]
@@ -308,12 +364,40 @@ alterCollapsedCats pageName catId catsMap state =
         catsMap
 
 
+endEditing : Model -> ( Model, Effect Msg )
+endEditing model =
+    case model.tempItem of
+        Just item ->
+            if item.id /= "empty" then
+                ( { model
+                    | items = Dict.insert item.id item model.items
+                    , tempItem = Just emptyItem
+                  }
+                , Effect.storeItem
+                    (\res ->
+                        case res of
+                            Ok True ->
+                                NoOp
+
+                            _ ->
+                                Error Nothing
+                    )
+                    item
+                )
+
+            else
+                ( model, Effect.none )
+
+        Nothing ->
+            ( model, Effect.none )
+
+
 
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -325,30 +409,57 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     { title = shared.titlePrefix ++ "Список"
     , body =
-        [ (case model.section of
-            All ->
-                viewFullList model
+        if Dict.size model.items > 0 then
+            case model.section of
+                All ->
+                    [ viewFullList
+                        model.items
+                        model.categories
+                        model.uiState.collapsedCatsMap
+                        model.tempItem
+                        |> Html.map GotItemListMsg
+                    ]
 
-            Shopping ->
-                viewShopping model
-          )
-            |> Html.map GotItemListMsg
-        , viewIf (model.section == Shopping) <| viewEndShoppingButton model.items
-        ]
+                Shopping ->
+                    let
+                        filteredItems =
+                            Items.filterByStates
+                                model.items
+                                [ Items.Required, Items.InBasket ]
+
+                        filteredCats =
+                            filterCategories filteredItems model.categories
+                    in
+                    [ viewShopping
+                        filteredItems
+                        filteredCats
+                        model.uiState.collapsedCatsMap
+                        |> Html.map GotItemListMsg
+                    , viewEndButton filteredItems
+                    ]
+
+        else
+            [ viewEmpty ]
     }
 
 
-viewFullList : Model -> Html Components.Item.List.Msg
-viewFullList model =
+viewFullList :
+    Dict String Items.Item
+    -> List Cats.Category
+    -> CollapsedCats
+    -> Maybe Items.Item
+    -> Html Components.Item.List.Msg
+viewFullList items categories collapsedCatsMap tempItem =
     Components.Item.List.new
-        { items = model.items
-        , categories = model.categories
+        { items = items
+        , categories = categories
         , checkedSates = [ Items.Required, Items.InBasket ]
         , collapsedCatIds =
-            getCollapsesCatsForPage "all" model.uiState.collapsedCatsMap
+            getCollapsesCatsForPage "all" collapsedCatsMap
         }
         |> Components.Item.List.withLink
         |> Components.Item.List.withSwitch
+        |> Components.Item.List.withEditing tempItem
         -- |> Components.Item.List.withDraft
         --     model.catWithDraft
         --     (Just model.draftFields)
@@ -356,25 +467,19 @@ viewFullList model =
         |> Components.Item.List.view
 
 
-viewShopping : Model -> Html Components.Item.List.Msg
-viewShopping model =
-    if Dict.size model.items > 0 then
-        let
-            filtered =
-                Items.filterByStates
-                    model.items
-                    [ Items.Required, Items.InBasket ]
-
-            categories =
-                filterCategories filtered model.categories
-        in
+viewShopping :
+    Dict String Items.Item
+    -> List Cats.Category
+    -> CollapsedCats
+    -> Html Components.Item.List.Msg
+viewShopping items categories collapsedCatsMap =
+    if Dict.size items > 0 then
         Components.Item.List.new
-            { items = filtered
+            { items = items
             , categories = categories
             , checkedSates = [ Items.InBasket ]
             , collapsedCatIds =
-                getCollapsesCatsForPage "shopping"
-                    model.uiState.collapsedCatsMap
+                getCollapsesCatsForPage "shopping" collapsedCatsMap
             }
             |> Components.Item.List.withMark
             |> Components.Item.List.withCounter
@@ -384,20 +489,24 @@ viewShopping model =
         viewEmpty
 
 
-viewEndShoppingButton : Dict String Items.Item -> Html Msg
-viewEndShoppingButton items =
-    button
-        [ class "end-shopping-button"
-        , classList [ ( "all-done", Items.isAllDone items ) ]
-        , onClick (GotItemMsg Items.GotAllBought)
-        , disabled (Items.getInBasketLength items <= 0)
-        ]
-        [ Components.Counter.view
-            (Dict.map (\_ item -> item.state) items)
-            (Dict.keys items)
-            Items.InBasket
-        , text "Закончить покупки"
-        ]
+viewEndButton : Dict String Items.Item -> Html Msg
+viewEndButton items =
+    if Dict.size items > 0 then
+        button
+            [ class "end-shopping-button"
+            , classList [ ( "all-done", Items.isAllDone items ) ]
+            , onClick (GotItemMsg Items.GotAllBought)
+            , disabled (Items.getInBasketLength items <= 0)
+            ]
+            [ Components.Counter.view
+                (Items.map .state items)
+                (Dict.keys items)
+                Items.InBasket
+            , text "Закончить покупки"
+            ]
+
+    else
+        nothing
 
 
 filterCategories :

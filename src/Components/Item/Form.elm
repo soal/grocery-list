@@ -1,28 +1,131 @@
 module Components.Item.Form exposing (..)
 
-import Db.Items exposing (Item, Quantity(..))
-import Html exposing (Html, b, div, h1, i, input, p, span, text, textarea)
-import Html.Attributes exposing (attribute, class, classList, id, name, style, type_, value)
+import Db.Items as Items
+import Html exposing (Html, b, button, div, h1, i, input, p, span, text, textarea)
+import Html.Attributes exposing (attribute, class, classList, id, name, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Html.Extra exposing (nothing)
-import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..))
+import LucideIcons as Icons
 
 
-viewField : Item -> ItemForm.ItemField -> Html ItemForm.Msg
+type FieldMode
+    = ViewMode
+    | EditMode
+
+
+type FieldName
+    = Name (Maybe String)
+    | QCount (Maybe Float)
+    | QUnit (Maybe String)
+    | Comment (Maybe String)
+    | Symbol (Maybe String)
+
+
+type ItemField
+    = ItemField FieldName FieldMode
+
+
+itemFields : List ItemField
+itemFields =
+    [ ItemField (Name Nothing) ViewMode
+    , ItemField (QCount Nothing) ViewMode
+    , ItemField (QUnit Nothing) ViewMode
+    , ItemField (Comment Nothing) ViewMode
+    , ItemField (Symbol Nothing) ViewMode
+    ]
+
+
+type alias Model =
+    List ItemField
+
+
+alter :
+    (ItemField -> ItemField)
+    -> ItemField
+    -> List ItemField
+    -> List ItemField
+alter mapper field fields =
+    List.map
+        (\existing ->
+            if existing == field then
+                mapper field
+
+            else
+                existing
+        )
+        fields
+
+
+allToView : List ItemField -> List ItemField
+allToView fields =
+    List.map
+        (\field ->
+            case field of
+                ItemField fieldName _ ->
+                    ItemField fieldName ViewMode
+        )
+        fields
+
+
+alterMode : FieldMode -> ItemField -> ItemField
+alterMode mode field =
+    case field of
+        ItemField fieldName _ ->
+            ItemField fieldName mode
+
+
+alterContent : Maybe String -> ItemField -> ItemField
+alterContent data field =
+    case field of
+        ItemField fieldName mode ->
+            case fieldName of
+                Name _ ->
+                    ItemField (Name data) mode
+
+                QUnit _ ->
+                    ItemField (QUnit data) mode
+
+                QCount _ ->
+                    ItemField (QCount (Maybe.andThen String.toFloat data)) mode
+
+                Comment _ ->
+                    ItemField (Comment data) mode
+
+                Symbol _ ->
+                    ItemField (Symbol data) mode
+
+
+type Msg
+    = StartEditing ItemField (Maybe String)
+    | FinishEditing ItemField
+    | UpdateField ItemField (Maybe String)
+
+
+viewDraftButton : Html msg
+viewDraftButton =
+    button
+        [ class "add-item-button outline"
+
+        -- , onClick (DraftOpened category nameFieldId)
+        ]
+        [ Icons.plusCircleIcon [] ]
+
+
+viewField : Items.Item -> ItemField -> Html Msg
 viewField item field =
     case field of
         ItemField (Name _) _ ->
             viewFieldWrap [ "item-name-field" ] (viewName field item.id item.name)
 
-        ItemForm.ItemField (Comment _) _ ->
+        ItemField (Comment _) _ ->
             viewFieldWrap [] (viewComment field item.id item.comment)
 
-        ItemForm.ItemField (QCount _) _ ->
+        ItemField (QCount _) _ ->
             viewFieldWrap
                 [ "item-page-quantity", "item-quantity", "unit" ]
                 (viewQCount field item.id item.quantity)
 
-        ItemForm.ItemField (QUnit _) _ ->
+        ItemField (QUnit _) _ ->
             viewFieldWrap
                 [ "item-page-quantity", "item-quantity", "count" ]
                 (viewQUnit field item.id item.quantity)
@@ -40,7 +143,7 @@ viewFieldWrap classes content =
         [ content ]
 
 
-viewName : ItemField -> String -> String -> Html ItemForm.Msg
+viewName : ItemField -> String -> String -> Html Msg
 viewName field itemId sharedName =
     case field of
         ItemField (Name maybeName) EditMode ->
@@ -57,8 +160,8 @@ viewName field itemId sharedName =
                 , input
                     [ type_ "text"
                     , value fieldData
-                    , onInput (Just >> ItemForm.UpdateField field)
-                    , onBlur (ItemForm.FinishEditing field)
+                    , onInput (Just >> UpdateField field)
+                    , onBlur (FinishEditing field)
                     , name <| "item-name-" ++ itemId
                     , id <| "item-name-" ++ itemId
                     ]
@@ -67,19 +170,19 @@ viewName field itemId sharedName =
 
         _ ->
             h1
-                [ onClick (ItemForm.StartEditing field <| Just sharedName)
+                [ onClick (StartEditing field <| Just sharedName)
                 ]
                 [ text sharedName ]
 
 
-viewComment : ItemField -> String -> Maybe String -> Html ItemForm.Msg
+viewComment : ItemField -> String -> Maybe String -> Html Msg
 viewComment field itemId existing =
     case field of
         ItemField (Comment comment) EditMode ->
             textarea
                 [ value (Maybe.withDefault "" comment)
-                , onInput (Just >> ItemForm.UpdateField field)
-                , onBlur (ItemForm.FinishEditing field)
+                , onInput (Just >> UpdateField field)
+                , onBlur (FinishEditing field)
                 , id <| "item-comment-" ++ itemId
                 ]
                 []
@@ -87,7 +190,7 @@ viewComment field itemId existing =
         _ ->
             case existing of
                 Just comment ->
-                    p [ onClick (ItemForm.StartEditing field existing) ]
+                    p [ onClick (StartEditing field existing) ]
                         [ i [] [ text comment ] ]
 
                 Nothing ->
@@ -95,7 +198,7 @@ viewComment field itemId existing =
                         [ i [] [ text "Добавить комментарий" ] ]
 
 
-viewQUnit : ItemField -> String -> Quantity -> Html ItemForm.Msg
+viewQUnit : ItemField -> String -> Items.Quantity -> Html Msg
 viewQUnit field itemId existing =
     case field of
         ItemField (QUnit maybeUnit) EditMode ->
@@ -106,8 +209,8 @@ viewQUnit field itemId existing =
             input
                 [ type_ "text"
                 , value fieldData
-                , onInput (Just >> ItemForm.UpdateField field)
-                , onBlur (ItemForm.FinishEditing field)
+                , onInput (Just >> UpdateField field)
+                , onBlur (FinishEditing field)
                 , name <| "item-quantity-unit-" ++ itemId
                 , id <| "item-quantity-unit-" ++ itemId
                 ]
@@ -115,12 +218,12 @@ viewQUnit field itemId existing =
 
         _ ->
             case existing of
-                Quantity _ unit ->
-                    span [ onClick (ItemForm.StartEditing field (Just unit)) ]
+                Items.Quantity _ unit ->
+                    span [ onClick (StartEditing field (Just unit)) ]
                         [ text unit ]
 
 
-viewQCount : ItemField -> String -> Quantity -> Html ItemForm.Msg
+viewQCount : ItemField -> String -> Items.Quantity -> Html Msg
 viewQCount field itemId existing =
     case field of
         ItemField (QCount maybeCount) EditMode ->
@@ -131,8 +234,8 @@ viewQCount field itemId existing =
             input
                 [ type_ "number"
                 , value fieldData
-                , onInput (Just >> ItemForm.UpdateField field)
-                , onBlur (ItemForm.FinishEditing field)
+                , onInput (Just >> UpdateField field)
+                , onBlur (FinishEditing field)
                 , name <| "item-quantity-count-" ++ itemId
                 , id <| "item-quantity-count-" ++ itemId
                 ]
@@ -140,12 +243,12 @@ viewQCount field itemId existing =
 
         _ ->
             case existing of
-                Quantity count _ ->
+                Items.Quantity count _ ->
                     b
                         [ count
                             |> String.fromFloat
                             |> Just
-                            |> ItemForm.StartEditing field
+                            |> StartEditing field
                             |> onClick
                         ]
                         [ text (String.fromFloat count) ]

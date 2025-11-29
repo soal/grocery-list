@@ -183,6 +183,7 @@ button {
     display: flex;
     font-size: var(--base-size);
     font-weight: var(--pico-form-label-font-weight, var(--pico-font-weight));
+    max-width: 100%;
 
     & input[type=checkbox] {
       font-size: var(--base-size);
@@ -197,6 +198,7 @@ button {
       display: flex;
       flex-wrap: nowrap;
       margin: 0;
+      max-width: calc(100% - 2rem);
     }
   }
 
@@ -296,48 +298,50 @@ button {
   }
 }
 
-.item-page-field {
+.input-resize-containter {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
   overflow: hidden;
 
-  & input {}
 
-  .input-resize-containter {
-    display: inline-block;
-    position: relative;
+  & input,
+  & textarea,
+  .input-size-helper {
+    margin: 0;
+    padding: 0;
+    /* border: 1px solid #ccc; */
+    /* height: 36px; */
+    min-width: 4em;
+    font: 1.25rem/1.25rem sans-serif;
+    font-weight: 700;
+    height: 100%;
     max-width: 100%;
-    overflow: hidden;
   }
 
-  &.item-name-field {
+  .input-size-helper {
+    visibility: hidden;
+    display: inline-block;
+    height: 0;
+    white-space: pre;
+  }
 
-    & input[type=text] {
-      width: auto !important;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
+  & input, & textarea {
+    border: none;
+    outline: none;
+    box-shadow: none;
+  }
 
-    & input,
-    .input-size-helper {
-      margin: 0;
-      padding: 0;
-      /* border: 1px solid #ccc; */
-      /* height: 36px; */
-      min-width: 4em;
-      font: 1.25rem/1.25rem sans-serif;
-      font-weight: 700;
-    }
-
-    .input-size-helper {
-      visibility: hidden;
-      display: inline-block;
-      height: 0;
-      white-space: pre;
-    }
+  & input[type=text], & textared {
+    /* width: auto !important; */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 }
+
 
 h1 {
   & input {
@@ -403,7 +407,7 @@ h1 {
     --pico-form-element-focus-color: var(--pico-primary-focus);
   }
 
-  &.in-basket.checked {
+  &.check.checked {
     --pico-border-color: var(--pico-form-element-valid-border-color);
     --pico-background-color: var(--pico-form-element-valid-border-color);
     --pico-form-element-focus-color: var(--pico-primary-focus);
