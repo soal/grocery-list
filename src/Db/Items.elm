@@ -1,9 +1,28 @@
-module Db.Items exposing (..)
+module Db.Items exposing
+    ( Item
+    , Msg(..)
+    , Quantity(..)
+    , State(..)
+    , alter
+    , decoder
+    , encode
+    , filterByStates
+    , getInBasketLength
+    , isAllDone
+    , queryBySlug
+    , setAllStuffed
+    , setId
+    , setState
+    , store
+    , storeAll
+    )
 
 import Dict exposing (Dict)
 import Json.Decode as JD
 import Json.Encode as JE
 import Json.Encode.Extra as JEE
+import Task
+import TaskPort
 import Time
 
 
@@ -13,14 +32,20 @@ type alias Image =
     }
 
 
-type ItemState
+type State
     = Stuffed
     | Required
     | InBasket
 
 
-stringToItemState : String -> ItemState
-stringToItemState stateStr =
+type Msg
+    = GotStateToggle Item State
+    | GotChange Item
+    | GotAllBought
+
+
+stringToState : String -> State
+stringToState stateStr =
     case stateStr of
         "stuffed" ->
             Stuffed
@@ -35,8 +60,8 @@ stringToItemState stateStr =
             Stuffed
 
 
-itemStateToString : ItemState -> String
-itemStateToString state =
+stateToString : State -> String
+stateToString state =
     case state of
         Stuffed ->
             "stuffed"
@@ -48,48 +73,56 @@ itemStateToString state =
             "in-basket"
 
 
-encodeState : ItemState -> JE.Value
+encodeState : State -> JE.Value
 encodeState state =
-    state |> itemStateToString |> JE.string
+    state |> stateToString |> JE.string
 
 
-type ItemQuantity
-    = ItemQuantity Float String
+type Quantity
+    = Quantity Float String
 
 
-quantityDecoder : JD.Decoder ItemQuantity
+getCount : Quantity -> Float
+getCount (Quantity count _) =
+    count
+
+
+getUnit : Quantity -> String
+getUnit (Quantity _ unit) =
+    unit
+
+
+quantityDecoder : JD.Decoder Quantity
 quantityDecoder =
     JD.map2
-        (\number unit -> ItemQuantity number unit)
+        Quantity
         (JD.field "count" JD.float)
         (JD.field "unit" JD.string)
 
 
-encodeQuantity : ItemQuantity -> JE.Value
+encodeQuantity : Quantity -> JE.Value
 encodeQuantity quantity =
-    case quantity of
-        ItemQuantity count unit ->
-            JE.object
-                [ ( "count", JE.float count )
-                , ( "unit", JE.string unit )
-                ]
+    JE.object
+        [ ( "count", JE.float <| getCount quantity )
+        , ( "unit", JE.string <| getUnit quantity )
+        ]
 
 
 type alias Item =
     { id : String
     , name : String
-    , quantity : ItemQuantity
+    , quantity : Quantity
     , comment : Maybe String
     , slug : String
     , symbol : Maybe String
-    , state : ItemState
+    , state : State
     , created : Time.Posix
     , updated : Time.Posix
     }
 
 
-itemDecoder : JD.Decoder Item
-itemDecoder =
+decoder : JD.Decoder Item
+decoder =
     JD.map7
         Item
         (JD.field "id" JD.string)
@@ -98,7 +131,7 @@ itemDecoder =
         (JD.field "comment" <| JD.maybe JD.string)
         (JD.field "slug" JD.string)
         (JD.field "symbol" <| JD.maybe JD.string)
-        (JD.field "state" <| JD.map stringToItemState JD.string)
+        (JD.field "state" <| JD.map stringToState JD.string)
         |> JD.andThen
             (\partial ->
                 JD.map2 partial
@@ -107,8 +140,8 @@ itemDecoder =
             )
 
 
-encodeItem : Item -> JE.Value
-encodeItem item =
+encode : Item -> JE.Value
+encode item =
     JE.object
         [ ( "id", JE.string item.id )
         , ( "name", JE.string item.name )
@@ -122,15 +155,101 @@ encodeItem item =
         ]
 
 
-updateItemState : Dict String Item -> String -> ItemState -> Dict String Item
-updateItemState allItems id state =
+map : (String -> Item -> Item) -> Dict String Item -> Dict String Item
+map fn items =
+    Dict.map fn items
+
+
+setState : State -> String -> Dict String Item -> Dict String Item
+setState state id allItems =
     Dict.update id
         (Maybe.map (\found -> { found | state = state }))
         allItems
 
 
-updateItem : Dict String Item -> Item -> Dict String Item
-updateItem allItems item =
+alter : Dict String Item -> Item -> Dict String Item
+alter allItems item =
     Dict.update item.id
         (Maybe.map (always item))
         allItems
+
+
+setId : String -> Item -> Item
+setId id draft =
+    { draft | id = id }
+
+
+setAllStuffed : Dict String Item -> Dict String Item
+setAllStuffed items =
+    map
+        (\_ item ->
+            if item.state == InBasket then
+                { item | state = Stuffed }
+
+            else
+                item
+        )
+        items
+
+
+store : (TaskPort.Result Bool -> msg) -> Item -> Cmd msg
+store onResult item =
+    let
+        call =
+            TaskPort.call
+                { function = "storeItem"
+                , valueDecoder = JD.bool
+                , argsEncoder = encode
+                }
+    in
+    Task.attempt onResult <| call item
+
+
+storeAll :
+    (TaskPort.Result Bool -> msg)
+    -> Dict String Item
+    -> Cmd msg
+storeAll onResult items =
+    let
+        call =
+            TaskPort.call
+                { function = "storeAllItems"
+                , valueDecoder = JD.bool
+                , argsEncoder = JE.dict identity encode
+                }
+    in
+    Task.attempt onResult <| call items
+
+
+queryBySlug : (TaskPort.Result Item -> msg) -> String -> Cmd msg
+queryBySlug onResult slug =
+    let
+        call =
+            TaskPort.call
+                { function = "queryBySlug"
+                , valueDecoder = decoder
+                , argsEncoder = JE.string
+                }
+    in
+    Task.attempt onResult <| call slug
+
+
+getInBasketLength : Dict String Item -> Int
+getInBasketLength items =
+    Dict.values items
+        |> List.filter (\item -> item.state == InBasket)
+        |> List.length
+
+
+isAllDone : Dict String Item -> Bool
+isAllDone items =
+    let
+        statesLength =
+            Dict.size items
+    in
+    statesLength > 0 && statesLength <= getInBasketLength items
+
+
+filterByStates : Dict String Item -> List State -> Dict String Item
+filterByStates items states =
+    Dict.filter (\_ item -> List.member item.state states) items

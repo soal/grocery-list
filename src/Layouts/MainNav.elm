@@ -1,18 +1,18 @@
 module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
-import Dict
+import Dict exposing (Dict)
 import Effect exposing (Effect)
-import FeatherIcons as Icons
 import Html exposing (Html, a, footer, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on)
 import Html.Extra exposing (nothing)
 import Json.Decode
 import Layout exposing (Layout)
+import LucideIcons as Icons
 import Route exposing (Route)
 import Route.Path exposing (Path)
 import Shared
-import Shared.Msg exposing (Msg(..))
+import Svg
 import View exposing (View)
 
 
@@ -46,37 +46,22 @@ layout props _ route =
 -- MODEL
 
 
-type alias NavLink =
+type alias NavLink msg =
     { path : Path
     , text : String
-    , icon : Icons.Icon
+    , query : Dict String String
+    , icon : List (Svg.Attribute msg) -> Html msg
     }
 
 
 type alias Model =
     { currentRoute : Route ()
-    , links : List NavLink
     }
 
 
-init : Route () -> () -> ( Model, Effect Msg )
+init : Route () -> () -> ( Model, Effect msg )
 init route () =
     ( { currentRoute = route
-      , links =
-            [ { path = Route.Path.Items
-              , text = "Всё"
-              , icon = Icons.list
-              }
-
-            -- , { path = Route.Path.ToBuy
-            --   , text = "Купить"
-            --   , icon = Icons.shoppingBag
-            --   }
-            , { path = Route.Path.InStore
-              , text = "В магазине"
-              , icon = Icons.shoppingCart
-              }
-            ]
       }
     , Effect.none
     )
@@ -146,48 +131,65 @@ view props { model, content } =
 
 viewNavBar : Model -> Html msg
 viewNavBar model =
+    let
+        links =
+            [ { path = Route.Path.Home_
+              , text = "Список"
+              , query = Dict.fromList [ ( "f", "all" ) ]
+              , icon = Icons.listIcon
+              }
+            , { path = Route.Path.Home_
+              , text = "В магазине"
+              , query = Dict.fromList [ ( "f", "shopping" ) ]
+              , icon = Icons.shoppingCartIcon
+              }
+            ]
+    in
     nav [ class "main-nav" ]
         [ ul []
             [ li []
                 [ span [ class "link" ]
-                    [ Icons.cloudOff |> Icons.toHtml [] ]
+                    [ span [ class "icon-wrapper" ] [ Icons.cloudOffIcon [] ] ]
                 ]
             ]
         , ul [ class "group" ] <|
             (List.map
                 (viewNavLink model.currentRoute)
              <|
-                model.links
+                links
             )
         , ul []
             [ viewNavLink model.currentRoute
-                (NavLink Route.Path.Settings "" Icons.settings)
+                (NavLink Route.Path.Settings "" Dict.empty Icons.settingsIcon)
             ]
         ]
 
 
-viewNavLink : Route () -> NavLink -> Html msg
+viewNavLink : Route () -> NavLink msg -> Html msg
 viewNavLink currentRoute page =
     li []
         [ a
             [ Route.href
                 { path = page.path
-                , query = Dict.empty
+                , query = page.query
                 , hash = Nothing
                 }
             , class "link"
             , classList
                 [ ( "active"
-                  , currentRoute.path == page.path
+                  , currentRoute.path
+                        == page.path
+                        && currentRoute.query
+                        == page.query
                   )
                 ]
             ]
           <|
             if page.text == "" then
-                [ page.icon |> Icons.toHtml [] ]
+                [ span [ class "icon-wrapper" ] [ page.icon [] ] ]
 
             else
-                [ page.icon |> Icons.toHtml []
+                [ span [ class "icon-wrapper" ] [ page.icon [] ]
                 , text page.text
                 ]
         ]

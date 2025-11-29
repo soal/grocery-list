@@ -1,12 +1,13 @@
 module Pages.Items.Item_ exposing (Model, Msg, page)
 
-import Db.Items exposing (Item, ItemQuantity(..))
+import Db.Items as Items
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, b, div, h1, i, input, p, span, text, textarea)
-import Html.Attributes exposing (autofocus, class, classList, id, name, type_, value)
+import Html.Attributes exposing (class, classList, id, name, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Html.Extra exposing (nothing)
+import ItemForm exposing (FieldMode(..), FieldName(..), ItemField(..), itemFields)
 import Json.Decode exposing (Error(..))
 import Layouts
 import Page exposing (Page)
@@ -40,35 +41,11 @@ toLayout _ =
 -- INIT
 
 
-type FieldMode
-    = ViewMode
-    | EditMode
-
-
-
--- | EditMode
-
-
-type FieldName
-    = Name (Maybe String)
-    | QCount (Maybe Float)
-    | QUnit (Maybe String)
-    | Comment (Maybe String)
-    | Symbol (Maybe String)
-
-
-
--- | Quantity (Maybe ItemQuantity)
-
-
-type ItemField
-    = ItemField FieldName FieldMode
-
-
 type alias Model =
     { slug : String
-    , draft : Maybe Item
+    , draft : Maybe Items.Item
     , fields : List ItemField
+    , item : Maybe Items.Item
     }
 
 
@@ -78,26 +55,21 @@ init shared { item } _ =
         slug =
             Maybe.withDefault "" <| percentDecode item
 
-        filtered =
-            getItem shared.items slug
+        -- filtered =
+        --     getItem shared.items slug
     in
     ( { slug = slug
-      , draft = filtered
-      , fields =
-            [ ItemField (Name Nothing) ViewMode
-            , ItemField (QCount Nothing) ViewMode
-            , ItemField (QUnit Nothing) ViewMode
-            , ItemField (Comment Nothing) ViewMode
-            , ItemField (Symbol Nothing) ViewMode
-            ]
+      , draft = Nothing
+      , item = Nothing
+      , fields = itemFields
       }
     , Effect.none
     )
 
 
-makeItemFromFields : List ItemField -> Item -> Item
+makeItemFromFields : List ItemField -> Items.Item -> Items.Item
 makeItemFromFields fields item =
-    fields
+    itemFields
         |> List.foldl
             (\field acc ->
                 case field of
@@ -132,8 +104,8 @@ makeItemFromFields fields item =
                                 let
                                     quantity =
                                         case acc.quantity of
-                                            ItemQuantity count _ ->
-                                                ItemQuantity count value
+                                            Items.Quantity count _ ->
+                                                Items.Quantity count value
                                 in
                                 { acc | quantity = quantity }
 
@@ -146,8 +118,8 @@ makeItemFromFields fields item =
                                 let
                                     quantity =
                                         case acc.quantity of
-                                            ItemQuantity _ unit ->
-                                                ItemQuantity value unit
+                                            Items.Quantity _ unit ->
+                                                Items.Quantity value unit
                                 in
                                 { acc | quantity = quantity }
 
@@ -157,7 +129,11 @@ makeItemFromFields fields item =
             item
 
 
-guardStrField : (Item -> String -> Item) -> Item -> Maybe String -> Item
+guardStrField :
+    (Items.Item -> String -> Items.Item)
+    -> Items.Item
+    -> Maybe String
+    -> Items.Item
 guardStrField mapper item data =
     data
         |> Maybe.map
@@ -184,12 +160,16 @@ type Msg
     | FinishEditing ItemField
     | UpdateField ItemField (Maybe String)
     | ClickedOutside
+    | GotItem Items.Item
     | NoOp
 
 
 update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
 update shared msg model =
     case msg of
+        GotItem item ->
+            ( model, Effect.none )
+
         StartEditing field data ->
             ( { model
                 | fields =
@@ -203,32 +183,29 @@ update shared msg model =
             )
 
         FinishEditing field ->
-            let
-                eixisting =
-                    getItem shared.items model.slug
-            in
-            ( { model
-                | fields =
-                    updateFields
-                        (updateMode ViewMode)
-                        field
-                        model.fields
-              }
-            , case eixisting of
-                Just item ->
-                    Effect.updateItem (makeItemFromFields model.fields item)
-
-                Nothing ->
-                    Effect.none
-            )
+            -- let
+            --     eixisting =
+            --         getItem shared.items model.slug
+            -- in
+            -- ( { model
+            --     | fields =
+            --         updateFields
+            --             (updateMode ViewMode)
+            --             field
+            --             model.fields
+            --   }
+            -- , case eixisting of
+            --     Just item ->
+            --         -- Effect.updateItem (makeItemFromFields model.fields item)
+            --         Effect.none
+            --     Nothing ->
+            --         Effect.none
+            -- )
+            ( model, Effect.none )
 
         UpdateField field data ->
             ( { model
-                | fields =
-                    updateFields
-                        (updateData data)
-                        field
-                        model.fields
+                | fields = updateFields (updateData data) field model.fields
               }
             , Effect.none
             )
@@ -287,7 +264,7 @@ updateFields mapper field fields =
             else
                 existing
         )
-        fields
+        itemFields
 
 
 allFieldsToView : List ItemField -> List ItemField
@@ -298,7 +275,7 @@ allFieldsToView fields =
                 ItemField fieldName _ ->
                     ItemField fieldName ViewMode
         )
-        fields
+        itemFields
 
 
 
@@ -316,15 +293,11 @@ subscriptions _ =
 
 view : Shared.Model -> Model -> View Msg
 view shared model =
-    let
-        filtered =
-            getItem shared.items model.slug
-    in
     { title = shared.titlePrefix ++ model.slug
     , body =
-        [ case filtered of
-            Just sharedItem ->
-                viewItemPage model.fields sharedItem
+        [ case model.item of
+            Just item ->
+                viewItemPage model.fields item
 
             _ ->
                 div [ class "empty-page" ] [ text "Ничего не найдено" ]
@@ -332,12 +305,12 @@ view shared model =
     }
 
 
-viewItemPage : List ItemField -> Item -> Html.Html Msg
+viewItemPage : List ItemField -> Items.Item -> Html.Html Msg
 viewItemPage fields sharedItem =
-    div [ class "item-page" ] <| List.map (viewField sharedItem) fields
+    div [ class "item-page" ] <| List.map (viewField sharedItem) itemFields
 
 
-viewField : Item -> ItemField -> Html Msg
+viewField : Items.Item -> ItemField -> Html Msg
 viewField item field =
     case field of
         ItemField (Name _) _ ->
@@ -383,7 +356,6 @@ viewName field sharedName =
                     , value fieldData
                     , onInput (Just >> UpdateField field)
                     , onBlur (FinishEditing field)
-                    , autofocus True
                     , name <| "item-name-" ++ fieldData
                     , id <| "item-name-" ++ fieldData
                     ]
@@ -419,7 +391,7 @@ viewComment field existing =
                         [ i [] [ text "Добавить комментарий" ] ]
 
 
-viewQUnit : ItemField -> ItemQuantity -> Html Msg
+viewQUnit : ItemField -> Items.Quantity -> Html Msg
 viewQUnit field existing =
     case field of
         ItemField (QUnit maybeUnit) EditMode ->
@@ -439,12 +411,12 @@ viewQUnit field existing =
 
         _ ->
             case existing of
-                ItemQuantity _ unit ->
+                Items.Quantity _ unit ->
                     span [ onClick (StartEditing field (Just unit)) ]
                         [ text unit ]
 
 
-viewQCount : ItemField -> ItemQuantity -> Html Msg
+viewQCount : ItemField -> Items.Quantity -> Html Msg
 viewQCount field existing =
     case field of
         ItemField (QCount maybeCount) EditMode ->
@@ -464,7 +436,7 @@ viewQCount field existing =
 
         _ ->
             case existing of
-                ItemQuantity count _ ->
+                Items.Quantity count _ ->
                     b
                         [ count
                             |> String.fromFloat
@@ -475,7 +447,7 @@ viewQCount field existing =
                         [ text (String.fromFloat count) ]
 
 
-getItem : Dict String Item -> String -> Maybe Item
+getItem : Dict String Items.Item -> String -> Maybe Items.Item
 getItem items slug =
     items
         |> Dict.filter (\_ v -> slug == v.slug)

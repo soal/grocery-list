@@ -5,8 +5,6 @@ module Shared.Model exposing
     , Model
     )
 
-import Db.Categories exposing (Category)
-import Db.Items exposing (Item)
 import Db.Settings exposing (AppSettings)
 import Dict exposing (Dict)
 import Set exposing (Set)
@@ -29,18 +27,9 @@ type alias CollapsedCats =
     Dict String (Set Int)
 
 
-type alias UiState =
-    { lastRoute : String
-    , collapsedCatsMap : CollapsedCats
-    }
-
-
 type alias Model =
     { settings : AppSettings
     , dbConfig : DbConfig
-    , uiState : UiState
-    , items : Dict String Item
-    , categories : List Category
     , titlePrefix : String
     , error : Maybe String
     }

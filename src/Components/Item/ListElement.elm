@@ -5,10 +5,10 @@ module Components.Item.ListElement exposing
     , view
     , withLink
     , withMark
+    , withSwitch
     )
 
-import Db.Items exposing (Item, ItemQuantity(..), ItemState(..))
-import FeatherIcons as Icons
+import Db.Items as Items
 import Html
     exposing
         ( Html
@@ -22,26 +22,32 @@ import Html
         , span
         , text
         )
-import Html.Attributes exposing (checked, class, classList, name, type_)
+import Html.Attributes exposing (attribute, checked, class, classList, id, type_)
+import Html.Attributes.Extra exposing (attributeIf, role)
 import Html.Events exposing (onCheck, onClick)
+import LucideIcons as Icons
 import Route.Path
+import Svg
+import Svg.Attributes
 
 
 type ItemListElement
     = Settings
-        { item : Item
+        { item : Items.Item
         , link : Bool
-        , checkedSates : List ItemState
+        , checkedSates : List Items.State
         , mark : Bool
+        , switch : Bool
         }
 
 
-new : { item : Item, checkedSates : List ItemState } -> ItemListElement
+new : { item : Items.Item, checkedSates : List Items.State } -> ItemListElement
 new props =
     Settings
         { item = props.item
         , link = False
         , mark = False
+        , switch = False
         , checkedSates = props.checkedSates
         }
 
@@ -56,9 +62,14 @@ withMark (Settings settings) =
     Settings { settings | mark = True }
 
 
+withSwitch : ItemListElement -> ItemListElement
+withSwitch (Settings settings) =
+    Settings { settings | switch = True }
+
+
 type Msg
-    = ItemClicked Item ItemState
-    | ItemChecked Item Bool
+    = ItemClicked Items.Item Items.State
+    | ItemChecked Items.Item Items.State
 
 
 view : ItemListElement -> Html Msg
@@ -70,44 +81,50 @@ view (Settings settings) =
                     [ Route.Path.href
                         (Route.Path.Items_Item_ { item = settings.item.slug })
                     ]
-                    [ Icons.chevronRight |> Icons.toHtml [] ]
+                    [ Icons.chevronRightIcon [] ]
 
             else
                 text ""
 
         checkMark =
-            settings.mark && settings.item.state == InBasket
+            settings.mark && settings.item.state == Items.InBasket
     in
     article
         [ class "grocery-item"
         , classList [ ( "in-basket", checkMark ) ]
         , onClick (ItemClicked settings.item settings.item.state)
         ]
-        [ div []
-            [ label []
-                [ input
-                    [ type_ "checkbox"
-                    , name "to-buy"
-                    , class "contrast"
-                    , checked
-                        (itemStateToBool
+        [ div [ class "label" ]
+            [ div
+                [ role "checkbox"
+                , attribute "aria-role" "checkbox"
+                , classList
+                    [ ( "checked"
+                      , itemStateToBool
                             settings.item.state
                             settings.checkedSates
-                        )
-                    , onCheck (ItemChecked settings.item)
+                      )
+                    , ( "in-basket", not settings.switch && checkMark )
                     ]
-                    []
-                , h4 []
-                    [ span [] [ text settings.item.name ]
-                    , span []
-                        [ text (Maybe.withDefault " " settings.item.symbol) ]
-                    ]
+                , onClick
+                    (ItemChecked settings.item settings.item.state)
                 ]
-            , span
-                [ class "item-quantity" ]
-                (viewQuantity settings.item.quantity)
+                [ if settings.switch then
+                    Icons.plusIcon [ Svg.Attributes.strokeWidth "3" ]
+
+                  else
+                    Icons.checkIcon [ Svg.Attributes.strokeWidth "3" ]
+                ]
+            , h4 []
+                [ span [] [ text settings.item.name ]
+                , span []
+                    [ text (Maybe.withDefault " " settings.item.symbol) ]
+                ]
             ]
-        , div []
+        , span
+            [ class "item-quantity" ]
+            (viewQuantity settings.item.quantity)
+        , div [ class "item-comment-box"]
             [ span [ class "item-comment" ]
                 [ text (Maybe.withDefault "" settings.item.comment) ]
             , link
@@ -115,13 +132,13 @@ view (Settings settings) =
         ]
 
 
-viewQuantity : ItemQuantity -> List (Html msg)
-viewQuantity (ItemQuantity quantity unit) =
+viewQuantity : Items.Quantity -> List (Html msg)
+viewQuantity (Items.Quantity quantity unit) =
     [ b [] [ text (String.fromFloat quantity) ]
     , span [] [ text unit ]
     ]
 
 
-itemStateToBool : ItemState -> List ItemState -> Bool
+itemStateToBool : Items.State -> List Items.State -> Bool
 itemStateToBool state checkedSates =
     List.member state checkedSates
