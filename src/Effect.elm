@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , exportData, importData, initDb, queryAll, requestUuid, storeAllItems, storeDump, storeItem
+    , importData, initDb, queryAll, requestUuid, storeAllItems, storeDump, storeItem
     )
 
 {-|
@@ -65,6 +65,7 @@ type Effect msg
 
 
 
+-- | ExportData
 -- | ExportData
 -- INIT DB
 
@@ -184,25 +185,6 @@ requestUuidEffect onResult =
 
 
 -- EXPORT AND IMPORT
-
-
-exportData : Effect msg
-exportData =
-    -- ExportData
-    none
-
-
-exportDataEffect : DataDump -> Cmd msg
-exportDataEffect data =
-    JE.object
-        [ ( "version", JE.int data.version )
-        , ( "categories", JE.list Cats.encode data.categories )
-        , ( "items", JE.dict identity Items.encode data.items )
-        ]
-        |> JE.encode 2
-        |> File.Download.string
-            "grocery-list-backup.json"
-            "application/json"
 
 
 importData : String -> Effect msg
@@ -425,10 +407,6 @@ toCmd options effect =
             Items.storeAll onResult items
 
         -- ExportData ->
-        --     exportDataEffect <|
-        --         DataDump
-        --             options.shared.dbConfig.version
-        --             options.shared.items
-        --             options.shared.categories
+        --     exportDataEffect options.shared.dbConfig.version
         StoreDump onResult dump ->
             storeDumpEffect onResult dump

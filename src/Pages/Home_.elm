@@ -88,7 +88,7 @@ init route () =
             { collapsedCatsMap =
                 Dict.fromList
                     [ ( "all", Set.empty )
-                    , ( "in-store", Set.empty )
+                    , ( "shopping", Set.empty )
                     ]
             }
       , items = Dict.empty
@@ -313,15 +313,15 @@ view shared model =
     , body =
         case model.section of
             All ->
-                viewFullList shared model
+                viewFullList model
 
             Shopping ->
-                viewShopping shared model
+                viewShopping model
     }
 
 
-viewFullList : Shared.Model -> Model -> List (Html Msg)
-viewFullList shared model =
+viewFullList : Model -> List (Html Msg)
+viewFullList model =
     [ Components.Item.List.new
         { items = model.items
         , categories = model.categories
@@ -370,8 +370,8 @@ viewFullList shared model =
     ]
 
 
-viewShopping : Shared.Model -> Model -> List (Html Msg)
-viewShopping shared model =
+viewShopping : Model -> List (Html Msg)
+viewShopping model =
     if Dict.size model.items > 0 then
         let
             filtered =
@@ -387,7 +387,7 @@ viewShopping shared model =
             , categories = categories
             , checkedSates = [ Items.InBasket ]
             , collapsedCatIds =
-                getCollapsesCatsForPage "in-store"
+                getCollapsesCatsForPage "shopping"
                     model.uiState.collapsedCatsMap
             }
             |> Components.Item.List.withMark
@@ -399,7 +399,7 @@ viewShopping shared model =
                         Components.Item.List.CollapseClicked clickedItem state ->
                             GotCatsMsg <|
                                 Cats.GotCollapsedChange
-                                    "in-store"
+                                    "shopping"
                                     clickedItem
                                     state
 
