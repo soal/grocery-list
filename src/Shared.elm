@@ -12,18 +12,12 @@ module Shared exposing
 
 -}
 
-import Db.Categories as Cats
-import Db.Items as Items
 import Db.Settings as AppSettings
-import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Json.Decode exposing (field, map)
 import Route exposing (Route)
-import Route.Path exposing (toString)
-import Set
-import Shared.Model exposing (CollapsedCats, DbConfig, DbStatus(..))
+import Shared.Model exposing (DbConfig, DbStatus(..))
 import Shared.Msg exposing (Msg(..))
-import Time
 
 
 
@@ -49,7 +43,7 @@ type alias Model =
 
 
 init : Result Json.Decode.Error Flags -> Route () -> ( Model, Effect Msg )
-init _ route =
+init _ _ =
     ( { settings = { theme = AppSettings.Dark }
       , dbConfig =
             { name = "grocery-list"
@@ -107,55 +101,18 @@ update _ msg model =
             , Effect.none
             )
 
-        -- Shared.Msg.CatCollapsedStateUpdate pagePath catId state ->
-        --     ( { model
-        --         | uiState =
-        --             { lastRoute = model.uiState.lastRoute
-        --             , collapsedCatsMap =
-        --                 updateCollapsedCats
-        --                     pagePath
-        --                     catId
-        --                     model.uiState.collapsedCatsMap
-        --                     state
-        --             }
-        --       }
-        --     , Effect.none
-        --     )
         Shared.Msg.Error error ->
             ( { model | error = error }, Effect.none )
 
         Shared.Msg.ImportData imported ->
-            -- ( { model
-            --     | categories = imported.categories
-            --     , items = imported.items
-            --     , dbConfig =
-            --         { name = model.dbConfig.name
-            --         , version = imported.version
-            --         , status = model.dbConfig.status
-            --         }
-            --   }
-            -- , Effect.storeDump (\_ -> NoOp) imported
-            -- )
-            ( model, Effect.none )
+            ( model
+            , Effect.storeDump (\_ -> NoOp) imported
+            )
 
 
 updateDbStatus : DbConfig -> DbStatus -> DbConfig
 updateDbStatus dbConfig status =
     { dbConfig | status = status }
-
-
-
--- endShopping : Dict String Item -> Dict String Item
--- endShopping items =
---     Dict.map
---         (\_ item ->
---             if item.state == InBasket then
---                 { item | state = Stuffed }
---             else
---                 item
---         )
---         items
--- SUBSCRIPTIONS
 
 
 subscriptions : Route () -> Model -> Sub Msg
