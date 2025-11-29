@@ -448,5 +448,5 @@ toggleItemState model item state =
                 _ ->
                     Error Nothing
         )
-        { item | state = state }
+        { item | state = newState }
     )
