@@ -126,7 +126,7 @@ type Msg
     | FinishEditing ItemField
     | DraftFieldUpdated ItemField (Maybe String)
     | DraftClosed Cats.Category
-    | EditStarted Items.Item ItemField
+    | EditStarted Items.Item ItemField String
     | InputChanged Items.Item ItemField String
     | NoOp
 
@@ -288,9 +288,9 @@ viewItem { item, mark, link, switch, checkedStates, open, editable } =
                     Components.Item.ListElement.ItemClicked clickedItem state ->
                         ItemClicked clickedItem state
 
-                    Components.Item.ListElement.EditStarted openItem field ->
+                    Components.Item.ListElement.EditStarted openItem field fieldId ->
                         if editable then
-                            EditStarted openItem field
+                            EditStarted openItem field fieldId
 
                         else
                             NoOp

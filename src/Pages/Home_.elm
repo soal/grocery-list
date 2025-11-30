@@ -1,5 +1,6 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
+import Browser.Dom
 import Components.Counter
 import Components.Item.List
 import Db.Categories as Cats
@@ -17,6 +18,7 @@ import Page exposing (Page)
 import Route exposing (Route)
 import Set exposing (Set)
 import Shared
+import Task
 import TaskPort
 import Time
 import Types exposing (ItemField(..))
@@ -170,6 +172,26 @@ alterTempItem tempItem field content =
         ( Just item, Name ) ->
             Just { item | name = content }
 
+        ( Just item, Comment ) ->
+            Just { item | comment = Just content }
+
+        ( Just item, QCount ) ->
+            let
+                (Items.Quantity _ unit) =
+                    item.quantity
+
+                newCount =
+                    Maybe.withDefault 0 (String.toFloat content)
+            in
+            Just { item | quantity = Items.Quantity newCount unit }
+
+        ( Just item, QUnit ) ->
+            let
+                (Items.Quantity count _) =
+                    item.quantity
+            in
+            Just { item | quantity = Items.Quantity count content }
+
         ( _, _ ) ->
             tempItem
 
@@ -280,10 +302,13 @@ update msg model =
                     else
                         ( model, Effect.none )
 
-                Components.Item.List.EditStarted item _ ->
-                        ( { model | tempItem = Just item }, Effect.none )
+                Components.Item.List.EditStarted item _ fieldId ->
+                    ( { model | tempItem = Just item }
+                    , Effect.sendCmd <|
+                        Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
+                    )
 
-                Components.Item.List.InputChanged item field content ->
+                Components.Item.List.InputChanged _ field content ->
                     ( { model
                         | tempItem =
                             alterTempItem model.tempItem field content

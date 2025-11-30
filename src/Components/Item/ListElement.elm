@@ -10,7 +10,7 @@ module Components.Item.ListElement exposing
 
 -- import Components.Item.List exposing (Msg(..))
 
-import Components.Item.ListElement2 exposing (viewCheckbox, viewName)
+import Components.Item.ListElement2 exposing (viewCheckbox, viewComment, viewName, viewQuantity)
 import Db.Items as Items
 import Html
     exposing
@@ -72,7 +72,7 @@ withSwitch (Settings settings) =
 type Msg
     = ItemClicked Items.Item Items.State
     | ItemChecked Items.Item Items.State
-    | EditStarted Items.Item ItemField
+    | EditStarted Items.Item ItemField String
     | InputChanged Items.Item ItemField String
     | NoOp
 
@@ -129,21 +129,39 @@ view (Settings settings) =
             ]
         , span
             [ class "item-quantity" ]
-            (viewQuantity settings.item.quantity)
+            [ viewQuantity
+                { itemId = settings.item.id
+                , static = not settings.switch
+                , onOpen = EditStarted settings.item
+                , blurred = Just NoOp
+                , focused = Just NoOp
+                , inputChange = Just <| InputChanged settings.item
+                , open = settings.open
+                }
+                settings.item.quantity
+            ]
         , div [ class "item-comment-box" ]
-            [ viewMaybe
-                (\c -> span [ class "item-comment" ] [ text c ])
-                settings.item.comment
+            [ viewComment
+                { itemId = settings.item.id
+                , static = not settings.switch
+                , onOpen = EditStarted settings.item
+                , blurred = Just NoOp
+                , focused = Just NoOp
+                , inputChange = Just <| InputChanged settings.item Comment
+                , content = settings.item.comment
+                , open = settings.open
+                }
             , link
             ]
         ]
 
 
-viewQuantity : Items.Quantity -> List (Html msg)
-viewQuantity (Items.Quantity quantity unit) =
-    [ b [] [ text (String.fromFloat quantity) ]
-    , span [] [ text unit ]
-    ]
+
+-- viewQuantity : Items.Quantity -> List (Html msg)
+-- viewQuantity (Items.Quantity quantity unit) =
+--     [ b [] [ text (String.fromFloat quantity) ]
+--     , span [] [ text unit ]
+--     ]
 
 
 itemStateToBool : Items.State -> List Items.State -> Bool
