@@ -13,7 +13,7 @@ type AppSettings = {
 type ItemState = "stuffed" | "required";
 
 type Item = {
-	id: number;
+	id: string;
 	name: string;
 	quantity: {
 		count: number;
@@ -66,7 +66,7 @@ async function initDb({
 		db.version(version).stores({
 			settings: "id, theme",
 			items:
-				"++id, name, quantity, comment, slug, symbol, state, created, updated",
+				"id, name, quantity, comment, slug, symbol, state, created, updated",
 			categories: "++id, name, items, state, created, updated",
 		});
 	} catch (error) {
@@ -105,12 +105,28 @@ async function storeItem(item: Item) {
 	false;
 }
 
+async function deleteItem(itemId: string) {
+	if (db) {
+		await db.items.delete(itemId);
+		return true;
+	}
+	return false;
+}
+
 async function storeAllItems(items: Item[]) {
 	if (db) {
 		await db.items.bulkPut(Object.values(items));
 		return true;
 	}
 	false;
+}
+
+async function storeCategory(category: Category) {
+	if (db) {
+		await db.categories.put(category);
+		return true;
+	}
+	return false;
 }
 
 async function storeDump(dump: DataDump) {
@@ -135,6 +151,8 @@ TaskPort.register("storeItem", storeItem);
 TaskPort.register("storeAllItems", storeAllItems);
 TaskPort.register("storeDump", storeDump);
 TaskPort.register("getUuid", getUuid);
+TaskPort.register("storeCategory", storeCategory);
+TaskPort.register("deleteItem", deleteItem);
 
 export const flags = ({ env }) => ({
 	settings: {

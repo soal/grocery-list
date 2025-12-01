@@ -1,4 +1,4 @@
-module Components.Item.ListElement2 exposing (..)
+module Components.Items.Form exposing (..)
 
 import Db.Items as Items
 import Html exposing (Html, b, div, h4, input, span, text, textarea)
@@ -155,7 +155,8 @@ viewCommentStatic onOpen content fieldId =
                 text comment
 
             Nothing ->
-                span [ class "add-item-comment" ] [ text "Добавить комментарий" ]
+                span [ class "add-item-comment with-click-outside" ]
+                    [ text "Добавить комментарий" ]
         ]
 
 

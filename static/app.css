@@ -157,7 +157,7 @@ button {
 
   &.item-draft {
     border-style: solid;
-    border-color: var(--pico-primary-hover);
+    /* border-color: var(--pico-primary-hover); */
   }
 
   .item-comment-box {
@@ -269,19 +269,34 @@ button {
       flex-shrink: 0;
     }
   }
+
+  .delete-item-button {
+    font-size: 1.25em;
+    cursor: pointer;
+    margin-top: -0.125em;
+
+    &:hover {
+      color: var(--pico-del-color);
+    }
+  }
+
+  & a {
+    font-size: 1.25em;
+    margin-top: -0.125em;
+  }
 }
 
 .add-item-button {
   border-radius: var(--pico-border-radius);
   border-style: dashed;
-  /* border-color: var(--pico-primary-hover); */
+  font-size: 1.5rem;
+  ;
   border-color: transparent;
   border-width: 1px;
   color: var(--pico-secondary);
   display: flex;
   /* justify-content: center; */
-  padding-block: calc(var(--pico-block-spacing-vertical) / 2);
-  padding-inline: var(--pico-block-spacing-vertical);
+  padding: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
   width: 100%;
 
   & svg {
@@ -335,10 +350,11 @@ button {
 .label {
   .input-resize-containter {
     &::after {
-    font-weight: 700;
+      font-weight: 700;
     }
   }
 }
+
 .input-resize-containter {
   display: inline-block;
   position: relative;

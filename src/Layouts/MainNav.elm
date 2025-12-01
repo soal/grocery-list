@@ -49,7 +49,6 @@ layout props _ route =
 type alias NavLink msg =
     { path : Path
     , text : String
-    , query : Dict String String
     , icon : List (Svg.Attribute msg) -> Html msg
     }
 
@@ -135,12 +134,10 @@ viewNavBar model =
         links =
             [ { path = Route.Path.Home_
               , text = "Список"
-              , query = Dict.fromList [ ( "f", "all" ) ]
               , icon = Icons.listIcon
               }
-            , { path = Route.Path.Home_
+            , { path = Route.Path.Shopping
               , text = "В магазине"
-              , query = Dict.fromList [ ( "f", "shopping" ) ]
               , icon = Icons.shoppingCartIcon
               }
             ]
@@ -160,7 +157,7 @@ viewNavBar model =
             )
         , ul []
             [ viewNavLink model.currentRoute
-                (NavLink Route.Path.Settings "" Dict.empty Icons.settingsIcon)
+                (NavLink Route.Path.Settings "" Icons.settingsIcon)
             ]
         ]
 
@@ -171,16 +168,13 @@ viewNavLink currentRoute page =
         [ a
             [ Route.href
                 { path = page.path
-                , query = page.query
+                , query = Dict.empty
                 , hash = Nothing
                 }
             , class "link"
             , classList
                 [ ( "active"
-                  , currentRoute.path
-                        == page.path
-                        && currentRoute.query
-                        == page.query
+                  , currentRoute.path == page.path
                   )
                 ]
             ]

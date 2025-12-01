@@ -5,6 +5,7 @@ module Db.Items exposing
     , State(..)
     , alter
     , decoder
+    , delete
     , encode
     , filterByStates
     , getInBasketLength
@@ -204,6 +205,19 @@ store onResult item =
                 }
     in
     Task.attempt onResult <| call item
+
+
+delete : (TaskPort.Result Bool -> msg) -> String -> Cmd msg
+delete onResult itemId =
+    let
+        call =
+            TaskPort.call
+                { function = "deleteItem"
+                , valueDecoder = JD.bool
+                , argsEncoder = JE.string
+                }
+    in
+    Task.attempt onResult <| call itemId
 
 
 storeAll :

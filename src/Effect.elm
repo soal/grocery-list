@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , importData, initDb, queryAll, requestUuid, storeAllItems, storeDump, storeItem
+    , deleteItem, importData, initDb, queryAll, requestUuid, storeAllItems, storeCategory, storeDump, storeItem
     )
 
 {-|
@@ -30,7 +30,6 @@ import Db.Categories as Cats
 import Db.Items as Items
 import Db.Settings exposing (CatsAndItems, DataDump, dumpDecoder, encodeDump)
 import Dict exposing (Dict)
-import File.Download
 import Json.Decode as JD
 import Json.Encode as JE
 import Route
@@ -59,9 +58,11 @@ type Effect msg
     | QueryAllCatsAndItems (TaskPort.Result CatsAndItems -> msg)
     | RequestUuid (TaskPort.Result String -> msg)
     | StoreItem (TaskPort.Result Bool -> msg) Items.Item
+    | DeleteItem (TaskPort.Result Bool -> msg) String
     | StoreAllItems (TaskPort.Result Bool -> msg) (Dict String Items.Item)
     | StoreDump (TaskPort.Result Bool -> msg) DataDump
     | QueryItem (TaskPort.Result Items.Item -> msg) String
+    | StoreCategory (TaskPort.Result Bool -> msg) Cats.Category
 
 
 
@@ -140,12 +141,22 @@ storeItem onResult item =
     StoreItem onResult item
 
 
+deleteItem : (TaskPort.Result Bool -> msg) -> String -> Effect msg
+deleteItem onResult itemId =
+    DeleteItem onResult itemId
+
+
 storeAllItems :
     (TaskPort.Result Bool -> msg)
     -> Dict String Items.Item
     -> Effect msg
 storeAllItems onResult items =
     StoreAllItems onResult items
+
+
+storeCategory : (TaskPort.Result Bool -> msg) -> Cats.Category -> Effect msg
+storeCategory onResult category =
+    StoreCategory onResult category
 
 
 storeDump : (TaskPort.Result Bool -> msg) -> DataDump -> Effect msg
@@ -340,11 +351,15 @@ map fn effect =
         StoreItem onResult item ->
             StoreItem (\res -> fn <| onResult res) item
 
+        DeleteItem onResult item ->
+            DeleteItem (\res -> fn <| onResult res) item
+
         StoreAllItems onResult items ->
             StoreAllItems (\res -> fn <| onResult res) items
 
-        -- ExportData ->
-        --     ExportData
+        StoreCategory onResult category ->
+            StoreCategory (\res -> fn <| onResult res) category
+
         StoreDump onResult dump ->
             StoreDump (\res -> fn <| onResult res) dump
 
@@ -403,10 +418,14 @@ toCmd options effect =
         StoreItem onResult item ->
             Items.store onResult item
 
+        DeleteItem onResult itemId ->
+            Items.delete onResult itemId
+
         StoreAllItems onResult items ->
             Items.storeAll onResult items
 
-        -- ExportData ->
-        --     exportDataEffect options.shared.dbConfig.version
+        StoreCategory onResult category ->
+            Cats.store onResult category
+
         StoreDump onResult dump ->
             storeDumpEffect onResult dump

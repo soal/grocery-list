@@ -1,6 +1,7 @@
-module Components.Item.ListElement exposing
+module Components.Items.Item exposing
     ( ItemListElement
     , Msg(..)
+    , asDraft
     , new
     , view
     , withLink
@@ -8,16 +9,19 @@ module Components.Item.ListElement exposing
     , withSwitch
     )
 
--- import Components.Item.List exposing (Msg(..))
-
-import Components.Item.ListElement2 exposing (viewCheckbox, viewComment, viewName, viewQuantity)
+import Components.Items.Form
+    exposing
+        ( viewCheckbox
+        , viewComment
+        , viewName
+        , viewQuantity
+        )
 import Db.Items as Items
 import Html
     exposing
         ( Html
         , a
         , article
-        , b
         , div
         , h4
         , span
@@ -25,7 +29,7 @@ import Html
         )
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (onClick)
-import Html.Extra exposing (viewMaybe)
+import Html.Extra exposing (viewIf, viewMaybe)
 import LucideIcons as Icons
 import Route.Path
 import Types exposing (CheckboxKind(..), ItemField(..))
@@ -39,18 +43,28 @@ type ItemListElement
         , mark : Bool
         , switch : Bool
         , open : Bool
+        , draft : Bool
+        , editable : Bool
         }
 
 
-new : { item : Items.Item, checkedSates : List Items.State, open : Bool } -> ItemListElement
+new :
+    { item : Items.Item
+    , checkedSates : List Items.State
+    , open : Bool
+    , editable : Bool
+    }
+    -> ItemListElement
 new props =
     Settings
         { item = props.item
         , link = False
         , mark = False
         , switch = False
+        , draft = False
         , checkedSates = props.checkedSates
         , open = props.open
+        , editable = props.editable
         }
 
 
@@ -69,11 +83,17 @@ withSwitch (Settings settings) =
     Settings { settings | switch = True }
 
 
+asDraft : ItemListElement -> ItemListElement
+asDraft (Settings settings) =
+    Settings { settings | draft = True }
+
+
 type Msg
     = ItemClicked Items.Item Items.State
     | ItemChecked Items.Item Items.State
     | EditStarted Items.Item ItemField String
     | InputChanged Items.Item ItemField String
+    | DeleteClicked String
     | NoOp
 
 
@@ -96,7 +116,10 @@ view (Settings settings) =
     in
     article
         [ class "grocery-item"
-        , classList [ ( "in-basket", checkMark ) ]
+        , classList
+            [ ( "in-basket", checkMark )
+            , ( "item-draft", settings.draft )
+            ]
         , onClick (ItemClicked settings.item settings.item.state)
         ]
         [ div [ class "label" ]
@@ -116,7 +139,7 @@ view (Settings settings) =
             , h4 []
                 [ viewName
                     { itemId = settings.item.id
-                    , static = not settings.switch
+                    , static = not settings.editable
                     , onOpen = EditStarted settings.item
                     , blurred = Just NoOp
                     , focused = Just NoOp
@@ -151,17 +174,15 @@ view (Settings settings) =
                 , content = settings.item.comment
                 , open = settings.open
                 }
+            , viewIf settings.switch <|
+                div
+                    [ class "delete-item-button"
+                    , onClick (DeleteClicked settings.item.id)
+                    ]
+                    [ Icons.trashIcon [] ]
             , link
             ]
         ]
-
-
-
--- viewQuantity : Items.Quantity -> List (Html msg)
--- viewQuantity (Items.Quantity quantity unit) =
---     [ b [] [ text (String.fromFloat quantity) ]
---     , span [] [ text unit ]
---     ]
 
 
 itemStateToBool : Items.State -> List Items.State -> Bool

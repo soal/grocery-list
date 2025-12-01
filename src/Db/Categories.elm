@@ -2,12 +2,18 @@ module Db.Categories exposing
     ( Category
     , CollapsedState(..)
     , Msg(..)
+    , addItem
     , decoder
     , encode
+    , getByid
+    , store
+    , removeItem
     )
 
 import Json.Decode as JD
 import Json.Encode as JE
+import Task
+import TaskPort
 import Time
 
 
@@ -72,3 +78,44 @@ encode cat =
         , ( "created", JE.int <| Time.posixToMillis cat.created )
         , ( "updated", JE.int <| Time.posixToMillis cat.updated )
         ]
+
+
+getByid : List Category -> Int -> Maybe Category
+getByid categories catId =
+    categories
+        |> List.filter (\cat -> cat.id == catId)
+        |> List.head
+
+
+addItem : Int -> List Category -> String -> List Category
+addItem catId categories itemId =
+    List.map
+        (\cat ->
+            if cat.id == catId then
+                { cat | items = List.append cat.items [ itemId ] }
+
+            else
+                cat
+        )
+        categories
+
+
+removeItem : String -> Category -> Category
+removeItem itemId category  =
+    if List.member itemId category.items then
+        { category | items = List.filter (\id -> id /= itemId) category.items }
+    else
+        category
+
+
+store : (TaskPort.Result Bool -> msg) -> Category -> Cmd msg
+store onResult category =
+    let
+        call =
+            TaskPort.call
+                { function = "storeCategory"
+                , valueDecoder = JD.bool
+                , argsEncoder = encode
+                }
+    in
+    Task.attempt onResult <| call category
