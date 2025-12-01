@@ -6,10 +6,13 @@ module Db.Categories exposing
     , decoder
     , encode
     , getByid
-    , store
     , removeItem
+    , sortItemsByFreq
+    , store
     )
 
+import Db.Items as Items
+import Dict exposing (Dict)
 import Json.Decode as JD
 import Json.Encode as JE
 import Task
@@ -87,6 +90,23 @@ getByid categories catId =
         |> List.head
 
 
+sortItemsByFreq : Dict String Items.Item -> Category -> Category
+sortItemsByFreq items category =
+    { category
+        | items =
+            List.sortBy
+                (\itemId ->
+                    case Dict.get itemId items of
+                        Just item ->
+                            0 - item.frequency
+
+                        Nothing ->
+                            0
+                )
+                category.items
+    }
+
+
 addItem : Int -> List Category -> String -> List Category
 addItem catId categories itemId =
     List.map
@@ -101,9 +121,10 @@ addItem catId categories itemId =
 
 
 removeItem : String -> Category -> Category
-removeItem itemId category  =
+removeItem itemId category =
     if List.member itemId category.items then
         { category | items = List.filter (\id -> id /= itemId) category.items }
+
     else
         category
 

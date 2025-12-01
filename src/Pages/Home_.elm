@@ -34,8 +34,7 @@ page shared _ =
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
     Layouts.MainNav
-        { onClickedOutside = GotClickOutside
-        }
+        { onClickedOutside = GotClickOutside }
 
 
 
@@ -62,17 +61,7 @@ init () =
       , categories = []
       , titlePrefix = "Покупки: "
       , error = Nothing
-      , draft =
-            Just <|
-                Items.Item "0"
-                    ""
-                    (Items.Quantity 1 "штук")
-                    Nothing
-                    ""
-                    Nothing
-                    Items.Required
-                    (Time.millisToPosix 0)
-                    (Time.millisToPosix 0)
+      , draft = Just <| emptyItem Nothing
       , tempItem = Nothing
       }
     , Effect.batch
@@ -107,6 +96,7 @@ emptyItem maybeId =
         Items.Required
         (Time.millisToPosix 0)
         (Time.millisToPosix 0)
+        0
 
 
 
@@ -148,7 +138,11 @@ update msg model =
             endExistingEditing ( model, Effect.none ) |> endDraft
 
         GotCatsAndItems data ->
-            ( { model | categories = data.categories, items = data.items }
+            let
+                sorted =
+                    List.map (Cats.sortItemsByFreq data.items) data.categories
+            in
+            ( { model | categories = sorted, items = data.items }
             , Effect.none
             )
 
@@ -409,9 +403,17 @@ toggleItemState model item state =
 
                 _ ->
                     Items.Stuffed
+
+        -- freq =
+        --     if newState == Items.Required then
+        --         item.frequency + 1
+        --     else
+        --         item.frequency
     in
     ( { model
-        | items = Items.setState newState item.id model.items
+        | items =
+            (Items.incFrequency item.id >> Items.setState newState item.id)
+                model.items
       }
     , Effect.storeItem onTaskPortResult { item | state = newState }
     )

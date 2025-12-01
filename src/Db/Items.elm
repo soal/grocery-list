@@ -9,6 +9,7 @@ module Db.Items exposing
     , encode
     , filterByStates
     , getInBasketLength
+    , incFrequency
     , isAllDone
     , map
     , queryBySlug
@@ -120,6 +121,7 @@ type alias Item =
     , state : State
     , created : Time.Posix
     , updated : Time.Posix
+    , frequency : Int
     }
 
 
@@ -136,9 +138,10 @@ decoder =
         (JD.field "state" <| JD.map stringToState JD.string)
         |> JD.andThen
             (\partial ->
-                JD.map2 partial
+                JD.map3 partial
                     (JD.field "created" <| JD.map Time.millisToPosix JD.int)
                     (JD.field "updated" <| JD.map Time.millisToPosix JD.int)
+                    (JD.field "frequency" JD.int)
             )
 
 
@@ -152,6 +155,7 @@ encode item =
         , ( "slug", JE.string item.slug )
         , ( "symbol", JEE.maybe JE.string item.symbol )
         , ( "state", encodeState item.state )
+        , ( "frequency", JE.int item.frequency )
         , ( "created", JE.int <| Time.posixToMillis item.created )
         , ( "updated", JE.int <| Time.posixToMillis item.updated )
         ]
@@ -165,7 +169,14 @@ map fn items =
 setState : State -> String -> Dict String Item -> Dict String Item
 setState state id allItems =
     Dict.update id
-        (Maybe.map (\found -> { found | state = state }))
+        (Maybe.map <| \found -> { found | state = state })
+        allItems
+
+
+incFrequency : String -> Dict String Item -> Dict String Item
+incFrequency id allItems =
+    Dict.update id
+        (Maybe.map <| \item -> { item | frequency = item.frequency + 1 })
         allItems
 
 
