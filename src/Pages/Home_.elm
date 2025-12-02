@@ -106,11 +106,13 @@ emptyItem maybeId =
 type Msg
     = NoOp
     | Error (Maybe String)
-    | GotItemMsg Items.Msg
     | GotCatsAndItems CatsAndItems
     | GotUuid (TaskPort.Result String)
     | GotClickOutside
+    | GotEditSave
+    | GotDraftSave
     | GotItemListMsg Components.Items.List.Msg
+    | GotUpdateTime (Maybe Items.Item) Time.Posix
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -135,7 +137,16 @@ update msg model =
                     ( model, Effect.none )
 
         GotClickOutside ->
-            endExistingEditing ( model, Effect.none ) |> endDraft
+            ( model
+            , Effect.batch
+                [ Effect.sendMsg GotEditSave, Effect.sendMsg GotDraftSave ]
+            )
+
+        GotEditSave ->
+            endExistingEditing model
+
+        GotDraftSave ->
+            endDraft model
 
         GotCatsAndItems data ->
             let
@@ -150,18 +161,16 @@ update msg model =
         GotItemListMsg itemMsg ->
             onListMsg model itemMsg
 
-        GotItemMsg itemMsg ->
-            case itemMsg of
-                Items.GotAllBought ->
+        GotUpdateTime maybeItem timeStamp ->
+            case maybeItem of
+                Just item ->
                     let
                         updated =
-                            Items.setAllStuffed model.items
+                            { item | updated = timeStamp }
                     in
-                    ( { model | items = updated }
-                    , Effect.storeAllItems onTaskPortResult updated
-                    )
+                    ( { model | tempItem = Just updated }, Effect.none )
 
-                _ ->
+                Nothing ->
                     ( model, Effect.none )
 
 
@@ -191,11 +200,12 @@ onListMsg model itemMsg =
             )
 
         Components.Items.List.InputChanged _ field content ->
-            ( { model
-                | tempItem =
+            let
+                updated =
                     updateItemContent model.tempItem field content
-              }
-            , Effect.none
+            in
+            ( { model | tempItem = updated }
+            , Effect.getTime (GotUpdateTime updated)
             )
 
         Components.Items.List.DraftOpened category fieldId ->
@@ -268,8 +278,8 @@ updateItemContent itemToUpdate field content =
             itemToUpdate
 
 
-endExistingEditing : ( Model, Effect Msg ) -> ( Model, Effect Msg )
-endExistingEditing ( model, effect ) =
+endExistingEditing : Model -> ( Model, Effect Msg )
+endExistingEditing model =
     case model.tempItem of
         Just item ->
             if item.id /= "empty" then
@@ -277,10 +287,7 @@ endExistingEditing ( model, effect ) =
                     | items = Dict.insert item.id item model.items
                     , tempItem = Just (emptyItem Nothing)
                   }
-                , Effect.batch
-                    [ Effect.storeItem onTaskPortResult item
-                    , effect
-                    ]
+                , Effect.storeItem onTaskPortResult item
                 )
 
             else
@@ -290,8 +297,8 @@ endExistingEditing ( model, effect ) =
             ( model, Effect.none )
 
 
-endDraft : ( Model, Effect Msg ) -> ( Model, Effect Msg )
-endDraft ( model, effect ) =
+endDraft : Model -> ( Model, Effect Msg )
+endDraft model =
     case model.draft of
         Just item ->
             if String.isEmpty item.name then
@@ -349,7 +356,6 @@ endDraft ( model, effect ) =
                             )
                             updatedCat
                         )
-                    , effect
                     ]
                 )
 
@@ -403,12 +409,6 @@ toggleItemState model item state =
 
                 _ ->
                     Items.Stuffed
-
-        -- freq =
-        --     if newState == Items.Required then
-        --         item.frequency + 1
-        --     else
-        --         item.frequency
     in
     ( { model
         | items =

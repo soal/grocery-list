@@ -276,7 +276,14 @@ button {
     margin-top: -0.125em;
 
     &:hover {
-      color: var(--pico-del-color);
+      @media (prefers-color-scheme: dark) {
+        color: var(--pico-del-color);
+
+      }
+
+      @media (prefers-color-scheme: light) {
+        color: var(--pico-form-element-invalid-focus-color);
+      }
     }
   }
 

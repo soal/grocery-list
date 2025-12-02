@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , deleteItem, importData, initDb, queryAll, requestUuid, storeAllItems, storeCategory, storeDump, storeItem
+    , deleteItem, getTime, importData, initDb, queryAll, requestUuid, storeAllItems, storeCategory, storeDump, storeItem
     )
 
 {-|
@@ -38,6 +38,7 @@ import Shared.Model
 import Shared.Msg exposing (Msg(..))
 import Task
 import TaskPort
+import Time
 import Url exposing (Url)
 
 
@@ -53,7 +54,8 @@ type Effect msg
     | Back
       -- SHARED
     | SendSharedMsg Shared.Msg.Msg
-      -- INTEROP
+      -- CUSTOM
+    | GetTime (Time.Posix -> msg)
     | InitDb (TaskPort.Result Bool -> msg)
     | QueryAllCatsAndItems (TaskPort.Result CatsAndItems -> msg)
     | RequestUuid (TaskPort.Result String -> msg)
@@ -66,8 +68,15 @@ type Effect msg
 
 
 
--- | ExportData
--- | ExportData
+-- UTILS
+
+
+getTime : (Time.Posix -> msg) -> Effect msg
+getTime onResult =
+    GetTime onResult
+
+
+
 -- INIT DB
 
 
@@ -336,32 +345,36 @@ map fn effect =
         SendSharedMsg sharedMsg ->
             SendSharedMsg sharedMsg
 
+        -- CUSTOM
+        GetTime onResult ->
+            GetTime (onResult >> fn)
+
         InitDb onResult ->
-            InitDb (\res -> fn <| onResult res)
+            InitDb (onResult >> fn)
 
         QueryAllCatsAndItems onResult ->
-            QueryAllCatsAndItems (\res -> fn <| onResult res)
+            QueryAllCatsAndItems (onResult >> fn)
 
         QueryItem onResult slug ->
-            QueryItem (\res -> fn <| onResult res) slug
+            QueryItem (onResult >> fn) slug
 
         RequestUuid onResult ->
-            RequestUuid (\res -> fn <| onResult res)
+            RequestUuid (onResult >> fn)
 
         StoreItem onResult item ->
-            StoreItem (\res -> fn <| onResult res) item
+            StoreItem (onResult >> fn) item
 
         DeleteItem onResult item ->
-            DeleteItem (\res -> fn <| onResult res) item
+            DeleteItem (onResult >> fn) item
 
         StoreAllItems onResult items ->
-            StoreAllItems (\res -> fn <| onResult res) items
+            StoreAllItems (onResult >> fn) items
 
         StoreCategory onResult category ->
-            StoreCategory (\res -> fn <| onResult res) category
+            StoreCategory (onResult >> fn) category
 
         StoreDump onResult dump ->
-            StoreDump (\res -> fn <| onResult res) dump
+            StoreDump (onResult >> fn) dump
 
 
 {-| Elm Land depends on this function to perform your effects.
@@ -402,6 +415,10 @@ toCmd options effect =
         SendSharedMsg sharedMsg ->
             Task.succeed sharedMsg
                 |> Task.perform options.fromSharedMsg
+
+        -- CUSTOM
+        GetTime onResult ->
+            Task.perform onResult Time.now
 
         InitDb onResult ->
             initDbEffect options.shared onResult
