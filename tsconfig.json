@@ -1,0 +1,8 @@
+{
+	"files": ["src/interop.ts"],
+	"compilerOptions": {
+		"lib": ["esnext", "dom"],
+		"noEmit": true,
+		"strict": false
+	}
+}
