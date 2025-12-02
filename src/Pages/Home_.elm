@@ -16,7 +16,7 @@ import Shared exposing (update)
 import Task
 import TaskPort
 import Time
-import Types exposing (ItemField(..))
+import Types exposing (Draft(..), ItemField(..))
 import View exposing (View)
 
 
@@ -41,17 +41,10 @@ toLayout _ =
 -- INIT
 
 
-type OpenForm
-    = DraftForm
-    | EditForm
-
-
 type alias Model =
-    { draft : Maybe Items.Item
-    , tempItem : Maybe Items.Item
+    { draft : Draft
     , collapsedCats : Set Int
     , catWithDraft : Maybe Int
-    , openForm : Maybe OpenForm
     , items : Dict String Items.Item
     , categories : List Cats.Category
     , titlePrefix : String
@@ -63,17 +56,14 @@ init : () -> ( Model, Effect Msg )
 init () =
     ( { collapsedCats = Set.empty
       , catWithDraft = Nothing
-      , openForm = Nothing
       , items = Dict.empty
       , categories = []
       , titlePrefix = "Покупки: "
       , error = Nothing
-      , draft = Just <| emptyItem Nothing
-      , tempItem = Nothing
+      , draft = Empty
       }
     , Effect.batch
-        [ Effect.requestUuid GotUuid
-        , Effect.queryAll
+        [ Effect.queryAll
             (\loaded ->
                 case loaded of
                     Ok data ->
@@ -116,10 +106,8 @@ type Msg
     | GotCatsAndItems CatsAndItems
     | GotUuid (TaskPort.Result String)
     | GotClickOutside
-    | GotEditSave
-    | GotDraftSave
     | GotItemListMsg Components.Items.List.Msg
-    | GotUpdateTime (Maybe Items.Item) Time.Posix
+    | GotUpdateTime Draft Time.Posix
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -134,26 +122,22 @@ update msg model =
             ( { model | error = error }, Effect.none )
 
         GotUuid uuid ->
-            case ( Result.toMaybe uuid, model.draft ) of
-                ( Just id, Just draft ) ->
-                    ( { model | draft = Just (Items.setId id draft) }
-                    , Effect.none
+            case uuid of
+                Ok id ->
+                    let
+                        fieldId =
+                            "item-name-" ++ id
+                    in
+                    ( { model | draft = New (emptyItem <| Just id) }
+                    , Effect.sendCmd <|
+                        Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
                     )
 
-                ( _, _ ) ->
+                Err _ ->
                     ( model, Effect.none )
 
         GotClickOutside ->
-            ( model
-            , Effect.batch
-                [ Effect.sendMsg GotEditSave, Effect.sendMsg GotDraftSave ]
-            )
-
-        GotEditSave ->
-            endExistingEditing model
-
-        GotDraftSave ->
-            endDraft model
+            endEditing model
 
         GotCatsAndItems data ->
             let
@@ -168,17 +152,20 @@ update msg model =
         GotItemListMsg itemMsg ->
             onListMsg model itemMsg
 
-        GotUpdateTime maybeItem timeStamp ->
-            case maybeItem of
-                Just item ->
-                    let
-                        updated =
-                            { item | updated = timeStamp }
-                    in
-                    ( { model | tempItem = Just updated }, Effect.none )
+        GotUpdateTime openItem timeStamp ->
+            let
+                updated =
+                    case openItem of
+                        Empty ->
+                            Empty
 
-                Nothing ->
-                    ( model, Effect.none )
+                        New item ->
+                            New { item | updated = timeStamp }
+
+                        Existing item ->
+                            Existing { item | updated = timeStamp }
+            in
+            ( { model | draft = updated }, Effect.none )
 
 
 onListMsg : Model -> Components.Items.List.Msg -> ( Model, Effect Msg )
@@ -201,32 +188,34 @@ onListMsg model itemMsg =
             toggleItemState model item state
 
         Components.Items.List.EditStarted item _ fieldId ->
-            ( { model | tempItem = Just item }
+            ( { model | draft = Existing item }
             , Effect.sendCmd <|
                 Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
             )
 
         Components.Items.List.InputChanged _ field content ->
-            let
-                updated =
-                    updateItemContent model.tempItem field content
-            in
-            ( { model | tempItem = updated }
-            , Effect.getTime (GotUpdateTime updated)
-            )
+            case model.draft of
+                Empty ->
+                    ( model, Effect.none )
 
-        Components.Items.List.DraftOpened category fieldId ->
-            ( { model
-                | catWithDraft = Just category.id
-              }
-            , Effect.sendCmd <|
-                Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
+                _ ->
+                    let
+                        updated =
+                            updateDraft model.draft field content
+                    in
+                    ( { model | draft = updated }
+                    , Effect.getTime (GotUpdateTime updated)
+                    )
+
+        Components.Items.List.DraftOpened category ->
+            ( { model | catWithDraft = Just category.id }
+            , Effect.requestUuid GotUuid
             )
 
         Components.Items.List.DraftInputChanged field content ->
             ( { model
                 | draft =
-                    updateItemContent model.draft field content
+                    updateDraft model.draft field content
               }
             , Effect.none
             )
@@ -255,16 +244,29 @@ onListMsg model itemMsg =
             ( model, Effect.none )
 
 
-updateItemContent : Maybe Items.Item -> ItemField -> String -> Maybe Items.Item
-updateItemContent itemToUpdate field content =
-    case ( itemToUpdate, field ) of
-        ( Just item, Name ) ->
-            Just { item | name = content }
+updateDraft : Draft -> ItemField -> String -> Draft
+updateDraft openItem field content =
+    case openItem of
+        New item ->
+            New (updateItemContent item field content)
 
-        ( Just item, Comment ) ->
-            Just { item | comment = Just content }
+        Existing item ->
+            Existing (updateItemContent item field content)
 
-        ( Just item, QCount ) ->
+        Empty ->
+            Empty
+
+
+updateItemContent : Items.Item -> ItemField -> String -> Items.Item
+updateItemContent item field content =
+    case field of
+        Name ->
+            { item | name = content }
+
+        Comment ->
+            { item | comment = Just content }
+
+        QCount ->
             let
                 (Items.Quantity _ unit) =
                     item.quantity
@@ -272,48 +274,38 @@ updateItemContent itemToUpdate field content =
                 newCount =
                     Maybe.withDefault 0 (String.toFloat content)
             in
-            Just { item | quantity = Items.Quantity newCount unit }
+            { item | quantity = Items.Quantity newCount unit }
 
-        ( Just item, QUnit ) ->
+        QUnit ->
             let
                 (Items.Quantity count _) =
                     item.quantity
             in
-            Just { item | quantity = Items.Quantity count content }
+            { item | quantity = Items.Quantity count content }
 
-        ( _, _ ) ->
-            itemToUpdate
+        _ ->
+            item
 
 
-endExistingEditing : Model -> ( Model, Effect Msg )
-endExistingEditing model =
-    case model.tempItem of
-        Just item ->
-            if item.id /= "empty" then
-                ( { model
-                    | items = Dict.insert item.id item model.items
-                    , tempItem = Just (emptyItem Nothing)
-                    , openForm = Nothing
-                  }
-                , Effect.storeItem onTaskPortResult item
-                )
-
-            else
-                ( model, Effect.none )
-
-        Nothing ->
+endEditing : Model -> ( Model, Effect Msg )
+endEditing model =
+    case model.draft of
+        Empty ->
             ( model, Effect.none )
 
+        Existing item ->
+            ( { model
+                | items = Dict.insert item.id item model.items
+                , draft = Empty
+              }
+            , Effect.storeItem onTaskPortResult item
+            )
 
-endDraft : Model -> ( Model, Effect Msg )
-endDraft model =
-    case model.draft of
-        Just item ->
+        New item ->
             if String.isEmpty item.name then
                 ( { model
                     | catWithDraft = Nothing
-                    , draft = Just <| emptyItem <| Just item.id
-                    , openForm = Nothing
+                    , draft = Empty
                   }
                 , Effect.none
                 )
@@ -335,7 +327,7 @@ endDraft model =
                 in
                 ( { model
                     | items = Dict.insert item.id item model.items
-                    , draft = Just (emptyItem Nothing)
+                    , draft = Empty
                     , catWithDraft = Nothing
                     , categories =
                         case updatedCat of
@@ -368,9 +360,6 @@ endDraft model =
                     ]
                 )
 
-        Nothing ->
-            ( model, Effect.none )
-
 
 
 -- SUBSCRIPTIONS
@@ -398,7 +387,6 @@ view shared model =
             }
             |> Components.Items.List.withLink
             |> Components.Items.List.withSwitch
-            |> Components.Items.List.withEditing model.tempItem
             |> Components.Items.List.withDraft
                 model.catWithDraft
                 model.draft

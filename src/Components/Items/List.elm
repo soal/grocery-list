@@ -5,7 +5,6 @@ module Components.Items.List exposing
     , view
     , withCounter
     , withDraft
-    , withEditing
     , withLink
     , withMark
     , withSwitch
@@ -21,18 +20,16 @@ import Html exposing (Html, button, div, label)
 import Html.Attributes exposing (checked, class, disabled, id, type_)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
-import Html.Extra exposing (nothing)
+import Html.Extra exposing (nothing, viewIf)
 import Html.Keyed
-import Html.Lazy exposing (lazy7)
 import LucideIcons as Icons
 import Set exposing (Set)
-import Types exposing (ItemField(..))
+import Types exposing (Draft(..), ItemField(..))
 
 
 type alias Options =
     { items : Dict String Items.Item
-    , draft : Maybe Items.Item
-    , tempItem : Maybe Items.Item
+    , draft : Draft
     , catWithDraft : Maybe Int
     , categories : List Cats.Category
     , collapsedCatIds : Set Int
@@ -59,8 +56,7 @@ new :
 new props =
     Settings
         { items = props.items
-        , draft = Nothing
-        , tempItem = Nothing
+        , draft = Empty
         , catWithDraft = Nothing
         , categories = props.categories
         , collapsedCatIds = props.collapsedCatIds
@@ -90,12 +86,12 @@ withCounter (Settings settings) =
 
 withSwitch : ItemsList -> ItemsList
 withSwitch (Settings settings) =
-    Settings { settings | switch = True, editable = True }
+    Settings { settings | switch = True }
 
 
 withDraft :
     Maybe Int
-    -> Maybe Items.Item
+    -> Draft
     -> ItemsList
     -> ItemsList
 withDraft catWithDraft draft (Settings settings) =
@@ -103,22 +99,17 @@ withDraft catWithDraft draft (Settings settings) =
         { settings
             | draft = draft
             , catWithDraft = catWithDraft
+            , editable = True
         }
-
-
-withEditing : Maybe Items.Item -> ItemsList -> ItemsList
-withEditing tempItem (Settings settings) =
-    Settings
-        { settings | tempItem = tempItem, editable = True }
 
 
 type Msg
     = CollapseClicked Int Cats.CollapsedState
     | ItemClicked Items.Item Items.State
     | ItemChecked Items.Item Items.State
-    | DraftOpened Cats.Category String
     | StartEditing ItemField (Maybe String)
     | FinishEditing ItemField
+    | DraftOpened Cats.Category
     | DraftInputChanged ItemField String
     | DraftClosed Cats.Category
     | EditStarted Items.Item ItemField String
@@ -152,20 +143,16 @@ viewCategory options category =
         [ viewCatHeader options state category
         , Components.Category.Body.view state
             [ viewItems options category
-            , case options.draft of
-                Just draft ->
-                    viewDraft
-                        { item = draft
-                        , open =
-                            Maybe.withDefault
-                                -1
-                                options.catWithDraft
-                                == category.id
-                        , category = category
-                        }
-
-                _ ->
-                    nothing
+            , viewIf options.editable <|
+                viewDraft
+                    { draft = options.draft
+                    , open =
+                        Maybe.withDefault
+                            -1
+                            options.catWithDraft
+                            == category.id
+                    , category = category
+                    }
             ]
         ]
     )
@@ -212,27 +199,36 @@ viewItems options category =
         |> List.map
             (\( id, item ) ->
                 let
-                    isItemOpen =
-                        options.tempItem
-                            |> Maybe.map (\temp -> temp.id == id)
-                            |> Maybe.withDefault False
+                    -- TODO: something more elegant
+                    ( isItemOpen, activeItem ) =
+                        case options.draft of
+                            Empty ->
+                                ( False, item )
 
-                    activeItem =
-                        if isItemOpen then
-                            Maybe.withDefault item options.tempItem
+                            New draft ->
+                                if draft.id == id then
+                                    ( True, draft )
 
-                        else
-                            item
+                                else
+                                    ( False, item )
+
+                            Existing draft ->
+                                if draft.id == id then
+                                    ( True, draft )
+
+                                else
+                                    ( False, item )
                 in
                 ( id
-                , lazy7 viewItem
-                    activeItem
-                    options.mark
-                    options.link
-                    options.switch
-                    options.checkedStates
-                    isItemOpen
-                    options.editable
+                , viewItem
+                    { item = activeItem
+                    , mark = options.mark
+                    , link = options.link
+                    , switch = options.switch
+                    , checkedStates = options.checkedStates
+                    , open = isItemOpen
+                    , editable = options.editable
+                    }
                 )
             )
         |> Html.Keyed.node "div" []
@@ -248,15 +244,16 @@ getCatItems ( allItems, category ) =
 
 
 viewItem :
-    Items.Item
-    -> Bool
-    -> Bool
-    -> Bool
-    -> List Items.State
-    -> Bool
-    -> Bool
+    { item : Items.Item
+    , mark : Bool
+    , link : Bool
+    , switch : Bool
+    , checkedStates : List Items.State
+    , open : Bool
+    , editable : Bool
+    }
     -> Html Msg
-viewItem item mark link switch checkedStates open editable =
+viewItem { item, mark, link, switch, checkedStates, open, editable } =
     Components.Items.Item.new
         { item = item
         , checkedSates = checkedStates
@@ -314,30 +311,31 @@ viewItem item mark link switch checkedStates open editable =
 
 
 viewDraft :
-    { item : Items.Item
-    , open : Bool
+    { draft : Draft
     , category : Cats.Category
+    , open : Bool
     }
     -> Html Msg
-viewDraft { item, open, category } =
-    if open == True then
-        Components.Items.Item.new
-            { item = item, checkedSates = [], open = True, editable = True }
-            |> Components.Items.Item.asDraft
-            |> Components.Items.Item.view
-            |> Html.map
-                (\msg ->
-                    case msg of
-                        Components.Items.Item.InputChanged _ field content ->
-                            DraftInputChanged field content
+viewDraft { draft, open, category } =
+    case ( open, draft ) of
+        ( True, New item ) ->
+            Components.Items.Item.new
+                { item = item, checkedSates = [], open = True, editable = True }
+                |> Components.Items.Item.asDraft
+                |> Components.Items.Item.view
+                |> Html.map
+                    (\msg ->
+                        case msg of
+                            Components.Items.Item.InputChanged _ field content ->
+                                DraftInputChanged field content
 
-                        _ ->
-                            NoOp
-                )
+                            _ ->
+                                NoOp
+                    )
 
-    else
-        button
-            [ class "add-item-button outline"
-            , onClick (DraftOpened category <| "item-name-" ++ item.id)
-            ]
-            [ Icons.plusCircleIcon [] ]
+        _ ->
+            button
+                [ class "add-item-button outline"
+                , onClick (DraftOpened category)
+                ]
+                [ Icons.plusCircleIcon [] ]
