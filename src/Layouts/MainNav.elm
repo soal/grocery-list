@@ -1,11 +1,11 @@
 module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
-import Dict exposing (Dict)
+import Dict
 import Effect exposing (Effect)
 import Html exposing (Html, a, footer, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on)
-import Html.Extra exposing (nothing)
+import Html.Lazy exposing (lazy)
 import Json.Decode
 import Layout exposing (Layout)
 import LucideIcons as Icons
@@ -119,17 +119,18 @@ view props { model, content } =
                 Json.Decode.succeed <|
                     props.onClickedOutside
             ]
-            [ header [ class "nav-header container" ] [ viewNavBar model ]
+            [ header [ class "nav-header container" ]
+                [ lazy viewNavBar model.currentRoute ]
             , main_ [ class "app-main container" ] content.body
             , footer [ class "nav-footer container" ]
-                [ viewNavBar model ]
+                [ lazy viewNavBar model.currentRoute ]
             ]
         ]
     }
 
 
-viewNavBar : Model -> Html msg
-viewNavBar model =
+viewNavBar : Route () -> Html msg
+viewNavBar currentRoute =
     let
         links =
             [ { path = Route.Path.Home_
@@ -151,12 +152,12 @@ viewNavBar model =
             ]
         , ul [ class "group" ] <|
             (List.map
-                (viewNavLink model.currentRoute)
+                (viewNavLink currentRoute)
              <|
                 links
             )
         , ul []
-            [ viewNavLink model.currentRoute
+            [ viewNavLink currentRoute
                 (NavLink Route.Path.Settings "" Icons.settingsIcon)
             ]
         ]

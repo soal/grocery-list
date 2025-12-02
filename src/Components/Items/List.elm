@@ -23,6 +23,7 @@ import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (nothing)
 import Html.Keyed
+import Html.Lazy exposing (lazy7)
 import LucideIcons as Icons
 import Set exposing (Set)
 import Types exposing (ItemField(..))
@@ -224,15 +225,14 @@ viewItems options category =
                             item
                 in
                 ( id
-                , viewItem
-                    { item = activeItem
-                    , mark = options.mark
-                    , link = options.link
-                    , switch = options.switch
-                    , checkedStates = options.checkedStates
-                    , open = isItemOpen
-                    , editable = options.editable
-                    }
+                , lazy7 viewItem
+                    activeItem
+                    options.mark
+                    options.link
+                    options.switch
+                    options.checkedStates
+                    isItemOpen
+                    options.editable
                 )
             )
         |> Html.Keyed.node "div" []
@@ -248,16 +248,15 @@ getCatItems ( allItems, category ) =
 
 
 viewItem :
-    { item : Items.Item
-    , mark : Bool
-    , link : Bool
-    , switch : Bool
-    , checkedStates : List Items.State
-    , open : Bool
-    , editable : Bool
-    }
+    Items.Item
+    -> Bool
+    -> Bool
+    -> Bool
+    -> List Items.State
+    -> Bool
+    -> Bool
     -> Html Msg
-viewItem { item, mark, link, switch, checkedStates, open, editable } =
+viewItem item mark link switch checkedStates open editable =
     Components.Items.Item.new
         { item = item
         , checkedSates = checkedStates
@@ -329,7 +328,7 @@ viewDraft { item, open, category } =
             |> Html.map
                 (\msg ->
                     case msg of
-                        Components.Items.Item.InputChanged activeItem field content ->
+                        Components.Items.Item.InputChanged _ field content ->
                             DraftInputChanged field content
 
                         _ ->
