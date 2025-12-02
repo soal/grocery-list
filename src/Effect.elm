@@ -211,7 +211,7 @@ importData : String -> Effect msg
 importData content =
     case JD.decodeString dumpDecoder content of
         Ok parsed ->
-            SendSharedMsg (Shared.Msg.ImportData (Debug.log "PARSED DUMP" parsed))
+            SendSharedMsg (Shared.Msg.ImportData parsed)
 
         Err err ->
             JD.errorToString err

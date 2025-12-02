@@ -41,11 +41,17 @@ toLayout _ =
 -- INIT
 
 
+type OpenForm
+    = DraftForm
+    | EditForm
+
+
 type alias Model =
     { draft : Maybe Items.Item
     , tempItem : Maybe Items.Item
     , collapsedCats : Set Int
     , catWithDraft : Maybe Int
+    , openForm : Maybe OpenForm
     , items : Dict String Items.Item
     , categories : List Cats.Category
     , titlePrefix : String
@@ -57,6 +63,7 @@ init : () -> ( Model, Effect Msg )
 init () =
     ( { collapsedCats = Set.empty
       , catWithDraft = Nothing
+      , openForm = Nothing
       , items = Dict.empty
       , categories = []
       , titlePrefix = "Покупки: "
@@ -286,6 +293,7 @@ endExistingEditing model =
                 ( { model
                     | items = Dict.insert item.id item model.items
                     , tempItem = Just (emptyItem Nothing)
+                    , openForm = Nothing
                   }
                 , Effect.storeItem onTaskPortResult item
                 )
@@ -305,6 +313,7 @@ endDraft model =
                 ( { model
                     | catWithDraft = Nothing
                     , draft = Just <| emptyItem <| Just item.id
+                    , openForm = Nothing
                   }
                 , Effect.none
                 )

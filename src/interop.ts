@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import * as TaskPort from "elm-taskport";
+import * as TaskPort from "elm-taskport/dist/taskport.min.js";
 import { ClickOutside } from "./web-components/clickOutside.js";
 
 window.customElements.define("on-click-outside", ClickOutside);
@@ -161,5 +161,5 @@ export const flags = ({ env }) => ({
 });
 
 export const onReady = ({ app, env }) => {
-	console.log("APP READY", app);
+	// console.log("APP READY", app);
 };
