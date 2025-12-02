@@ -178,7 +178,7 @@ subscriptions _ =
 
 view : Shared.Model -> Model -> View Msg
 view shared model =
-    { title = shared.titlePrefix ++ "Покупки: В магазине"
+    { title = shared.titlePrefix ++ "В магазине"
     , body =
         let
             filteredItems =
