@@ -50,11 +50,11 @@ type DB = Dexie & {
 	settings: EntityTable<AppSettings, "id">;
 	items: EntityTable<Item, "id">;
 	categories: EntityTable<Category, "id">;
+	lastUpdatedBy: EntityTable<{ id: number; clientId: string }, "id">;
 };
 
 let db: DB | null = null;
 const clientId = window.crypto.randomUUID();
-let lastUpdate = Date.now();
 
 async function initDb({
 	name,
@@ -69,9 +69,11 @@ async function initDb({
 		db.version(version).stores({
 			settings: "id, theme",
 			items:
-				"id, name, quantity, comment, slug, symbol, state, created, updated, lastUpdatedBy",
-			categories: "++id, name, items, state, created, updated, lastUpdatedBy ",
+				"id, name, quantity, comment, slug, symbol, state, created, updated",
+			categories: "++id, name, items, state, created, updated",
+			lastUpdatedBy: "id, clientId",
 		});
+		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
 	} catch (error) {
 		return error;
 	}
@@ -102,7 +104,7 @@ async function storeItem(item: Item) {
 	if (db) {
 		item.lastUpdatedBy = clientId;
 		await db.items.put(item);
-		lastUpdate = Date.now();
+		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
 		return true;
 	}
 	false;
@@ -111,6 +113,7 @@ async function storeItem(item: Item) {
 async function deleteItem(itemId: string) {
 	if (db) {
 		await db.items.delete(itemId);
+		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
 		return true;
 	}
 	return false;
@@ -118,13 +121,8 @@ async function deleteItem(itemId: string) {
 
 async function storeAllItems(items: Item[]) {
 	if (db) {
-		await db.items.bulkPut(
-			Object.values(items).map((item) => {
-				item.lastUpdatedBy = clientId;
-				return item;
-			}),
-		);
-		lastUpdate = Date.now();
+		await db.items.bulkPut(items);
+		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
 		return true;
 	}
 	false;
@@ -134,7 +132,7 @@ async function storeCategory(category: Category) {
 	if (db) {
 		category.lastUpdatedBy = clientId;
 		await db.categories.put(category);
-		lastUpdate = Date.now();
+		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
 		return true;
 	}
 	return false;
@@ -156,7 +154,7 @@ async function storeDump(dump: DataDump) {
 				return item;
 			}),
 		);
-		lastUpdate = Date.now();
+		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
 		return true;
 	}
 	return false;
@@ -186,23 +184,16 @@ export const onReady = ({ app }) => {
 		items: await db.items.toArray(),
 		categories: await db.categories.toArray(),
 	})).subscribe({
-		next: (result) => {
-			const hasUpdated = [...result.items, ...result.categories].some(
-				(el: Item | Category) =>
-					el.lastUpdatedBy !== clientId && el.updated >= lastUpdate,
-			);
-			if (hasUpdated) {
-				app.ports.incoming.send({
-					categories: result.categories,
-					items: result.items.reduce(
-						(acc: Record<string, Item>, item: Item) => {
-							acc[item.id] = item;
-							return acc;
-						},
-						{},
-					),
-				});
-			}
+		next: async (result) => {
+			const lastUpdatedBy = await db.lastUpdatedBy.get(1);
+			if (lastUpdatedBy.clientId === clientId) return;
+			app.ports.incoming.send({
+				categories: result.categories,
+				items: result.items.reduce((acc: Record<string, Item>, item: Item) => {
+					acc[item.id] = item;
+					return acc;
+				}, {}),
+			});
 		},
 		error: (error) => console.error(error),
 	});
