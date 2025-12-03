@@ -14,6 +14,7 @@ import Dict exposing (Dict)
 import Html exposing (Html, h3, span, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Html.Extra exposing (viewIf)
 import LucideIcons as Icons
 
 
@@ -80,26 +81,33 @@ view (Settings settings) =
                 [ text settings.category.name ]
     in
     h3 []
-        (title
-            :: viewOptionalCounter settings.items
+        [ title
+        , viewIf settings.counter
+            (viewOptionalCounter settings.items
                 settings.category.items
-                settings.counter
-            ++ [ chevron ]
-        )
+            )
+        , chevron
+        , viewIf
+            (not settings.counter)
+            (span
+                [ class "button category-edit-button" ]
+                [ Icons.editIcon [] ]
+            )
+        , viewIf
+            (not settings.counter)
+            (span
+                [ class "button category-add-button" ]
+                [ Icons.plusIcon [] ]
+            )
+        ]
 
 
 viewOptionalCounter :
     Dict String Items.Item
     -> List String
-    -> Bool
-    -> List (Html msg)
-viewOptionalCounter items catItemIs counter =
-    if counter == True then
-        [ Components.Counter.view
-            (Dict.map (\_ item -> item.state) items)
-            catItemIs
-            Items.InBasket
-        ]
-
-    else
-        []
+    -> Html msg
+viewOptionalCounter items catItemIs =
+    Components.Counter.view
+        (Dict.map (\_ item -> item.state) items)
+        catItemIs
+        Items.InBasket

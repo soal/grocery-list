@@ -229,7 +229,10 @@ onListMsg model itemMsg =
             in
             ( { model
                 | items = Dict.remove itemId model.items
-                , categories = List.map (Cats.removeItem itemId) model.categories
+                , categories =
+                    List.map
+                        (Cats.removeItem itemId)
+                        model.categories
               }
             , Effect.batch
                 [ Effect.deleteItem onTaskPortResult itemId

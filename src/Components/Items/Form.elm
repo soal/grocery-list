@@ -155,8 +155,8 @@ viewCommentStatic onOpen content fieldId =
                 text comment
 
             Nothing ->
-                span [ class "add-item-comment with-click-outside" ]
-                    [ text "Добавить комментарий" ]
+                span [ class "add-item-comment with-click-outside button" ]
+                    [ Icons.messageSquareIcon [] ]
         ]
 
 
