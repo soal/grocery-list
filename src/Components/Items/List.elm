@@ -13,14 +13,13 @@ module Components.Items.List exposing
 import Components.Category.Body
 import Components.Category.Header
 import Components.Items.Item
-import Db.Categories as Cats exposing (Category)
+import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, label)
-import Html.Attributes exposing (checked, class, disabled, id, type_)
-import Html.Attributes.Extra exposing (role)
+import Html exposing (Html, button, div)
+import Html.Attributes exposing (class, id)
 import Html.Events exposing (onClick)
-import Html.Extra exposing (nothing, viewIf)
+import Html.Extra exposing (viewIf)
 import Html.Keyed
 import LucideIcons as Icons
 import Set exposing (Set)

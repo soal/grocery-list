@@ -2,6 +2,7 @@ module Pages.Home_ exposing (Model, Msg, page)
 
 import Browser.Dom
 import Components.Items.List
+import DataUpdate
 import Db.Categories as Cats
 import Db.Items as Items
 import Db.Settings exposing (CatsAndItems)
@@ -107,7 +108,8 @@ type Msg
     | GotUuid (TaskPort.Result String)
     | GotClickOutside
     | GotItemListMsg Components.Items.List.Msg
-    | GotUpdateTime Draft Time.Posix
+    | GotEditUpdateTime Draft Time.Posix
+    | GotStateUpdateTime Items.Item Time.Posix
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -149,23 +151,28 @@ update msg model =
             )
 
         -- ITEM
-        GotItemListMsg itemMsg ->
-            onListMsg model itemMsg
+        GotItemListMsg itemListMsg ->
+            onListMsg model itemListMsg
 
-        GotUpdateTime openItem timeStamp ->
+        GotEditUpdateTime openItem timestamp ->
             let
-                updated =
+                altered =
                     case openItem of
                         Empty ->
                             Empty
 
                         New item ->
-                            New { item | updated = timeStamp }
+                            New { item | updated = timestamp }
 
                         Existing item ->
-                            Existing { item | updated = timeStamp }
+                            Existing { item | updated = timestamp }
             in
-            ( { model | draft = updated }, Effect.none )
+            ( { model | draft = altered }, Effect.none )
+
+        GotStateUpdateTime item timestamp ->
+            ( { model | items = Items.setUpdated model.items item.id timestamp }
+            , Effect.storeItem onTaskPortResult { item | updated = timestamp }
+            )
 
 
 onListMsg : Model -> Components.Items.List.Msg -> ( Model, Effect Msg )
@@ -173,14 +180,14 @@ onListMsg model itemMsg =
     case itemMsg of
         Components.Items.List.CollapseClicked catId state ->
             let
-                updated =
+                altered =
                     if state == Cats.Open then
                         Set.remove catId model.collapsedCats
 
                     else
                         Set.insert catId model.collapsedCats
             in
-            ( { model | collapsedCats = updated }
+            ( { model | collapsedCats = altered }
             , Effect.none
             )
 
@@ -200,11 +207,11 @@ onListMsg model itemMsg =
 
                 _ ->
                     let
-                        updated =
-                            updateDraft model.draft field content
+                        altered =
+                            alterDraft model.draft field content
                     in
-                    ( { model | draft = updated }
-                    , Effect.getTime (GotUpdateTime updated)
+                    ( { model | draft = altered }
+                    , Effect.getTime (GotEditUpdateTime altered)
                     )
 
         Components.Items.List.DraftOpened category ->
@@ -213,11 +220,12 @@ onListMsg model itemMsg =
             )
 
         Components.Items.List.DraftInputChanged field content ->
-            ( { model
-                | draft =
-                    updateDraft model.draft field content
-              }
-            , Effect.none
+            let
+                altered =
+                    alterDraft model.draft field content
+            in
+            ( { model | draft = altered }
+            , Effect.getTime (GotEditUpdateTime altered)
             )
 
         Components.Items.List.DeleteClicked itemId ->
@@ -247,8 +255,8 @@ onListMsg model itemMsg =
             ( model, Effect.none )
 
 
-updateDraft : Draft -> ItemField -> String -> Draft
-updateDraft openItem field content =
+alterDraft : Draft -> ItemField -> String -> Draft
+alterDraft openItem field content =
     case openItem of
         New item ->
             New (updateItemContent item field content)
@@ -315,7 +323,7 @@ endEditing model =
 
             else
                 let
-                    updatedCat =
+                    alteredCat =
                         model.catWithDraft
                             |> Maybe.andThen
                                 (Cats.getByid model.categories)
@@ -333,7 +341,7 @@ endEditing model =
                     , draft = Empty
                     , catWithDraft = Nothing
                     , categories =
-                        case updatedCat of
+                        case alteredCat of
                             Just updated ->
                                 List.map
                                     (\cat ->
@@ -358,7 +366,7 @@ endEditing model =
                                     onTaskPortResult
                                     category
                             )
-                            updatedCat
+                            alteredCat
                         )
                     ]
                 )
@@ -370,7 +378,7 @@ endEditing model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    DataUpdate.incoming (DataUpdate.on Error GotCatsAndItems)
 
 
 
@@ -409,13 +417,17 @@ toggleItemState model item state =
 
                 _ ->
                     Items.Stuffed
-    in
-    ( { model
-        | items =
+
+        altered =
             (Items.incFrequency item.id >> Items.setState newState item.id)
                 model.items
-      }
-    , Effect.storeItem onTaskPortResult { item | state = newState }
+    in
+    ( { model | items = altered }
+    , Effect.getTime
+        (Dict.get item.id altered
+            |> Maybe.withDefault item
+            |> GotStateUpdateTime
+        )
     )
 
 

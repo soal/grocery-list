@@ -1,6 +1,5 @@
 module Db.Items exposing
     ( Item
-    , Msg(..)
     , Quantity(..)
     , State(..)
     , alter
@@ -16,6 +15,7 @@ module Db.Items exposing
     , setAllStuffed
     , setId
     , setState
+    , setUpdated
     , store
     , storeAll
     )
@@ -29,22 +29,10 @@ import TaskPort
 import Time
 
 
-type alias Image =
-    { url : String
-    , alt : String
-    }
-
-
 type State
     = Stuffed
     | Required
     | InBasket
-
-
-type Msg
-    = GotStateToggle Item State
-    | GotChange Item
-    | GotAllBought
 
 
 stringToState : String -> State
@@ -177,6 +165,13 @@ incFrequency : String -> Dict String Item -> Dict String Item
 incFrequency id allItems =
     Dict.update id
         (Maybe.map <| \item -> { item | frequency = item.frequency + 1 })
+        allItems
+
+
+setUpdated : Dict String Item -> String -> Time.Posix -> Dict String Item
+setUpdated allItems id timestamp =
+    Dict.update id
+        (Maybe.map <| \item -> { item | updated = timestamp })
         allItems
 
 
