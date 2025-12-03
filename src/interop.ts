@@ -1,4 +1,4 @@
-import Dexie, { type EntityTable } from "dexie";
+import Dexie, { type EntityTable, liveQuery } from "dexie";
 import * as TaskPort from "elm-taskport/dist/taskport.min.js";
 import { ClickOutside } from "./web-components/clickOutside.js";
 
@@ -25,6 +25,7 @@ type Item = {
 	state: ItemState;
 	created: number;
 	updated: number;
+	lastUpdatedBy?: typeof clientId;
 };
 
 type CollapsedState = "open" | "collapsed";
@@ -36,6 +37,7 @@ type Category = {
 	state: CollapsedState;
 	created: number;
 	updated: number;
+	lastUpdatedBy?: typeof clientId;
 };
 
 type DataDump = {
@@ -51,6 +53,8 @@ type DB = Dexie & {
 };
 
 let db: DB | null = null;
+const clientId = window.crypto.randomUUID();
+let lastUpdate = Date.now();
 
 async function initDb({
 	name,
@@ -60,14 +64,13 @@ async function initDb({
 	version: number;
 }): Promise<boolean | Error> {
 	try {
-		console.log("INIT DB IN jS", name, version);
 		db = new Dexie(name) as DB;
 
 		db.version(version).stores({
 			settings: "id, theme",
 			items:
-				"id, name, quantity, comment, slug, symbol, state, created, updated",
-			categories: "++id, name, items, state, created, updated",
+				"id, name, quantity, comment, slug, symbol, state, created, updated, lastUpdatedBy",
+			categories: "++id, name, items, state, created, updated, lastUpdatedBy ",
 		});
 	} catch (error) {
 		return error;
@@ -84,7 +87,6 @@ async function queryAllCatsAndItems() {
 				return acc;
 			}, {}),
 		);
-		console.log("!!!", items);
 		return {
 			categories: await db.categories.toArray(),
 			items,
@@ -98,8 +100,9 @@ async function queryAllCatsAndItems() {
 
 async function storeItem(item: Item) {
 	if (db) {
-		console.log("STORE ITEM", item);
+		item.lastUpdatedBy = clientId;
 		await db.items.put(item);
+		lastUpdate = Date.now();
 		return true;
 	}
 	false;
@@ -115,7 +118,13 @@ async function deleteItem(itemId: string) {
 
 async function storeAllItems(items: Item[]) {
 	if (db) {
-		await db.items.bulkPut(Object.values(items));
+		await db.items.bulkPut(
+			Object.values(items).map((item) => {
+				item.lastUpdatedBy = clientId;
+				return item;
+			}),
+		);
+		lastUpdate = Date.now();
 		return true;
 	}
 	false;
@@ -123,7 +132,9 @@ async function storeAllItems(items: Item[]) {
 
 async function storeCategory(category: Category) {
 	if (db) {
+		category.lastUpdatedBy = clientId;
 		await db.categories.put(category);
+		lastUpdate = Date.now();
 		return true;
 	}
 	return false;
@@ -131,11 +142,21 @@ async function storeCategory(category: Category) {
 
 async function storeDump(dump: DataDump) {
 	if (db) {
-		console.log("DUMP", dump);
 		await db.categories.clear();
-		await db.categories.bulkAdd(dump.categories);
+		await db.categories.bulkAdd(
+			dump.categories.map((cat) => {
+				cat.lastUpdatedBy = clientId;
+				return cat;
+			}),
+		);
 		await db.items.clear();
-		await db.items.bulkAdd(Object.values(dump.items));
+		await db.items.bulkAdd(
+			Object.values(dump.items).map((item) => {
+				item.lastUpdatedBy = clientId;
+				return item;
+			}),
+		);
+		lastUpdate = Date.now();
 		return true;
 	}
 	return false;
@@ -154,12 +175,35 @@ TaskPort.register("getUuid", getUuid);
 TaskPort.register("storeCategory", storeCategory);
 TaskPort.register("deleteItem", deleteItem);
 
-export const flags = ({ env }) => ({
+export const flags = () => ({
 	settings: {
 		theme: "auto",
 	},
 });
 
-export const onReady = ({ app, env }) => {
-	// console.log("APP READY", app);
+export const onReady = ({ app }) => {
+	liveQuery(async () => ({
+		items: await db.items.toArray(),
+		categories: await db.categories.toArray(),
+	})).subscribe({
+		next: (result) => {
+			const hasUpdated = [...result.items, ...result.categories].some(
+				(el: Item | Category) =>
+					el.lastUpdatedBy !== clientId && el.updated >= lastUpdate,
+			);
+			if (hasUpdated) {
+				app.ports.incoming.send({
+					categories: result.categories,
+					items: result.items.reduce(
+						(acc: Record<string, Item>, item: Item) => {
+							acc[item.id] = item;
+							return acc;
+						},
+						{},
+					),
+				});
+			}
+		},
+		error: (error) => console.error(error),
+	});
 };

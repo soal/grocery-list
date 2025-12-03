@@ -1,7 +1,6 @@
 module Db.Categories exposing
     ( Category
     , CollapsedState(..)
-    , Msg(..)
     , addItem
     , decoder
     , encode
@@ -20,36 +19,28 @@ import TaskPort
 import Time
 
 
-type Msg
-    = GotCollapsedChange String Int CollapsedState
-
-
 type CollapsedState
     = Open
     | Collapsed
 
 
-stringToCollapsedState : String -> CollapsedState
-stringToCollapsedState stateStr =
-    case stateStr of
-        "open" ->
-            Open
 
-        "collapsed" ->
-            Collapsed
-
-        _ ->
-            Open
-
-
-collapsedStateToString : CollapsedState -> String
-collapsedStateToString state =
-    case state of
-        Open ->
-            "open"
-
-        Collapsed ->
-            "collapsed"
+-- stringToCollapsedState : String -> CollapsedState
+-- stringToCollapsedState stateStr =
+--     case stateStr of
+--         "open" ->
+--             Open
+--         "collapsed" ->
+--             Collapsed
+--         _ ->
+--             Open
+-- collapsedStateToString : CollapsedState -> String
+-- collapsedStateToString state =
+--     case state of
+--         Open ->
+--             "open"
+--         Collapsed ->
+--             "collapsed"
 
 
 type alias Category =

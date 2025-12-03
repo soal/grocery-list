@@ -2,8 +2,9 @@ module Pages.Shopping exposing (Model, Msg, page)
 
 import Components.Counter
 import Components.Items.List
+import DataUpdate
 import Db.Categories as Cats
-import Db.Items as Items exposing (Msg(..))
+import Db.Items as Items
 import Db.Settings exposing (CatsAndItems)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
@@ -16,6 +17,8 @@ import Page exposing (Page)
 import Route exposing (Route)
 import Set exposing (Set)
 import Shared
+import TaskPort
+import Time
 import View exposing (View)
 
 
@@ -79,9 +82,11 @@ init () =
 
 type Msg
     = NoOp
+    | Error (Maybe String)
     | GotCatsAndItems CatsAndItems
     | GotError (Maybe String)
     | ClickedEndShopping
+    | GotStateUpdateTime Items.Item Time.Posix
     | GotItemListMsg Components.Items.List.Msg
 
 
@@ -92,6 +97,9 @@ update msg model =
             ( model
             , Effect.none
             )
+
+        Error error ->
+            ( { model | error = error }, Effect.none )
 
         GotCatsAndItems data ->
             ( { model | categories = data.categories, items = data.items }
@@ -119,6 +127,11 @@ update msg model =
         GotError _ ->
             ( model, Effect.none )
 
+        GotStateUpdateTime item timestamp ->
+            ( { model | items = Items.setUpdated model.items item.id timestamp }
+            , Effect.storeItem onTaskPortResult { item | updated = timestamp }
+            )
+
         GotItemListMsg listMsg ->
             case listMsg of
                 Components.Items.List.CollapseClicked catId state ->
@@ -143,24 +156,30 @@ update msg model =
 
                                 _ ->
                                     Items.Required
-                    in
-                    ( { model
-                        | items = Items.setState newState item.id model.items
-                      }
-                    , Effect.storeItem
-                        (\res ->
-                            case res of
-                                Err _ ->
-                                    GotError Nothing
 
-                                _ ->
-                                    NoOp
+                        altered =
+                            Items.setState newState item.id model.items
+                    in
+                    ( { model | items = altered }
+                    , Effect.getTime
+                        (Dict.get item.id altered
+                            |> Maybe.withDefault item
+                            |> GotStateUpdateTime
                         )
-                        { item | state = newState }
                     )
 
                 _ ->
                     ( model, Effect.none )
+
+
+onTaskPortResult : TaskPort.Result res -> Msg
+onTaskPortResult res =
+    case res of
+        Err _ ->
+            GotError Nothing
+
+        Ok _ ->
+            NoOp
 
 
 
@@ -169,7 +188,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    DataUpdate.incoming (DataUpdate.on Error GotCatsAndItems)
 
 
 
