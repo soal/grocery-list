@@ -1,6 +1,6 @@
 # Grocery List
-Little PWA app for keeping your groceries in order
 
+Little PWA app for keeping your groceries in order
 
 ## Local development
 

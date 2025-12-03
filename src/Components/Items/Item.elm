@@ -176,7 +176,7 @@ view (Settings settings) =
                 }
             , viewIf settings.switch <|
                 div
-                    [ class "delete-item-button"
+                    [ class "button delete-item-button"
                     , onClick (DeleteClicked settings.item.id)
                     ]
                     [ Icons.trashIcon [] ]
