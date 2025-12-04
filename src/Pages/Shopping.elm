@@ -36,18 +36,24 @@ page shared _ =
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
     Layouts.MainNav
-        { onClickedOutside = NoOp
-        }
+        { onClickOutside = NoOp }
 
 
 
 -- INIT
 
 
+type ContentState
+    = Initial
+    | Loading
+    | Ready
+
+
 type alias Model =
     { collapsedCats : Set Int
     , items : Dict String Items.Item
     , categories : List Cats.Category
+    , state : ContentState
     , error : Maybe String
     }
 
@@ -57,6 +63,7 @@ init () =
     ( { collapsedCats = Set.empty
       , items = Dict.empty
       , categories = []
+      , state = Initial
       , error = Nothing
       }
     , Effect.queryAll
@@ -102,7 +109,11 @@ update msg model =
             ( { model | error = error }, Effect.none )
 
         GotCatsAndItems data ->
-            ( { model | categories = data.categories, items = data.items }
+            ( { model
+                | categories = data.categories
+                , items = data.items
+                , state = Ready
+              }
             , Effect.none
             )
 
@@ -199,22 +210,30 @@ view shared model =
             filteredCats =
                 filterCategories filteredItems model.categories
         in
-        if Dict.size filteredItems > 0 then
-            [ Components.Items.List.new
-                { items = filteredItems
-                , categories = filteredCats
-                , checkedSates = [ Items.InBasket ]
-                , collapsedCatIds = model.collapsedCats
-                }
-                |> Components.Items.List.withMark
-                |> Components.Items.List.withCounter
-                |> Components.Items.List.view
-                |> Html.map GotItemListMsg
-            , viewEndButton filteredItems
-            ]
+        case model.state of
+            Initial ->
+                [ nothing ]
 
-        else
-            [ viewEmpty ]
+            Loading ->
+                [ nothing ]
+
+            Ready ->
+                if Dict.size filteredItems > 0 then
+                    [ Components.Items.List.new
+                        { items = filteredItems
+                        , categories = filteredCats
+                        , checkedSates = [ Items.InBasket ]
+                        , collapsedCatIds = model.collapsedCats
+                        }
+                        |> Components.Items.List.withMark
+                        |> Components.Items.List.withCounter
+                        |> Components.Items.List.view
+                        |> Html.map GotItemListMsg
+                    , viewEndButton filteredItems
+                    ]
+
+                else
+                    [ viewEmpty ]
     }
 
 

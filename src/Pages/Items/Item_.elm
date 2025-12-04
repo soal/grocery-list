@@ -33,8 +33,7 @@ page shared route =
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
     Layouts.MainNav
-        { onClickedOutside = ClickedOutside
-        }
+        { onClickOutside = ClickedOutside }
 
 
 
@@ -234,8 +233,6 @@ update shared msg model =
 --                     ItemField (Symbol data) mode
 --         _ ->
 --             field
-
-
 -- updateFields :
 --     (ItemField -> ItemField)
 --     -> ItemField
@@ -246,13 +243,10 @@ update shared msg model =
 -- --         (\existing ->
 -- --             if existing == field then
 -- --                 mapper field
-
 -- --             else
 -- --                 existing
 -- --         )
 -- --         itemFields
-
-
 -- allFieldsToView : List ItemField -> List ItemField
 -- allFieldsToView fields =
 --     List.map
@@ -262,9 +256,6 @@ update shared msg model =
 --                     ItemField fieldName ViewMode
 --         )
 --         itemFields
-
-
-
 -- SUBSCRIPTIONS
 
 

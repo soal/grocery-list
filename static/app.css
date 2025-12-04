@@ -69,8 +69,9 @@ button {
     display: inline-flex;
     align-items: center;
     text-decoration: none;
-    column-gap: 0.4em;
+    column-gap: 0.25em;
     padding-inline: var(--pico-form-element-spacing-horizontal);
+    font-size: 1rem;
 
     .icon-wrapper {
       display: flex;

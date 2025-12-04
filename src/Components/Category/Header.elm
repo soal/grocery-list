@@ -93,12 +93,13 @@ view (Settings settings) =
                 [ class "button category-edit-button" ]
                 [ Icons.editIcon [] ]
             )
-        , viewIf
-            (not settings.counter)
-            (span
-                [ class "button category-add-button" ]
-                [ Icons.plusIcon [] ]
-            )
+
+        -- , viewIf
+        --     (not settings.counter)
+        --     (span
+        --         [ class "button category-add-button" ]
+        --         [ Icons.plusIcon [] ]
+        --     )
         ]
 
 

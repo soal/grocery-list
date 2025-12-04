@@ -17,13 +17,13 @@ import View exposing (View)
 
 
 type alias Props contentMsg =
-    { onClickedOutside : contentMsg
+    { onClickOutside : contentMsg
     }
 
 
 map : (msg1 -> msg2) -> Props msg1 -> Props msg2
 map fn props =
-    { onClickedOutside = fn props.onClickedOutside
+    { onClickOutside = fn props.onClickOutside
     }
 
 
@@ -117,7 +117,7 @@ view props { model, content } =
         [ Html.node "on-click-outside"
             [ on "clickoutside" <|
                 Json.Decode.succeed <|
-                    props.onClickedOutside
+                    props.onClickOutside
             ]
             [ header [ class "nav-header container" ]
                 [ lazy viewNavBar model.currentRoute ]
@@ -147,7 +147,7 @@ viewNavBar currentRoute =
         [ ul []
             [ li []
                 [ span [ class "link" ]
-                    [ span [ class "icon-wrapper" ] [ Icons.cloudOffIcon [] ] ]
+                    [ span [ class "icon-wrapper button" ] [ Icons.plusIcon [] ] ]
                 ]
             ]
         , ul [ class "group" ] <|
