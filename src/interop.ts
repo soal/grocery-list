@@ -121,7 +121,7 @@ async function deleteItem(itemId: string) {
 
 async function storeAllItems(items: Item[]) {
 	if (db) {
-		await db.items.bulkPut(items);
+		await db.items.bulkPut(Object.values(items));
 		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
 		return true;
 	}
