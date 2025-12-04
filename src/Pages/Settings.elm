@@ -35,7 +35,7 @@ page shared _ =
 
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
-    Layouts.MainNav { onClickedOutside = NoOp }
+    Layouts.MainNav { onClickOutside = NoOp, onAddClick = NoOp }
 
 
 

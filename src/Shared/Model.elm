@@ -1,13 +1,10 @@
 module Shared.Model exposing
-    ( CollapsedCats
-    , DbConfig
+    ( DbConfig
     , DbStatus(..)
     , Model
     )
 
 import Db.Settings exposing (AppSettings)
-import Dict exposing (Dict)
-import Set exposing (Set)
 
 
 type DbStatus
@@ -21,10 +18,6 @@ type alias DbConfig =
     , version : Int
     , status : DbStatus
     }
-
-
-type alias CollapsedCats =
-    Dict String (Set Int)
 
 
 type alias Model =

@@ -36,7 +36,8 @@ page shared _ =
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
     Layouts.MainNav
-        { onClickedOutside = NoOp
+        { onClickOutside = NoOp
+        , onAddClick = NoOp
         }
 
 
@@ -45,7 +46,7 @@ toLayout _ =
 
 
 type alias Model =
-    { collapsedCats : Set Int
+    { collapsedCats : Set String
     , items : Dict String Items.Item
     , categories : List Cats.Category
     , error : Maybe String

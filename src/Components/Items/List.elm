@@ -29,9 +29,9 @@ import Types exposing (Draft(..), ItemField(..))
 type alias Options =
     { items : Dict String Items.Item
     , draft : Draft
-    , catWithDraft : Maybe Int
+    , catWithDraft : Maybe String
     , categories : List Cats.Category
-    , collapsedCatIds : Set Int
+    , collapsedCatIds : Set String
     , link : Bool
     , mark : Bool
     , switch : Bool
@@ -48,7 +48,7 @@ type ItemsList
 new :
     { items : Dict String Items.Item
     , categories : List Cats.Category
-    , collapsedCatIds : Set Int
+    , collapsedCatIds : Set String
     , checkedSates : List Items.State
     }
     -> ItemsList
@@ -89,7 +89,7 @@ withSwitch (Settings settings) =
 
 
 withDraft :
-    Maybe Int
+    Maybe String
     -> Draft
     -> ItemsList
     -> ItemsList
@@ -103,7 +103,7 @@ withDraft catWithDraft draft (Settings settings) =
 
 
 type Msg
-    = CollapseClicked Int Cats.CollapsedState
+    = CollapseClicked String Cats.CollapsedState
     | ItemClicked Items.Item Items.State
     | ItemChecked Items.Item Items.State
     | StartEditing ItemField (Maybe String)
@@ -121,6 +121,14 @@ view : ItemsList -> Html Msg
 view (Settings settings) =
     settings.categories
         |> List.map (viewCategory settings)
+        |> List.append
+            (case settings.draft of
+                NewCat cat ->
+                    [ ( cat.id, viewCatHeader settings Cats.Collapsed cat ) ]
+
+                _ ->
+                    []
+            )
         |> Html.Keyed.node "div" []
 
 
@@ -137,7 +145,7 @@ viewCategory options category =
             else
                 Cats.Open
     in
-    ( String.fromInt category.id
+    ( category.id
     , div [ class "grocery-category" ]
         [ viewCatHeader options state category
         , Components.Category.Body.view state
@@ -147,7 +155,7 @@ viewCategory options category =
                     { draft = options.draft
                     , open =
                         Maybe.withDefault
-                            -1
+                            "-1"
                             options.catWithDraft
                             == category.id
                     , category = category
@@ -174,6 +182,7 @@ viewCatHeader options state category =
             else
                 identity
            )
+        |> Components.Category.Header.withDraft options.draft
         |> Components.Category.Header.view
         |> Html.map
             (\msg ->
@@ -185,6 +194,9 @@ viewCatHeader options state category =
 
                             else
                                 Cats.Open
+
+                    Components.Category.Header.InputChanged content ->
+                        DraftInputChanged Name content
             )
 
 
@@ -217,6 +229,12 @@ viewItems options category =
 
                                 else
                                     ( False, item )
+
+                            NewCat _ ->
+                                ( False, item )
+
+                            ExistingCat _ ->
+                                ( False, item )
                 in
                 ( id
                 , viewItem

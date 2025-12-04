@@ -5,6 +5,7 @@ module Db.Items exposing
     , alter
     , decoder
     , delete
+    , emptyItem
     , encode
     , filterByStates
     , getInBasketLength
@@ -147,6 +148,21 @@ encode item =
         , ( "created", JE.int <| Time.posixToMillis item.created )
         , ( "updated", JE.int <| Time.posixToMillis item.updated )
         ]
+
+
+emptyItem : Maybe String -> Item
+emptyItem maybeId =
+    Item
+        (Maybe.withDefault "empty" maybeId)
+        ""
+        (Quantity 1 "штук")
+        Nothing
+        ""
+        Nothing
+        Required
+        (Time.millisToPosix 0)
+        (Time.millisToPosix 0)
+        0
 
 
 map : (Item -> a) -> Dict String Item -> Dict String a

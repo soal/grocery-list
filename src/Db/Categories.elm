@@ -3,11 +3,13 @@ module Db.Categories exposing
     , CollapsedState(..)
     , addItem
     , decoder
+    , emptyCategory
     , encode
     , getByid
     , removeItem
     , sortItemsByFreq
     , store
+    , add
     )
 
 import Db.Items as Items
@@ -44,7 +46,7 @@ type CollapsedState
 
 
 type alias Category =
-    { id : Int
+    { id : String
     , name : String
     , items : List String
     , created : Time.Posix
@@ -56,7 +58,7 @@ decoder : JD.Decoder Category
 decoder =
     JD.map5
         Category
-        (JD.field "id" JD.int)
+        (JD.field "id" JD.string)
         (JD.field "name" JD.string)
         (JD.field "items" <| JD.list JD.string)
         (JD.field "created" <| JD.map Time.millisToPosix JD.int)
@@ -66,7 +68,7 @@ decoder =
 encode : Category -> JE.Value
 encode cat =
     JE.object
-        [ ( "id", JE.int cat.id )
+        [ ( "id", JE.string cat.id )
         , ( "name", JE.string cat.name )
         , ( "items", JE.list JE.string cat.items )
         , ( "created", JE.int <| Time.posixToMillis cat.created )
@@ -74,7 +76,17 @@ encode cat =
         ]
 
 
-getByid : List Category -> Int -> Maybe Category
+emptyCategory : Maybe String -> Category
+emptyCategory maybeId =
+    Category
+        (Maybe.withDefault "empty" maybeId)
+        ""
+        []
+        (Time.millisToPosix 0)
+        (Time.millisToPosix 0)
+
+
+getByid : List Category -> String -> Maybe Category
 getByid categories catId =
     categories
         |> List.filter (\cat -> cat.id == catId)
@@ -98,7 +110,12 @@ sortItemsByFreq items category =
     }
 
 
-addItem : Int -> List Category -> String -> List Category
+add : List Category -> Category -> List Category
+add categories newCat =
+    newCat :: categories
+
+
+addItem : String -> List Category -> String -> List Category
 addItem catId categories itemId =
     List.map
         (\cat ->
