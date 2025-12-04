@@ -112,16 +112,7 @@ update msg model =
                     Items.setAllStuffed model.items
             in
             ( { model | items = updated }
-            , Effect.storeAllItems
-                (\res ->
-                    case res of
-                        Ok True ->
-                            NoOp
-
-                        _ ->
-                            GotError Nothing
-                )
-                updated
+            , Effect.storeAllItems onTaskPortResult updated
             )
 
         GotError _ ->
