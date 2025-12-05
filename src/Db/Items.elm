@@ -193,8 +193,8 @@ setUpdated allItems id timestamp =
 
 alter : Dict String Item -> Item -> Dict String Item
 alter allItems item =
-    Dict.update item.id
-        (Maybe.map (always item))
+    Dict.insert item.id
+        item
         allItems
 
 

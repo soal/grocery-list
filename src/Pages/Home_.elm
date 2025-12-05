@@ -18,6 +18,7 @@ import Task
 import TaskPort
 import Time
 import Types exposing (Draft(..), ItemField(..))
+import Utils exposing (slugify)
 import View exposing (View)
 
 
@@ -343,11 +344,15 @@ endEditing model =
             ( model, Effect.none )
 
         Existing item ->
+            let
+                newItem =
+                    { item | slug = slugify item.name }
+            in
             ( { model
-                | items = Dict.insert item.id item model.items
+                | items = Items.alter model.items newItem
                 , draft = Empty
               }
-            , Effect.storeItem onTaskPortResult item
+            , Effect.storeItem onTaskPortResult newItem
             )
 
         New item ->
@@ -489,9 +494,12 @@ endItemDraft model item =
                                     List.append cat.items [ item.id ]
                             }
                     )
+
+        newItem =
+            { item | slug = slugify item.name }
     in
     ( { model
-        | items = Dict.insert item.id item model.items
+        | items = Items.alter model.items newItem
         , draft = Empty
         , catWithDraft = Nothing
         , categories =
@@ -511,7 +519,7 @@ endItemDraft model item =
                     model.categories
       }
     , Effect.batch
-        [ Effect.storeItem onTaskPortResult item
+        [ Effect.storeItem onTaskPortResult newItem
         , Effect.requestUuid GotDraftUuid
         , Maybe.withDefault Effect.none
             (Maybe.map

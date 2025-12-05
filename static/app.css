@@ -160,7 +160,7 @@ button {
   @media screen and (width > 450px) {
     background: transparent;
     box-shadow: none;
-    width: fit-content;
+    /* width: fit-content; */
   }
 
   &.focused {
@@ -225,6 +225,7 @@ button {
     align-items: center;
     display: flex;
     gap: 1rem;
+    flex-grow: 1;
 
     & textarea {
       font-style: italic;
@@ -293,8 +294,6 @@ button {
     text-align: center;
     column-gap: 0.25em;
   }
-
-
 
   .item-comment {
     display: flex;
