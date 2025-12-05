@@ -10,14 +10,13 @@ module Components.Items.List exposing
     , withSwitch
     )
 
-import Components.Category.Body
 import Components.Category.Header
 import Components.Items.Item
 import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
 import Html exposing (Html, button, div)
-import Html.Attributes exposing (class, id)
+import Html.Attributes exposing (class, classList, id)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (viewIf)
 import Html.Keyed
@@ -147,21 +146,29 @@ viewCategory options category =
                 Cats.Open
     in
     ( category.id
-    , div [ class "grocery-category" ]
+    , div
+        [ class "grocery-category"
+        , classList [ ( "shopping-page", options.mark ) ]
+        ]
         [ viewCatHeader options state category
-        , Components.Category.Body.view state
-            [ viewItems options category
-            , viewIf options.editable <|
-                viewDraft
-                    { draft = options.draft
-                    , open =
-                        Maybe.withDefault
-                            "-1"
-                            options.catWithDraft
-                            == category.id
-                    , category = category
-                    }
-            ]
+        , viewItems options category
+            ++ [ ( "empty"
+                 , viewIf options.editable <|
+                    viewDraft
+                        { draft = options.draft
+                        , open =
+                            Maybe.withDefault
+                                "-1"
+                                options.catWithDraft
+                                == category.id
+                        , category = category
+                        }
+                 )
+               ]
+            |> Html.Keyed.node "div"
+                [ class "category-body"
+                , classList [ ( "collapsed", state == Cats.Collapsed ) ]
+                ]
         ]
     )
 
@@ -201,13 +208,16 @@ viewCatHeader options state category =
 
                     Components.Category.Header.TitleClicked cat ->
                         CatTitleClicked cat
+
+                    Components.Category.Header.DeleteClicked catId ->
+                        NoOp
             )
 
 
 viewItems :
     Options
     -> Cats.Category
-    -> Html Msg
+    -> List ( String, Html Msg )
 viewItems options category =
     ( options.items, category )
         |> getCatItems
@@ -252,7 +262,6 @@ viewItems options category =
                     }
                 )
             )
-        |> Html.Keyed.node "div" []
 
 
 getCatItems :
@@ -359,4 +368,4 @@ viewDraft { draft, open, category } =
                 [ class "add-item-button outline"
                 , onClick (DraftOpened category)
                 ]
-                [ Icons.plusCircleIcon [] ]
+                [ Icons.plusIcon [] ]

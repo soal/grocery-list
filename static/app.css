@@ -1,6 +1,8 @@
 :root,
 :host {
   --pico-spacing: 0.5rem;
+  --pico-block-spacing-horizontal: 1rem;
+  --pico-block-spacing-vertical: 0.5rem;
 }
 
 html {
@@ -12,6 +14,13 @@ button {
     display: flex;
     column-gap: 0.4em;
   }
+}
+
+.app-container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding-inline: var(--pico-block-spacing-horizontal);
+  padding-block: var(--pico-block-spacing-vertical);
 }
 
 .nav-header {
@@ -41,15 +50,8 @@ button {
 
 
 .app-main {
+  margin-bottom: 8rem;
   padding-top: var(--pico-block-spacing-vertical);
-
-  @media screen and (width < 451px) {
-    margin-bottom: 100px;
-  }
-
-  @media screen and (width > 450px) {
-    margin-bottom: 0;
-  }
 }
 
 .main-nav {
@@ -112,7 +114,6 @@ button {
     align-items: baseline;
 
     .counter {
-      /* font-weight: normal; */
       font-size: 0.65em;
       padding-left: 0.2em;
 
@@ -142,15 +143,25 @@ button {
 
 .grocery-item {
   --base-size: 1.25rem;
-
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-
   border-style: dashed;
   border-color: transparent;
   border-width: 1px;
+
+  @media screen and (width < 451px) {
+    background: var(--pico-card-background-color);
+    box-shadow: var(--pico-card-box-shadow);
+    width: 100%;
+  }
+
+  @media screen and (width > 450px) {
+    background: transparent;
+    box-shadow: none;
+    width: fit-content;
+  }
 
   &.focused {
     border-color: var(--pico-secondary);
@@ -160,11 +171,20 @@ button {
     visibility: hidden;
   }
 
-  &:hover {
+  &:hover,
+  &.item-form {
+    background: var(--pico-card-background-color);
+    box-shadow: var(--pico-card-box-shadow);
+
     .add-item-comment {
       visibility: visible;
     }
 
+
+    .delete-button,
+    & a {
+      visibility: visible;
+    }
   }
 
   &.in-basket {
@@ -177,9 +197,28 @@ button {
     }
   }
 
+  .delete-button {
+    visibility: hidden;
+  }
+
+  & a {
+    margin-left: auto;
+    color: var(--pico-secondary);
+    visibility: hidden;
+    pointer-events: fill;
+
+    &:hover {
+      color: var(--pico-primary);
+    }
+
+    & svg {
+      width: calc(var(--base-size) * 1.5);
+      height: calc(var(--base-size) * 1.5);
+    }
+  }
+
   &.item-draft {
     border-style: solid;
-    /* border-color: var(--pico-primary-hover); */
   }
 
   .item-comment-box {
@@ -187,9 +226,10 @@ button {
     display: flex;
     gap: 1rem;
 
-    &:last-child {
-      flex-grow: 1;
+    & textarea {
+      font-style: italic;
     }
+
   }
 
   .label {
@@ -206,19 +246,6 @@ button {
     & span {
       line-height: 1em;
       text-wrap: nowrap;
-    }
-
-    & h4 {
-      line-height: 1em;
-      display: flex;
-      flex-wrap: nowrap;
-      margin: 0;
-      max-width: calc(100% - 2rem);
-
-      & input[type=text] {
-        font: 1rem/1rem sans-serif;
-        font-weight: 700;
-      }
     }
   }
 
@@ -267,24 +294,13 @@ button {
     column-gap: 0.25em;
   }
 
-  & a {
-    margin-left: auto;
-    color: var(--pico-secondary);
 
-    &:hover {
-      color: var(--pico-primary);
-    }
-
-    & svg {
-      width: calc(var(--base-size) * 1.5);
-      height: calc(var(--base-size) * 1.5);
-    }
-  }
 
   .item-comment {
     display: flex;
     align-items: start;
     flex-grow: 1;
+    font-style: italic;
 
     & svg {
       flex-shrink: 0;
@@ -301,8 +317,9 @@ button {
   }
 }
 
-.delete-item-button {
-  /* font-size: 1.25em; */
+
+.delete-button {
+  color: var(--pico-secondary);
 
   &:hover {
     @media (prefers-color-scheme: dark) {
@@ -414,7 +431,7 @@ a {
     margin: 0;
     padding: 0;
     min-width: 1em;
-    font: 1rem/1rem sans-serif;
+    /* font: 1em/1em sans-serif; */
     height: 100%;
     max-width: 100%;
   }
@@ -429,8 +446,7 @@ a {
     margin: 0;
     padding: 0;
     min-width: 1em;
-    /* font: 1.25rem/1.25rem sans-serif; */
-    /* font-weight: 700; */
+    font-size: 1em;
     height: 100%;
     max-width: 100%;
     border: none;
@@ -439,12 +455,9 @@ a {
   }
 }
 
-
-h1 {
-  & input {
-    font-size: inherit;
-    font-weight: inherit;
-    line-height: inherit;
+h4 {
+  input[type=text] {
+    font-weight: 700;
   }
 }
 
@@ -455,13 +468,7 @@ h1 {
 
   --pico-background-color: var(--pico-form-element-background-color);
   --pico-border-color: var(--pico-form-element-border-color);
-  /* --pico-color: var(--pico-form-element-color); */
   --pico-box-shadow: none;
-
-  /* background-image: var(--pico-icon-checkbox); */
-  /* background-position: center; */
-  /* background-size: .75em auto; */
-  /* background-repeat: no-repeat; */
 
   display: flex;
   place-items: center;
@@ -514,4 +521,13 @@ h1 {
 .button-row {
   display: flex;
   width: fit-content;
+}
+
+p {
+  margin-bottom: calc(var(--pico-block-spacing-vertical) * 6);
+}
+
+h1 {
+  margin-bottom: calc(var(--pico-block-spacing-vertical) * 4);
+
 }
