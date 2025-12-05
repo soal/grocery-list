@@ -89,7 +89,8 @@ view (Settings settings) =
                 ]
 
         staticTitle catId =
-            span [ onClick (TitleClicked catId) ] [ text settings.category.name ]
+            span [ onClick (TitleClicked catId) ]
+                [ text settings.category.name ]
 
         title =
             case settings.catDraft of
