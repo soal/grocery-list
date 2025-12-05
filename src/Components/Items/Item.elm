@@ -106,7 +106,7 @@ view (Settings settings) =
                     [ Route.Path.href
                         (Route.Path.Items_Item_ { item = settings.item.slug })
                     ]
-                    [ Icons.chevronRightIcon [] ]
+                    [ Icons.arrowRightIcon [] ]
 
             else
                 text ""
@@ -119,6 +119,7 @@ view (Settings settings) =
         , classList
             [ ( "in-basket", checkMark )
             , ( "item-draft", settings.draft )
+            , ( "item-form", settings.open )
             ]
         , onClick (ItemClicked settings.item settings.item.state)
         ]
@@ -173,10 +174,11 @@ view (Settings settings) =
                 , inputChange = Just <| InputChanged settings.item Comment
                 , content = settings.item.comment
                 , open = settings.open
+                , editable = settings.editable
                 }
             , viewIf settings.switch <|
                 div
-                    [ class "button delete-item-button"
+                    [ class "button delete-button"
                     , onClick (DeleteClicked settings.item.id)
                     ]
                     [ Icons.trashIcon [] ]

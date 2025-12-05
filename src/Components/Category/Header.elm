@@ -9,13 +9,14 @@ module Components.Category.Header exposing
     )
 
 import Components.Counter
+import Components.Items.Item exposing (Msg(..))
 import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
-import Html exposing (Html, h4, input, span, text)
+import Html exposing (Html, div, h4, input, span, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
-import Html.Extra exposing (viewIf)
+import Html.Extra exposing (nothing, viewIf)
 import LucideIcons as Icons
 import Types exposing (Draft(..))
 
@@ -26,8 +27,6 @@ type CategoryHeader
         , state : Cats.CollapsedState
         , items : Dict String Items.Item
         , counter : Bool
-
-        -- , catDraft : CategoryDraft
         , catDraft : Draft
         }
 
@@ -70,7 +69,8 @@ init _ =
 type Msg
     = Toggle String
     | InputChanged String
-    | TitleClicked String
+    | TitleClicked Cats.Category
+    | DeleteClicked String
 
 
 view : CategoryHeader -> Html Msg
@@ -78,7 +78,7 @@ view (Settings settings) =
     let
         chevron =
             span
-                [ class "chevron"
+                [ class "chevron category-action"
                 , onClick (Toggle settings.category.id)
                 ]
                 [ if settings.state == Cats.Open then
@@ -88,60 +88,68 @@ view (Settings settings) =
                     Icons.chevronRightIcon []
                 ]
 
-        staticTitle catId =
-            span [ onClick (TitleClicked catId) ]
+        deleteButton catId =
+            span
+                [ class "button delete-button category-action"
+                , onClick (DeleteClicked catId)
+                ]
+                [ Icons.trashIcon [] ]
+
+        staticTitle =
+            span [ onClick (TitleClicked settings.category) ]
                 [ text settings.category.name ]
 
-        title =
+        ( title, action ) =
             case settings.catDraft of
                 NewCat cat ->
                     if cat.id == settings.category.id then
-                        input
-                            [ type_ "text"
-                            , id ("category-name-" ++ cat.id)
-                            , class "with-click-outside"
-                            , onInput InputChanged
+                        ( span
+                            [ class "input-resize-containter"
+                            , attribute "data-content" cat.name
                             ]
-                            []
+                            [ input
+                                [ type_ "text"
+                                , id ("category-name-" ++ cat.id)
+                                , class "with-click-outside"
+                                , onInput InputChanged
+                                , value cat.name
+                                ]
+                                []
+                            ]
+                        , deleteButton cat.id
+                        )
 
                     else
-                        staticTitle cat.id
+                        ( staticTitle, chevron )
 
                 ExistingCat cat ->
                     if cat.id == settings.category.id then
-                        input
-                            [ type_ "text"
-                            , id ("category-name-" ++ cat.id)
-                            , onInput InputChanged
+                        ( span
+                            [ class "input-resize-containter"
+                            , attribute "data-content" cat.name
                             ]
-                            []
+                            [ input
+                                [ type_ "text"
+                                , id ("category-name-" ++ cat.id)
+                                , onInput InputChanged
+                                , value cat.name
+                                ]
+                                []
+                            ]
+                        , deleteButton cat.id
+                        )
 
                     else
-                        staticTitle cat.id
+                        ( staticTitle, chevron )
 
                 _ ->
-                    span [] [ text settings.category.name ]
+                    ( staticTitle, chevron )
     in
     h4 []
         [ title
         , viewIf settings.counter
-            (viewOptionalCounter settings.items
-                settings.category.items
-            )
-        , chevron
-        , viewIf
-            (not settings.counter)
-            (span
-                [ class "button category-edit-button" ]
-                [ Icons.editIcon [] ]
-            )
-
-        -- , viewIf
-        --     (not settings.counter)
-        --     (span
-        --         [ class "button category-add-button" ]
-        --         [ Icons.plusIcon [] ]
-        --     )
+            (viewOptionalCounter settings.items settings.category.items)
+        , action
         ]
 
 

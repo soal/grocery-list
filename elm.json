@@ -15,7 +15,6 @@
 			"elm/url": "1.0.0",
 			"elm-community/html-extra": "3.4.0",
 			"elm-community/json-extra": "4.3.0",
-			"hecrj/elm-slug": "1.0.2",
 			"lobanov/elm-taskport": "2.0.1"
 		},
 		"indirect": {

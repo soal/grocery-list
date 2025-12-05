@@ -18,6 +18,7 @@ import Task
 import TaskPort
 import Time
 import Types exposing (Draft(..), ItemField(..))
+import Utils exposing (slugify)
 import View exposing (View)
 
 
@@ -163,10 +164,10 @@ update msg model =
         GotItemListMsg itemListMsg ->
             onListMsg model itemListMsg
 
-        GotEditUpdateTime openItem timestamp ->
+        GotEditUpdateTime draft timestamp ->
             let
                 altered =
-                    case openItem of
+                    case draft of
                         New item ->
                             New { item | updated = timestamp }
 
@@ -176,8 +177,8 @@ update msg model =
                         NewCat cat ->
                             NewCat { cat | updated = timestamp }
 
-                        ExistingCat _ ->
-                            Empty
+                        ExistingCat category ->
+                            ExistingCat { category | updated = timestamp }
 
                         Empty ->
                             Empty
@@ -275,6 +276,14 @@ onListMsg model itemMsg =
                 ]
             )
 
+        Components.Items.List.CatTitleClicked category ->
+            ( { model | draft = ExistingCat category }
+            , Effect.sendCmd <|
+                Task.attempt
+                    (\_ -> NoOp)
+                    (Browser.Dom.focus <| "category-name-" ++ category.id)
+            )
+
         _ ->
             ( model, Effect.none )
 
@@ -291,10 +300,10 @@ alterDraft openItem field content =
         NewCat cat ->
             NewCat { cat | name = content }
 
-        Empty ->
-            Empty
+        ExistingCat cat ->
+            ExistingCat { cat | name = content }
 
-        _ ->
+        Empty ->
             Empty
 
 
@@ -335,11 +344,15 @@ endEditing model =
             ( model, Effect.none )
 
         Existing item ->
+            let
+                newItem =
+                    { item | slug = slugify item.name }
+            in
             ( { model
-                | items = Dict.insert item.id item model.items
+                | items = Items.alter model.items newItem
                 , draft = Empty
               }
-            , Effect.storeItem onTaskPortResult item
+            , Effect.storeItem onTaskPortResult newItem
             )
 
         New item ->
@@ -369,26 +382,35 @@ endEditing model =
                     , catWithDraft = Nothing
                     , categories = Cats.add model.categories cat
                   }
-                  -- , Effect.batch
-                  -- [ Effect.storeItem onTaskPortResult item
-                  -- , Effect.requestUuid GotDraftUuid
-                  -- , Maybe.withDefault Effect.none
-                  --     (Maybe.map
-                  --         (\category ->
                 , Effect.storeCategory
                     onTaskPortResult
                     cat
-                  -- )
-                  -- (Just cat)
-                  -- )
-                  -- ]
                 )
 
-        _ ->
-            ( model, Effect.none )
+        ExistingCat cat ->
+            if String.isEmpty cat.name then
+                ( { model
+                    | catWithDraft = Nothing
+                    , draft = Empty
+                  }
+                , Effect.none
+                )
+
+            else
+                ( { model
+                    | draft = Empty
+                    , catWithDraft = Nothing
+                    , categories = Cats.alter model.categories cat
+                  }
+                , Effect.storeCategory
+                    onTaskPortResult
+                    cat
+                )
 
 
 
+-- _ ->
+--     ( model, Effect.none )
 -- SUBSCRIPTIONS
 
 
@@ -472,9 +494,12 @@ endItemDraft model item =
                                     List.append cat.items [ item.id ]
                             }
                     )
+
+        newItem =
+            { item | slug = slugify item.name }
     in
     ( { model
-        | items = Dict.insert item.id item model.items
+        | items = Items.alter model.items newItem
         , draft = Empty
         , catWithDraft = Nothing
         , categories =
@@ -494,7 +519,7 @@ endItemDraft model item =
                     model.categories
       }
     , Effect.batch
-        [ Effect.storeItem onTaskPortResult item
+        [ Effect.storeItem onTaskPortResult newItem
         , Effect.requestUuid GotDraftUuid
         , Maybe.withDefault Effect.none
             (Maybe.map

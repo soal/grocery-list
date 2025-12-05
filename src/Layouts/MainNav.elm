@@ -76,10 +76,6 @@ type Msg
     = UrlChanged { from : Route (), to : Route () }
 
 
-
--- | ClickedOutside
-
-
 update : Props contentMsg -> Msg -> Model -> ( Model, Effect Msg )
 update _ msg model =
     case msg of
@@ -87,11 +83,6 @@ update _ msg model =
             ( { model | currentRoute = to }
             , Effect.none
             )
-
-
-
--- ClickedOutside ->
---     ( model, Task.perform props.onClickedOutside Time.now )
 
 
 subscriptions : Model -> Sub Msg
@@ -106,9 +97,7 @@ subscriptions _ =
 view :
     Props contentMsg
     ->
-        { toContentMsg :
-            Msg
-            -> contentMsg
+        { toContentMsg : Msg -> contentMsg
         , content : View contentMsg
         , model : Model
         }
@@ -121,10 +110,10 @@ view props { model, content } =
                 Json.Decode.succeed <|
                     props.onClickOutside
             ]
-            [ header [ class "nav-header container" ]
+            [ header [ class "nav-header app-container" ]
                 [ lazy2 viewNavBar model.currentRoute props.onAddClick ]
-            , main_ [ class "app-main container" ] content.body
-            , footer [ class "nav-footer container" ]
+            , main_ [ class "app-main app-container" ] content.body
+            , footer [ class "nav-footer app-container" ]
                 [ lazy2 viewNavBar model.currentRoute props.onAddClick ]
             ]
         ]

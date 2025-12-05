@@ -1,6 +1,7 @@
 module Db.Categories exposing
     ( Category
     , CollapsedState(..)
+    , add
     , addItem
     , decoder
     , emptyCategory
@@ -9,7 +10,7 @@ module Db.Categories exposing
     , removeItem
     , sortItemsByFreq
     , store
-    , add
+    , alter
     )
 
 import Db.Items as Items
@@ -113,6 +114,19 @@ sortItemsByFreq items category =
 add : List Category -> Category -> List Category
 add categories newCat =
     newCat :: categories
+
+
+alter : List Category -> Category -> List Category
+alter categories category =
+    List.map
+        (\cat ->
+            if cat.id == category.id then
+                category
+
+            else
+                cat
+        )
+        categories
 
 
 addItem : String -> List Category -> String -> List Category

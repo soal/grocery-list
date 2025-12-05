@@ -1,7 +1,7 @@
 module Components.Items.Form exposing (..)
 
 import Db.Items as Items
-import Html exposing (Html, b, div, h4, input, span, text, textarea)
+import Html exposing (Html, b, div, input, span, text, textarea)
 import Html.Attributes
     exposing
         ( attribute
@@ -19,6 +19,7 @@ import Html.Extra exposing (nothing)
 import LucideIcons as Icons
 import Svg.Attributes
 import Types exposing (CheckboxKind(..), ItemField(..))
+import Html.Attributes exposing (placeholder)
 
 
 viewCheckbox : (Bool -> msg) -> Bool -> CheckboxKind -> Bool -> Html msg
@@ -119,9 +120,10 @@ viewComment :
         , content : Maybe String
         , static : Bool
         , open : Bool
+        , editable : Bool
     }
     -> Html msg
-viewComment ({ static, open } as config) =
+viewComment ({ static, open, editable } as config) =
     let
         fieldId =
             "item-comment-" ++ config.itemId
@@ -144,19 +146,27 @@ viewComment ({ static, open } as config) =
             )
 
     else
-        viewCommentStatic (config.onOpen Comment fieldId) config.content fieldId
+        viewCommentStatic
+            (config.onOpen Comment fieldId)
+            config.content
+            fieldId
+            editable
 
 
-viewCommentStatic : msg -> Maybe String -> String -> Html msg
-viewCommentStatic onOpen content fieldId =
+viewCommentStatic : msg -> Maybe String -> String -> Bool -> Html msg
+viewCommentStatic onOpen content fieldId editable =
     span [ class "item-comment", id fieldId, onClick onOpen ]
         [ case content of
             Just comment ->
                 text comment
 
             Nothing ->
-                span [ class "add-item-comment with-click-outside button" ]
-                    [ Icons.messageSquareIcon [] ]
+                if editable then
+                    span [ class "add-item-comment with-click-outside button" ]
+                        [ Icons.messageSquareIcon [] ]
+
+                else
+                    nothing
         ]
 
 
@@ -183,6 +193,7 @@ viewCommentField { fieldId, inputChange, blurred, focused, content } =
             , name fieldId
             , rows 1
             , id fieldId
+            , placeholder "Комментарий"
             ]
             []
         ]

@@ -7,7 +7,7 @@ import Effect exposing (Effect)
 import File exposing (File)
 import File.Download
 import File.Select
-import Html exposing (button, div, h1, h2, text)
+import Html exposing (button, div, h1, h2, p, text)
 import Html.Attributes exposing (class)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
@@ -133,7 +133,7 @@ view shared _ =
     { title = shared.titlePrefix ++ "Настройки"
     , body =
         [ h1 [] [ text "Настройки" ]
-        , div []
+        , p []
             [ h2 [] [ text "Тема" ]
             , div [ class "button-row", role "group" ]
                 [ button [] [ text "Как в системе" ]
@@ -141,7 +141,7 @@ view shared _ =
                 , button [ class "secondary" ] [ text "Тёмная" ]
                 ]
             ]
-        , div []
+        , p []
             [ h2 [] [ text "Экспорт и импорт" ]
             , button [ onClick ExportRequested ] [ text "Экспорт данных" ]
             , button [ onClick ImportRequested ] [ text "Импорт из файла" ]
