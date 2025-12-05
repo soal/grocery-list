@@ -12,7 +12,7 @@ import Components.Counter
 import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
-import Html exposing (Html, h3, input, span, text)
+import Html exposing (Html, h4, input, span, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (viewIf)
@@ -121,7 +121,7 @@ view (Settings settings) =
                 _ ->
                     span [] [ text settings.category.name ]
     in
-    h3 []
+    h4 []
         [ title
         , viewIf settings.counter
             (viewOptionalCounter settings.items
