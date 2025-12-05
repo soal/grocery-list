@@ -197,6 +197,9 @@ viewCatHeader options state category =
 
                     Components.Category.Header.InputChanged content ->
                         DraftInputChanged Name content
+
+                    Components.Category.Header.TitleClicked catId ->
+                        NoOp
             )
 
 

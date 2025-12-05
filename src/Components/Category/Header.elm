@@ -70,6 +70,7 @@ init _ =
 type Msg
     = Toggle String
     | InputChanged String
+    | TitleClicked String
 
 
 view : CategoryHeader -> Html Msg
@@ -87,8 +88,8 @@ view (Settings settings) =
                     Icons.chevronRightIcon []
                 ]
 
-        staticTitle =
-            span [] [ text settings.category.name ]
+        staticTitle catId =
+            span [ onClick (TitleClicked catId) ] [ text settings.category.name ]
 
         title =
             case settings.catDraft of
@@ -103,18 +104,19 @@ view (Settings settings) =
                             []
 
                     else
-                        staticTitle
+                        staticTitle cat.id
 
                 ExistingCat cat ->
                     if cat.id == settings.category.id then
                         input
                             [ type_ "text"
                             , id ("category-name-" ++ cat.id)
+                            , onInput InputChanged
                             ]
                             []
 
                     else
-                        staticTitle
+                        staticTitle cat.id
 
                 _ ->
                     span [] [ text settings.category.name ]
