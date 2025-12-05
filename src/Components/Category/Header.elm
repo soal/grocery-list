@@ -26,8 +26,6 @@ type CategoryHeader
         , state : Cats.CollapsedState
         , items : Dict String Items.Item
         , counter : Bool
-
-        -- , catDraft : CategoryDraft
         , catDraft : Draft
         }
 
@@ -70,7 +68,7 @@ init _ =
 type Msg
     = Toggle String
     | InputChanged String
-    | TitleClicked String
+    | TitleClicked Cats.Category
 
 
 view : CategoryHeader -> Html Msg
@@ -88,8 +86,8 @@ view (Settings settings) =
                     Icons.chevronRightIcon []
                 ]
 
-        staticTitle catId =
-            span [ onClick (TitleClicked catId) ]
+        staticTitle =
+            span [ onClick (TitleClicked settings.category) ]
                 [ text settings.category.name ]
 
         title =
@@ -101,11 +99,12 @@ view (Settings settings) =
                             , id ("category-name-" ++ cat.id)
                             , class "with-click-outside"
                             , onInput InputChanged
+                            , value cat.name
                             ]
                             []
 
                     else
-                        staticTitle cat.id
+                        staticTitle
 
                 ExistingCat cat ->
                     if cat.id == settings.category.id then
@@ -113,14 +112,17 @@ view (Settings settings) =
                             [ type_ "text"
                             , id ("category-name-" ++ cat.id)
                             , onInput InputChanged
+                            , value cat.name
                             ]
                             []
 
                     else
-                        staticTitle cat.id
+                        staticTitle
 
                 _ ->
-                    span [] [ text settings.category.name ]
+                    staticTitle
+
+        -- span [] [ text settings.category.name ]
     in
     h4 []
         [ title

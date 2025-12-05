@@ -163,10 +163,10 @@ update msg model =
         GotItemListMsg itemListMsg ->
             onListMsg model itemListMsg
 
-        GotEditUpdateTime openItem timestamp ->
+        GotEditUpdateTime draft timestamp ->
             let
                 altered =
-                    case openItem of
+                    case draft of
                         New item ->
                             New { item | updated = timestamp }
 
@@ -176,8 +176,8 @@ update msg model =
                         NewCat cat ->
                             NewCat { cat | updated = timestamp }
 
-                        ExistingCat _ ->
-                            Empty
+                        ExistingCat category ->
+                            ExistingCat { category | updated = timestamp }
 
                         Empty ->
                             Empty
@@ -275,6 +275,14 @@ onListMsg model itemMsg =
                 ]
             )
 
+        Components.Items.List.CatTitleClicked category ->
+            ( { model | draft = ExistingCat category }
+            , Effect.sendCmd <|
+                Task.attempt
+                    (\_ -> NoOp)
+                    (Browser.Dom.focus <| "category-name-" ++ category.id)
+            )
+
         _ ->
             ( model, Effect.none )
 
@@ -291,10 +299,10 @@ alterDraft openItem field content =
         NewCat cat ->
             NewCat { cat | name = content }
 
-        Empty ->
-            Empty
+        ExistingCat cat ->
+            ExistingCat { cat | name = content }
 
-        _ ->
+        Empty ->
             Empty
 
 
@@ -369,26 +377,35 @@ endEditing model =
                     , catWithDraft = Nothing
                     , categories = Cats.add model.categories cat
                   }
-                  -- , Effect.batch
-                  -- [ Effect.storeItem onTaskPortResult item
-                  -- , Effect.requestUuid GotDraftUuid
-                  -- , Maybe.withDefault Effect.none
-                  --     (Maybe.map
-                  --         (\category ->
                 , Effect.storeCategory
                     onTaskPortResult
                     cat
-                  -- )
-                  -- (Just cat)
-                  -- )
-                  -- ]
                 )
 
-        _ ->
-            ( model, Effect.none )
+        ExistingCat cat ->
+            if String.isEmpty cat.name then
+                ( { model
+                    | catWithDraft = Nothing
+                    , draft = Empty
+                  }
+                , Effect.none
+                )
+
+            else
+                ( { model
+                    | draft = Empty
+                    , catWithDraft = Nothing
+                    , categories = Cats.alter model.categories cat
+                  }
+                , Effect.storeCategory
+                    onTaskPortResult
+                    cat
+                )
 
 
 
+-- _ ->
+--     ( model, Effect.none )
 -- SUBSCRIPTIONS
 
 

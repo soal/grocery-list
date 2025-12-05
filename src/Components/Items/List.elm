@@ -114,6 +114,7 @@ type Msg
     | EditStarted Items.Item ItemField String
     | InputChanged Items.Item ItemField String
     | DeleteClicked String
+    | CatTitleClicked Cats.Category
     | NoOp
 
 
@@ -198,8 +199,8 @@ viewCatHeader options state category =
                     Components.Category.Header.InputChanged content ->
                         DraftInputChanged Name content
 
-                    Components.Category.Header.TitleClicked catId ->
-                        NoOp
+                    Components.Category.Header.TitleClicked cat ->
+                        CatTitleClicked cat
             )
 
 
