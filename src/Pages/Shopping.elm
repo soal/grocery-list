@@ -36,7 +36,9 @@ page shared _ =
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
     Layouts.MainNav
-        { onClickOutside = NoOp }
+        { onClickOutside = NoOp
+        , onAddClick = NoOp
+        }
 
 
 
@@ -50,7 +52,7 @@ type ContentState
 
 
 type alias Model =
-    { collapsedCats : Set Int
+    { collapsedCats : Set String
     , items : Dict String Items.Item
     , categories : List Cats.Category
     , state : ContentState

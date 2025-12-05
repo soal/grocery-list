@@ -33,7 +33,7 @@ page shared route =
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
     Layouts.MainNav
-        { onClickOutside = ClickedOutside }
+        { onClickOutside = ClickedOutside, onAddClick = NoOp }
 
 
 

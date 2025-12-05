@@ -136,7 +136,7 @@ view (Settings settings) =
                     settings.item.state
                     settings.checkedSates
                 )
-            , h4 []
+            , span [ class "item-title" ]
                 [ viewName
                     { itemId = settings.item.id
                     , static = not settings.editable

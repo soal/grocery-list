@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
 import Set exposing (Set)
@@ -8,6 +9,8 @@ import Set exposing (Set)
 type Draft
     = New Items.Item
     | Existing Items.Item
+    | NewCat Cats.Category
+    | ExistingCat Cats.Category
     | Empty
 
 
@@ -25,4 +28,4 @@ type ItemField
 
 
 type alias CollapsedCats =
-    Dict String (Set Int)
+    Dict String (Set String)

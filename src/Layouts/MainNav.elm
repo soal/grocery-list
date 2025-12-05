@@ -4,8 +4,8 @@ import Dict
 import Effect exposing (Effect)
 import Html exposing (Html, a, footer, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
-import Html.Events exposing (on)
-import Html.Lazy exposing (lazy)
+import Html.Events exposing (on, onClick)
+import Html.Lazy exposing (lazy2)
 import Json.Decode
 import Layout exposing (Layout)
 import LucideIcons as Icons
@@ -18,12 +18,14 @@ import View exposing (View)
 
 type alias Props contentMsg =
     { onClickOutside : contentMsg
+    , onAddClick : contentMsg
     }
 
 
 map : (msg1 -> msg2) -> Props msg1 -> Props msg2
 map fn props =
     { onClickOutside = fn props.onClickOutside
+    , onAddClick = fn props.onAddClick
     }
 
 
@@ -120,17 +122,17 @@ view props { model, content } =
                     props.onClickOutside
             ]
             [ header [ class "nav-header container" ]
-                [ lazy viewNavBar model.currentRoute ]
+                [ lazy2 viewNavBar model.currentRoute props.onAddClick ]
             , main_ [ class "app-main container" ] content.body
             , footer [ class "nav-footer container" ]
-                [ lazy viewNavBar model.currentRoute ]
+                [ lazy2 viewNavBar model.currentRoute props.onAddClick ]
             ]
         ]
     }
 
 
-viewNavBar : Route () -> Html msg
-viewNavBar currentRoute =
+viewNavBar : Route () -> msg -> Html msg
+viewNavBar currentRoute onAddClick =
     let
         links =
             [ { path = Route.Path.Home_
@@ -147,7 +149,9 @@ viewNavBar currentRoute =
         [ ul []
             [ li []
                 [ span [ class "link" ]
-                    [ span [ class "icon-wrapper button" ] [ Icons.plusIcon [] ] ]
+                    [ span [ class "icon-wrapper button", onClick onAddClick ]
+                        [ Icons.plusIcon [] ]
+                    ]
                 ]
             ]
         , ul [ class "group" ] <|

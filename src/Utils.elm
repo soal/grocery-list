@@ -3,8 +3,8 @@ module Utils exposing (..)
 import Db.Categories exposing (Category, CollapsedState(..))
 import Dict exposing (Dict)
 import Set exposing (Set)
-import Shared.Model
 import Slug
+import Types exposing (CollapsedCats)
 
 
 convertKeys : Dict String v -> Dict Int v
@@ -27,7 +27,7 @@ keysAsStrings someDict =
         |> Dict.fromList
 
 
-getCatStateForPage : String -> Shared.Model.CollapsedCats -> Category -> CollapsedState
+getCatStateForPage : String -> CollapsedCats -> Category -> CollapsedState
 getCatStateForPage pageName collapsedMap category =
     if
         Set.member category.id
@@ -40,7 +40,7 @@ getCatStateForPage pageName collapsedMap category =
         Open
 
 
-getCollapsesCatsForPage : String -> Shared.Model.CollapsedCats -> Set Int
+getCollapsesCatsForPage : String -> CollapsedCats -> Set String
 getCollapsesCatsForPage pageName collapsedMap =
     Maybe.withDefault Set.empty (Dict.get pageName collapsedMap)
 

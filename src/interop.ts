@@ -31,7 +31,7 @@ type Item = {
 type CollapsedState = "open" | "collapsed";
 
 type Category = {
-	id: number;
+	id: string;
 	name: string;
 	items: number[];
 	state: CollapsedState;
@@ -70,7 +70,7 @@ async function initDb({
 			settings: "id, theme",
 			items:
 				"id, name, quantity, comment, slug, symbol, state, created, updated",
-			categories: "++id, name, items, state, created, updated",
+			categories: "id, name, items, state, created, updated",
 			lastUpdatedBy: "id, clientId",
 		});
 		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });

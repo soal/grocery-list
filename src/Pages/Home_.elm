@@ -35,7 +35,9 @@ page shared _ =
 toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
     Layouts.MainNav
-        { onClickOutside = GotClickOutside }
+        { onClickOutside = GotClickOutside
+        , onAddClick = GotCatAddClick
+        }
 
 
 
@@ -44,8 +46,8 @@ toLayout _ =
 
 type alias Model =
     { draft : Draft
-    , collapsedCats : Set Int
-    , catWithDraft : Maybe Int
+    , collapsedCats : Set String
+    , catWithDraft : Maybe String
     , items : Dict String Items.Item
     , categories : List Cats.Category
     , titlePrefix : String
@@ -82,21 +84,6 @@ init () =
     )
 
 
-emptyItem : Maybe String -> Items.Item
-emptyItem maybeId =
-    Items.Item
-        (Maybe.withDefault "empty" maybeId)
-        ""
-        (Items.Quantity 1 "штук")
-        Nothing
-        ""
-        Nothing
-        Items.Required
-        (Time.millisToPosix 0)
-        (Time.millisToPosix 0)
-        0
-
-
 
 -- UPDATE
 
@@ -105,11 +92,13 @@ type Msg
     = NoOp
     | Error (Maybe String)
     | GotCatsAndItems CatsAndItems
-    | GotUuid (TaskPort.Result String)
+    | GotDraftUuid (TaskPort.Result String)
+    | GotCatUuid (TaskPort.Result String)
     | GotClickOutside
     | GotItemListMsg Components.Items.List.Msg
     | GotEditUpdateTime Draft Time.Posix
     | GotStateUpdateTime Items.Item Time.Posix
+    | GotCatAddClick
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -123,14 +112,14 @@ update msg model =
         Error error ->
             ( { model | error = error }, Effect.none )
 
-        GotUuid uuid ->
+        GotDraftUuid uuid ->
             case uuid of
                 Ok id ->
                     let
                         fieldId =
                             "item-name-" ++ id
                     in
-                    ( { model | draft = New (emptyItem <| Just id) }
+                    ( { model | draft = New (Items.emptyItem <| Just id) }
                     , Effect.sendCmd <|
                         Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
                     )
@@ -150,6 +139,26 @@ update msg model =
             , Effect.none
             )
 
+        GotCatAddClick ->
+            ( model
+            , Effect.requestUuid GotCatUuid
+            )
+
+        GotCatUuid uuid ->
+            case uuid of
+                Ok id ->
+                    ( { model
+                        | draft = NewCat (Cats.emptyCategory <| Just id)
+                      }
+                    , Effect.sendCmd <|
+                        Task.attempt
+                            (\_ -> NoOp)
+                            (Browser.Dom.focus <| "category-name-" ++ id)
+                    )
+
+                Err _ ->
+                    ( model, Effect.none )
+
         -- ITEM
         GotItemListMsg itemListMsg ->
             onListMsg model itemListMsg
@@ -158,14 +167,20 @@ update msg model =
             let
                 altered =
                     case openItem of
-                        Empty ->
-                            Empty
-
                         New item ->
                             New { item | updated = timestamp }
 
                         Existing item ->
                             Existing { item | updated = timestamp }
+
+                        NewCat cat ->
+                            NewCat { cat | updated = timestamp }
+
+                        ExistingCat _ ->
+                            Empty
+
+                        Empty ->
+                            Empty
             in
             ( { model | draft = altered }, Effect.none )
 
@@ -205,6 +220,15 @@ onListMsg model itemMsg =
                 Empty ->
                     ( model, Effect.none )
 
+                NewCat _ ->
+                    let
+                        altered =
+                            alterDraft model.draft field content
+                    in
+                    ( { model | draft = altered }
+                    , Effect.getTime (GotEditUpdateTime altered)
+                    )
+
                 _ ->
                     let
                         altered =
@@ -216,7 +240,7 @@ onListMsg model itemMsg =
 
         Components.Items.List.DraftOpened category ->
             ( { model | catWithDraft = Just category.id }
-            , Effect.requestUuid GotUuid
+            , Effect.requestUuid GotDraftUuid
             )
 
         Components.Items.List.DraftInputChanged field content ->
@@ -264,7 +288,13 @@ alterDraft openItem field content =
         Existing item ->
             Existing (updateItemContent item field content)
 
+        NewCat cat ->
+            NewCat { cat | name = content }
+
         Empty ->
+            Empty
+
+        _ ->
             Empty
 
 
@@ -322,54 +352,40 @@ endEditing model =
                 )
 
             else
-                let
-                    alteredCat =
-                        model.catWithDraft
-                            |> Maybe.andThen
-                                (Cats.getByid model.categories)
-                            |> Maybe.andThen
-                                (\cat ->
-                                    Just
-                                        { cat
-                                            | items =
-                                                List.append cat.items [ item.id ]
-                                        }
-                                )
-                in
+                endItemDraft model item
+
+        NewCat cat ->
+            if String.isEmpty cat.name then
                 ( { model
-                    | items = Dict.insert item.id item model.items
+                    | catWithDraft = Nothing
                     , draft = Empty
-                    , catWithDraft = Nothing
-                    , categories =
-                        case alteredCat of
-                            Just updated ->
-                                List.map
-                                    (\cat ->
-                                        if cat.id == updated.id then
-                                            updated
-
-                                        else
-                                            cat
-                                    )
-                                    model.categories
-
-                            Nothing ->
-                                model.categories
                   }
-                , Effect.batch
-                    [ Effect.storeItem onTaskPortResult item
-                    , Effect.requestUuid GotUuid
-                    , Maybe.withDefault Effect.none
-                        (Maybe.map
-                            (\category ->
-                                Effect.storeCategory
-                                    onTaskPortResult
-                                    category
-                            )
-                            alteredCat
-                        )
-                    ]
+                , Effect.none
                 )
+
+            else
+                ( { model
+                    | draft = Empty
+                    , catWithDraft = Nothing
+                    , categories = Cats.add model.categories cat
+                  }
+                  -- , Effect.batch
+                  -- [ Effect.storeItem onTaskPortResult item
+                  -- , Effect.requestUuid GotDraftUuid
+                  -- , Maybe.withDefault Effect.none
+                  --     (Maybe.map
+                  --         (\category ->
+                , Effect.storeCategory
+                    onTaskPortResult
+                    cat
+                  -- )
+                  -- (Just cat)
+                  -- )
+                  -- ]
+                )
+
+        _ ->
+            ( model, Effect.none )
 
 
 
@@ -439,3 +455,55 @@ onTaskPortResult res =
 
         Ok _ ->
             NoOp
+
+
+endItemDraft : Model -> Items.Item -> ( Model, Effect Msg )
+endItemDraft model item =
+    let
+        alteredCat =
+            model.catWithDraft
+                |> Maybe.andThen
+                    (Cats.getByid model.categories)
+                |> Maybe.andThen
+                    (\cat ->
+                        Just
+                            { cat
+                                | items =
+                                    List.append cat.items [ item.id ]
+                            }
+                    )
+    in
+    ( { model
+        | items = Dict.insert item.id item model.items
+        , draft = Empty
+        , catWithDraft = Nothing
+        , categories =
+            case alteredCat of
+                Just updated ->
+                    List.map
+                        (\cat ->
+                            if cat.id == updated.id then
+                                updated
+
+                            else
+                                cat
+                        )
+                        model.categories
+
+                Nothing ->
+                    model.categories
+      }
+    , Effect.batch
+        [ Effect.storeItem onTaskPortResult item
+        , Effect.requestUuid GotDraftUuid
+        , Maybe.withDefault Effect.none
+            (Maybe.map
+                (\category ->
+                    Effect.storeCategory
+                        onTaskPortResult
+                        category
+                )
+                alteredCat
+            )
+        ]
+    )
