@@ -131,17 +131,9 @@ alter categories category =
         categories
 
 
-addItem : String -> List Category -> String -> List Category
-addItem catId categories itemId =
-    List.map
-        (\cat ->
-            if cat.id == catId then
-                { cat | items = List.append cat.items [ itemId ] }
-
-            else
-                cat
-        )
-        categories
+addItem : String -> Category -> Category
+addItem itemId category =
+    { category | items = List.append category.items [ itemId ] }
 
 
 removeItem : String -> Category -> Category

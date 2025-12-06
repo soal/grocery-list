@@ -173,7 +173,7 @@ map fn items =
 setState : State -> String -> Dict String Item -> Dict String Item
 setState state id allItems =
     Dict.update id
-        (Maybe.map <| \found -> { found | state = state })
+        (Maybe.map <| switchState state [])
         allItems
 
 
@@ -203,16 +203,22 @@ setId id draft =
     { draft | id = id }
 
 
+switchState : State -> List State -> Item -> Item
+switchState newState oldStates item =
+    if List.isEmpty oldStates then
+        { item | state = newState }
+
+    else if List.member item.state oldStates then
+        { item | state = newState }
+
+    else
+        item
+
+
 setAllStuffed : Dict String Item -> Dict String Item
 setAllStuffed items =
     map
-        (\item ->
-            if item.state == InBasket then
-                { item | state = Stuffed }
-
-            else
-                item
-        )
+        (switchState Stuffed [ InBasket ])
         items
 
 
@@ -273,20 +279,14 @@ queryBySlug onResult slug =
 
 getInBasketLength : Dict String Item -> Int
 getInBasketLength items =
-    Dict.values items
-        |> List.filter (\item -> item.state == InBasket)
-        |> List.length
+    Dict.size (filterByStates items [ InBasket ])
 
 
 isAllDone : Dict String Item -> Bool
 isAllDone items =
-    let
-        statesLength =
-            Dict.size items
-    in
-    statesLength > 0 && statesLength <= getInBasketLength items
+    Dict.isEmpty items && Dict.size items <= getInBasketLength items
 
 
 filterByStates : Dict String Item -> List State -> Dict String Item
 filterByStates items states =
-    Dict.filter (\_ item -> List.member item.state states) items
+    Dict.filter (\_ { state } -> List.member state states) items

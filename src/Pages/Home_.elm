@@ -405,8 +405,6 @@ endEditing model =
 
 
 
--- _ ->
---     ( model, Effect.none )
 -- SUBSCRIPTIONS
 
 
@@ -444,17 +442,15 @@ view shared model =
 toggleItemState : Model -> Items.Item -> Items.State -> ( Model, Effect Msg )
 toggleItemState model item state =
     let
-        newState =
+        altered =
             case state of
                 Items.Stuffed ->
-                    Items.Required
+                    model.items
+                        |> Items.setState Items.Required item.id
+                        |> Items.incFrequency item.id
 
                 _ ->
-                    Items.Stuffed
-
-        altered =
-            (Items.incFrequency item.id >> Items.setState newState item.id)
-                model.items
+                    Items.setState Items.Stuffed item.id model.items
     in
     ( { model | items = altered }
     , Effect.getTime
@@ -483,13 +479,7 @@ endItemDraft model item =
                 |> Maybe.andThen
                     (Cats.getByid model.categories)
                 |> Maybe.andThen
-                    (\cat ->
-                        Just
-                            { cat
-                                | items =
-                                    List.append cat.items [ item.id ]
-                            }
-                    )
+                    (Cats.addItem item.id >> Just)
 
         newItem =
             { item | slug = slugify item.name }
@@ -499,32 +489,15 @@ endItemDraft model item =
         , draft = Empty
         , catWithDraft = Nothing
         , categories =
-            case alteredCat of
-                Just updated ->
-                    List.map
-                        (\cat ->
-                            if cat.id == updated.id then
-                                updated
-
-                            else
-                                cat
-                        )
-                        model.categories
-
-                Nothing ->
-                    model.categories
+            alteredCat
+                |> Maybe.map (Cats.alter model.categories)
+                |> Maybe.withDefault model.categories
       }
     , Effect.batch
         [ Effect.storeItem onTaskPortResult newItem
         , Effect.requestUuid GotItemUuid
-        , Maybe.withDefault Effect.none
-            (Maybe.map
-                (\category ->
-                    Effect.storeCategory
-                        onTaskPortResult
-                        category
-                )
-                alteredCat
-            )
+        , alteredCat
+            |> Maybe.map (Effect.storeCategory onTaskPortResult)
+            |> Maybe.withDefault Effect.none
         ]
     )
