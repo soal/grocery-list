@@ -113,14 +113,14 @@ update msg model =
         Error error ->
             ( { model | error = error }, Effect.none )
 
-        GotDraftUuid uuid ->
-            case uuid of
-                Ok id ->
+        GotDraftUuid uuid_ ->
+            case uuid_ of
+                Ok uuid ->
                     let
                         fieldId =
-                            "item-name-" ++ id
+                            "item-name-" ++ uuid
                     in
-                    ( { model | draft = New (Items.emptyItem <| Just id) }
+                    ( { model | draft = New (Items.emptyItem <| Just uuid) }
                     , Effect.sendCmd <|
                         Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
                     )
@@ -145,24 +145,24 @@ update msg model =
             , Effect.requestUuid GotCatUuid
             )
 
-        GotCatUuid uuid ->
-            case uuid of
-                Ok id ->
+        GotCatUuid uuid_ ->
+            case uuid_ of
+                Ok uuid ->
                     ( { model
-                        | draft = NewCat (Cats.emptyCategory <| Just id)
+                        | draft = NewCat (Cats.emptyCategory <| Just uuid)
                       }
                     , Effect.sendCmd <|
                         Task.attempt
                             (\_ -> NoOp)
-                            (Browser.Dom.focus <| "category-name-" ++ id)
+                            (Browser.Dom.focus <| "category-name-" ++ uuid)
                     )
 
                 Err _ ->
                     ( model, Effect.none )
 
         -- ITEM
-        GotItemListMsg itemListMsg ->
-            onListMsg model itemListMsg
+        GotItemListMsg msg_ ->
+            onListMsg model msg_
 
         GotEditUpdateTime draft timestamp ->
             let
@@ -174,8 +174,8 @@ update msg model =
                         Existing item ->
                             Existing { item | updated = timestamp }
 
-                        NewCat cat ->
-                            NewCat { cat | updated = timestamp }
+                        NewCat category ->
+                            NewCat { category | updated = timestamp }
 
                         ExistingCat category ->
                             ExistingCat { category | updated = timestamp }
@@ -192,8 +192,8 @@ update msg model =
 
 
 onListMsg : Model -> Components.Items.List.Msg -> ( Model, Effect Msg )
-onListMsg model itemMsg =
-    case itemMsg of
+onListMsg model msg =
+    case msg of
         Components.Items.List.CollapseClicked catId state ->
             let
                 altered =
@@ -294,8 +294,8 @@ onListMsg model itemMsg =
 
 
 alterDraft : Draft -> ItemField -> String -> Draft
-alterDraft openItem field content =
-    case openItem of
+alterDraft draft field content =
+    case draft of
         New item ->
             New (updateItemContent item field content)
 
