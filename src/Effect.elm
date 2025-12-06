@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , deleteItem, getTime, importData, initDb, queryAll, requestUuid, storeAllItems, storeCategory, storeDump, storeItem
+    , deleteCategory, deleteItem, getTime, importData, initDb, queryAll, requestUuid, storeAllItems, storeCategory, storeDump, storeItem
     )
 
 {-|
@@ -65,6 +65,7 @@ type Effect msg
     | StoreDump (TaskPort.Result Bool -> msg) DataDump
     | QueryItem (TaskPort.Result Items.Item -> msg) String
     | StoreCategory (TaskPort.Result Bool -> msg) Cats.Category
+    | DeleteCategory (TaskPort.Result Bool -> msg) String
 
 
 
@@ -166,6 +167,11 @@ storeAllItems onResult items =
 storeCategory : (TaskPort.Result Bool -> msg) -> Cats.Category -> Effect msg
 storeCategory onResult category =
     StoreCategory onResult category
+
+
+deleteCategory : (TaskPort.Result Bool -> msg) -> String -> Effect msg
+deleteCategory onResult categoryId =
+    DeleteCategory onResult categoryId
 
 
 storeDump : (TaskPort.Result Bool -> msg) -> DataDump -> Effect msg
@@ -373,6 +379,9 @@ map fn effect =
         StoreCategory onResult category ->
             StoreCategory (onResult >> fn) category
 
+        DeleteCategory onResult categoryId ->
+            DeleteCategory (onResult >> fn) categoryId
+
         StoreDump onResult dump ->
             StoreDump (onResult >> fn) dump
 
@@ -443,6 +452,9 @@ toCmd options effect =
 
         StoreCategory onResult category ->
             Cats.store onResult category
+
+        DeleteCategory onResult categoryId ->
+            Cats.deleteStored onResult categoryId
 
         StoreDump onResult dump ->
             storeDumpEffect onResult dump
