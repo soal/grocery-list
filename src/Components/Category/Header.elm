@@ -13,10 +13,10 @@ import Components.Items.Item exposing (Msg(..))
 import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
-import Html exposing (Html, div, h4, input, span, text)
+import Html exposing (Html, h4, input, span, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
-import Html.Extra exposing (nothing, viewIf)
+import Html.Extra exposing (viewIf)
 import LucideIcons as Icons
 import Types exposing (Draft(..))
 
