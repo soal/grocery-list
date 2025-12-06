@@ -102,24 +102,24 @@ withDraft catWithDraft draft (Settings settings) =
 
 
 type Msg
-    = CollapseClicked String Cats.CollapsedState
-    | ItemClicked Items.Item Items.State
-    | ItemChecked Items.Item Items.State
-    | StartEditing ItemField (Maybe String)
-    | FinishEditing ItemField
-    | DraftOpened Cats.Category
-    | DraftInputChanged ItemField String
-    | DraftClosed Cats.Category
-    | EditStarted Items.Item ItemField String
-    | InputChanged Items.Item ItemField String
-    | DeleteClicked String
+    = -- CATEGORY
+      CollapseClicked String Cats.CollapsedState
     | CatTitleClicked Cats.Category
     | CatDeleteClicked String
+      -- ITEM
+    | ItemClicked Items.Item Items.State
+    | ItemChecked Items.Item Items.State
+    | ItemDeleteClicked String
+      -- DRAFT
+    | DraftOpened Cats.Category
+    | InputChanged ItemField String
+    | EditStarted Items.Item ItemField String
     | NoOp
 
 
 view : ItemsList -> Html Msg
 view (Settings settings) =
+    -- Categories and their items
     (settings.categories
         |> List.map (viewCategory settings)
         |> List.append
@@ -131,6 +131,7 @@ view (Settings settings) =
                     []
             )
     )
+        -- Items without categories
         ++ (viewItems settings <|
                 getItemsWithoutCat settings.items settings.categories
            )
@@ -209,7 +210,7 @@ viewCatHeader options state category =
                                 Cats.Open
 
                     Components.Category.Header.InputChanged content ->
-                        DraftInputChanged Name content
+                        InputChanged Name content
 
                     Components.Category.Header.TitleClicked cat ->
                         CatTitleClicked cat
@@ -358,15 +359,15 @@ viewItem { item, mark, link, switch, checkedStates, open, editable } =
                         else
                             NoOp
 
-                    Components.Items.Item.InputChanged activeItem field content ->
+                    Components.Items.Item.InputChanged _ field content ->
                         if editable then
-                            InputChanged activeItem field content
+                            InputChanged field content
 
                         else
                             NoOp
 
                     Components.Items.Item.DeleteClicked clickedItem ->
-                        DeleteClicked clickedItem
+                        ItemDeleteClicked clickedItem
 
                     _ ->
                         NoOp
@@ -390,7 +391,7 @@ viewDraft { draft, open, category } =
                     (\msg ->
                         case msg of
                             Components.Items.Item.InputChanged _ field content ->
-                                DraftInputChanged field content
+                                InputChanged field content
 
                             _ ->
                                 NoOp

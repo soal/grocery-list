@@ -93,12 +93,12 @@ type Msg
     = NoOp
     | Error (Maybe String)
     | GotCatsAndItems CatsAndItems
-    | GotDraftUuid (TaskPort.Result String)
-    | GotCatUuid (TaskPort.Result String)
     | GotClickOutside
+    | GotItemUuid (TaskPort.Result String)
+    | GotCatUuid (TaskPort.Result String)
     | GotItemListMsg Components.Items.List.Msg
-    | GotEditUpdateTime Draft Time.Posix
-    | GotStateUpdateTime Items.Item Time.Posix
+    | GotDraftUpdateTime Draft Time.Posix
+    | GotItemStateUpdateTime Items.Item Time.Posix
     | GotCatAddClick
 
 
@@ -113,7 +113,7 @@ update msg model =
         Error error ->
             ( { model | error = error }, Effect.none )
 
-        GotDraftUuid uuid_ ->
+        GotItemUuid uuid_ ->
             case uuid_ of
                 Ok uuid ->
                     let
@@ -164,7 +164,7 @@ update msg model =
         GotItemListMsg msg_ ->
             onListMsg model msg_
 
-        GotEditUpdateTime draft timestamp ->
+        GotDraftUpdateTime draft timestamp ->
             let
                 altered =
                     case draft of
@@ -185,7 +185,7 @@ update msg model =
             in
             ( { model | draft = altered }, Effect.none )
 
-        GotStateUpdateTime item timestamp ->
+        GotItemStateUpdateTime item timestamp ->
             ( { model | items = Items.setUpdated model.items item.id timestamp }
             , Effect.storeItem onTaskPortResult { item | updated = timestamp }
             )
@@ -216,7 +216,7 @@ onListMsg model msg =
                 Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
             )
 
-        Components.Items.List.InputChanged _ field content ->
+        Components.Items.List.InputChanged field content ->
             case model.draft of
                 Empty ->
                     ( model, Effect.none )
@@ -227,7 +227,7 @@ onListMsg model msg =
                             alterDraft model.draft field content
                     in
                     ( { model | draft = altered }
-                    , Effect.getTime (GotEditUpdateTime altered)
+                    , Effect.getTime (GotDraftUpdateTime altered)
                     )
 
                 _ ->
@@ -236,24 +236,15 @@ onListMsg model msg =
                             alterDraft model.draft field content
                     in
                     ( { model | draft = altered }
-                    , Effect.getTime (GotEditUpdateTime altered)
+                    , Effect.getTime (GotDraftUpdateTime altered)
                     )
 
         Components.Items.List.DraftOpened category ->
             ( { model | catWithDraft = Just category.id }
-            , Effect.requestUuid GotDraftUuid
+            , Effect.requestUuid GotItemUuid
             )
 
-        Components.Items.List.DraftInputChanged field content ->
-            let
-                altered =
-                    alterDraft model.draft field content
-            in
-            ( { model | draft = altered }
-            , Effect.getTime (GotEditUpdateTime altered)
-            )
-
-        Components.Items.List.DeleteClicked itemId ->
+        Components.Items.List.ItemDeleteClicked itemId ->
             let
                 category =
                     model.categories
@@ -469,7 +460,7 @@ toggleItemState model item state =
     , Effect.getTime
         (Dict.get item.id altered
             |> Maybe.withDefault item
-            |> GotStateUpdateTime
+            |> GotItemStateUpdateTime
         )
     )
 
@@ -525,7 +516,7 @@ endItemDraft model item =
       }
     , Effect.batch
         [ Effect.storeItem onTaskPortResult newItem
-        , Effect.requestUuid GotDraftUuid
+        , Effect.requestUuid GotItemUuid
         , Maybe.withDefault Effect.none
             (Maybe.map
                 (\category ->
