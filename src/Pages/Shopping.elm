@@ -165,11 +165,9 @@ update msg model =
                             Items.setState newState item.id model.items
                     in
                     ( { model | items = altered }
-                    , Effect.getTime
-                        (Dict.get item.id altered
-                            |> Maybe.withDefault item
-                            |> GotStateUpdateTime
-                        )
+                    , Effect.maybe
+                        (GotStateUpdateTime >> Effect.getTime)
+                        (Dict.get item.id altered)
                     )
 
                 _ ->

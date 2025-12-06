@@ -217,27 +217,17 @@ onListMsg model msg =
             )
 
         Components.Items.List.InputChanged field content ->
-            case model.draft of
-                Empty ->
-                    ( model, Effect.none )
+            if model.draft == Empty then
+                ( model, Effect.none )
 
-                NewCat _ ->
-                    let
-                        altered =
-                            alterDraft model.draft field content
-                    in
-                    ( { model | draft = altered }
-                    , Effect.getTime (GotDraftUpdateTime altered)
-                    )
-
-                _ ->
-                    let
-                        altered =
-                            alterDraft model.draft field content
-                    in
-                    ( { model | draft = altered }
-                    , Effect.getTime (GotDraftUpdateTime altered)
-                    )
+            else
+                let
+                    altered =
+                        alterDraft model.draft field content
+                in
+                ( { model | draft = altered }
+                , Effect.getTime (GotDraftUpdateTime altered)
+                )
 
         Components.Items.List.DraftOpened category ->
             ( { model | catWithDraft = Just category.id }
@@ -260,10 +250,7 @@ onListMsg model msg =
               }
             , Effect.batch
                 [ Effect.deleteItem onTaskPortResult itemId
-                , Maybe.withDefault Effect.none <|
-                    Maybe.map
-                        (Effect.storeCategory onTaskPortResult)
-                        category
+                , Effect.maybe (Effect.storeCategory onTaskPortResult) category
                 ]
             )
 
@@ -453,11 +440,9 @@ toggleItemState model item state =
                     Items.setState Items.Stuffed item.id model.items
     in
     ( { model | items = altered }
-    , Effect.getTime
-        (Dict.get item.id altered
-            |> Maybe.withDefault item
-            |> GotItemStateUpdateTime
-        )
+    , Effect.maybe
+        (GotItemStateUpdateTime >> Effect.getTime)
+        (Dict.get item.id altered)
     )
 
 
@@ -496,8 +481,6 @@ endItemDraft model item =
     , Effect.batch
         [ Effect.storeItem onTaskPortResult newItem
         , Effect.requestUuid GotItemUuid
-        , alteredCat
-            |> Maybe.map (Effect.storeCategory onTaskPortResult)
-            |> Maybe.withDefault Effect.none
+        , Effect.maybe (Effect.storeCategory onTaskPortResult) alteredCat
         ]
     )

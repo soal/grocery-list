@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , deleteCategory, deleteItem, getTime, importData, initDb, queryAll, requestUuid, storeAllItems, storeCategory, storeDump, storeItem
+    , deleteCategory, deleteItem, getTime, importData, initDb, maybe, queryAll, requestUuid, storeAllItems, storeCategory, storeDump, storeItem
     )
 
 {-|
@@ -315,6 +315,17 @@ loadExternalUrl =
 back : Effect msg
 back =
     Back
+
+
+
+-- HELPER
+
+
+maybe : (a -> Effect msg) -> Maybe a -> Effect msg
+maybe effect maybeCond =
+    maybeCond
+        |> Maybe.map effect
+        |> Maybe.withDefault none
 
 
 
