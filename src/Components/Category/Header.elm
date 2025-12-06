@@ -90,7 +90,7 @@ view (Settings settings) =
 
         deleteButton catId =
             span
-                [ class "button delete-button category-action"
+                [ class "button delete-button category-action with-click-outside"
                 , onClick (DeleteClicked catId)
                 ]
                 [ Icons.trashIcon [] ]

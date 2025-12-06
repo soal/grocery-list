@@ -284,6 +284,11 @@ onListMsg model itemMsg =
                     (Browser.Dom.focus <| "category-name-" ++ category.id)
             )
 
+        Components.Items.List.CatDeleteClicked catId ->
+            ( { model | categories = Cats.delete catId model.categories }
+            , Effect.deleteCategory onTaskPortResult catId
+            )
+
         _ ->
             ( model, Effect.none )
 

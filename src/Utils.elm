@@ -18,3 +18,5 @@ slugify str =
         |> String.trim
         |> String.toLower
         |> String.replace " " "-"
+
+

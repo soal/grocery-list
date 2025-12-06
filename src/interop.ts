@@ -128,6 +128,14 @@ async function storeAllItems(items: Item[]) {
 	false;
 }
 
+async function deleteCategory(categoryId: string) {
+	if (db) {
+		await db.categories.delete(categoryId);
+		return true;
+	}
+	return false;
+}
+
 async function storeCategory(category: Category) {
 	if (db) {
 		category.lastUpdatedBy = clientId;
@@ -165,13 +173,16 @@ function getUuid() {
 }
 
 TaskPort.register("initDb", initDb);
-TaskPort.register("queryAllCatsAndItems", queryAllCatsAndItems);
-TaskPort.register("storeItem", storeItem);
-TaskPort.register("storeAllItems", storeAllItems);
 TaskPort.register("storeDump", storeDump);
+TaskPort.register("queryAllCatsAndItems", queryAllCatsAndItems);
 TaskPort.register("getUuid", getUuid);
-TaskPort.register("storeCategory", storeCategory);
+
+TaskPort.register("storeAllItems", storeAllItems);
+TaskPort.register("storeItem", storeItem);
 TaskPort.register("deleteItem", deleteItem);
+
+TaskPort.register("storeCategory", storeCategory);
+TaskPort.register("deleteCategory", deleteCategory);
 
 export const flags = () => ({
 	settings: {

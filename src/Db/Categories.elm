@@ -3,14 +3,16 @@ module Db.Categories exposing
     , CollapsedState(..)
     , add
     , addItem
+    , alter
     , decoder
+    , delete
+    , deleteStored
     , emptyCategory
     , encode
     , getByid
     , removeItem
     , sortItemsByFreq
     , store
-    , alter
     )
 
 import Db.Items as Items
@@ -162,3 +164,21 @@ store onResult category =
                 }
     in
     Task.attempt onResult <| call category
+
+
+delete : String -> List Category -> List Category
+delete catId categories =
+    List.filter (\{ id } -> id /= catId) categories
+
+
+deleteStored : (TaskPort.Result Bool -> msg) -> String -> Cmd msg
+deleteStored onResult categoryId =
+    let
+        call =
+            TaskPort.call
+                { function = "deleteCategory"
+                , valueDecoder = JD.bool
+                , argsEncoder = JE.string
+                }
+    in
+    Task.attempt onResult <| call categoryId

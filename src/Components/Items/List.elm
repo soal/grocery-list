@@ -114,12 +114,13 @@ type Msg
     | InputChanged Items.Item ItemField String
     | DeleteClicked String
     | CatTitleClicked Cats.Category
+    | CatDeleteClicked String
     | NoOp
 
 
 view : ItemsList -> Html Msg
 view (Settings settings) =
-    settings.categories
+    (settings.categories
         |> List.map (viewCategory settings)
         |> List.append
             (case settings.draft of
@@ -129,6 +130,10 @@ view (Settings settings) =
                 _ ->
                     []
             )
+    )
+        ++ (viewItems settings <|
+                getItemsWithoutCat settings.items settings.categories
+           )
         |> Html.Keyed.node "div" []
 
 
@@ -151,7 +156,7 @@ viewCategory options category =
         , classList [ ( "shopping-page", options.mark ) ]
         ]
         [ viewCatHeader options state category
-        , viewItems options category
+        , viewCatItems options category
             ++ [ ( "empty"
                  , viewIf options.editable <|
                     viewDraft
@@ -210,58 +215,64 @@ viewCatHeader options state category =
                         CatTitleClicked cat
 
                     Components.Category.Header.DeleteClicked catId ->
-                        NoOp
+                        CatDeleteClicked catId
             )
 
 
-viewItems :
+viewItems : Options -> List ( String, Items.Item ) -> List ( String, Html Msg )
+viewItems options itemsKeyed =
+    List.map
+        (\( id, item ) ->
+            let
+                -- TODO: something more elegant
+                ( isItemOpen, activeItem ) =
+                    case options.draft of
+                        Empty ->
+                            ( False, item )
+
+                        New draft ->
+                            if draft.id == id then
+                                ( True, draft )
+
+                            else
+                                ( False, item )
+
+                        Existing draft ->
+                            if draft.id == id then
+                                ( True, draft )
+
+                            else
+                                ( False, item )
+
+                        NewCat _ ->
+                            ( False, item )
+
+                        ExistingCat _ ->
+                            ( False, item )
+            in
+            ( id
+            , viewItem
+                { item = activeItem
+                , mark = options.mark
+                , link = options.link
+                , switch = options.switch
+                , checkedStates = options.checkedStates
+                , open = isItemOpen
+                , editable = options.editable
+                }
+            )
+        )
+        itemsKeyed
+
+
+viewCatItems :
     Options
     -> Cats.Category
     -> List ( String, Html Msg )
-viewItems options category =
+viewCatItems options category =
     ( options.items, category )
         |> getCatItems
-        |> List.map
-            (\( id, item ) ->
-                let
-                    -- TODO: something more elegant
-                    ( isItemOpen, activeItem ) =
-                        case options.draft of
-                            Empty ->
-                                ( False, item )
-
-                            New draft ->
-                                if draft.id == id then
-                                    ( True, draft )
-
-                                else
-                                    ( False, item )
-
-                            Existing draft ->
-                                if draft.id == id then
-                                    ( True, draft )
-
-                                else
-                                    ( False, item )
-
-                            NewCat _ ->
-                                ( False, item )
-
-                            ExistingCat _ ->
-                                ( False, item )
-                in
-                ( id
-                , viewItem
-                    { item = activeItem
-                    , mark = options.mark
-                    , link = options.link
-                    , switch = options.switch
-                    , checkedStates = options.checkedStates
-                    , open = isItemOpen
-                    , editable = options.editable
-                    }
-                )
-            )
+        |> viewItems options
 
 
 getCatItems :
@@ -271,6 +282,28 @@ getCatItems ( allItems, category ) =
     List.map (\id -> Dict.get id allItems) category.items
         |> List.filterMap identity
         |> List.map (\item -> ( item.id, item ))
+
+
+getItemsWithoutCat :
+    Dict String Items.Item
+    -> List Cats.Category
+    -> List ( String, Items.Item )
+getItemsWithoutCat allItems categories =
+    allItems
+        |> Dict.toList
+        |> (\itemList ->
+                ( itemList
+                , List.concat (List.map .items categories)
+                )
+           )
+        |> (\( itemPairs, itemIds ) ->
+                List.filter
+                    (\( id, _ ) ->
+                        not
+                            (List.member id itemIds)
+                    )
+                    itemPairs
+           )
 
 
 viewItem :
