@@ -60,10 +60,10 @@ button {
   }
 
   /* & li { */
-    /* & a { */
-      /* font-size: 1rem; */
-      /* font-weight: 600; */
-    /* } */
+  /* & a { */
+  /* font-size: 1rem; */
+  /* font-weight: 600; */
+  /* } */
   /* } */
 
   .link {
@@ -127,7 +127,7 @@ button {
 
   .category-body {
     height: auto;
-    transition: height 100ms ease-out;
+    transition: height 100ms ease-in-out;
     overflow: hidden;
 
     &.collapsed {
@@ -147,6 +147,10 @@ button {
   --base-size: 1.25rem;
   align-items: center;
   background: transparent;
+  content-visibility: auto;
+  min-height: 2.125rem;
+  contain-intrinsic-size: 2.125rem auto;
+  /* intrins-size: 2.125rem; */
   border-color: transparent;
   border-style: dashed;
   border-width: 1px;
