@@ -3,6 +3,7 @@
   --pico-spacing: 0.5rem;
   --pico-block-spacing-horizontal: 1rem;
   --pico-block-spacing-vertical: 0.5rem;
+  interpolate-size: allow-keywords;
 }
 
 html {
@@ -97,6 +98,8 @@ button {
 
 .grocery-category {
   margin-bottom: calc(1.5 * var(--pico-form-element-spacing-horizontal));
+  position: relative;
+  z-index: 1;
 
   & h4 {
     display: flex;
@@ -124,10 +127,18 @@ button {
 
   .category-body {
     height: auto;
+    transition: height 100ms ease-out;
+    overflow: hidden;
 
     &.collapsed {
       height: 0;
       overflow: hidden;
+      z-index: 0;
+      /* transition: height 1s ease-out; */
+    }
+
+    &.animating {
+      z-index: 0;
     }
   }
 }

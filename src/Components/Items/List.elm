@@ -114,6 +114,10 @@ type Msg
     | DraftOpened Cats.Category
     | InputChanged ItemField String
     | EditStarted Items.Item ItemField String
+    | EnterPressed
+    | ShiftEnterPressed
+    | CtrlEnterPressed
+    | EscPressed
     | NoOp
 
 
@@ -368,6 +372,12 @@ viewItem { item, mark, link, switch, checkedStates, open, editable } =
 
                     Components.Items.Item.DeleteClicked clickedItem ->
                         ItemDeleteClicked clickedItem
+
+                    Components.Items.Item.EnterPressed ->
+                        EnterPressed
+
+                    Components.Items.Item.EscPressed ->
+                        EscPressed
 
                     _ ->
                         NoOp

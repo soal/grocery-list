@@ -23,13 +23,12 @@ import Html
         , a
         , article
         , div
-        , h4
         , span
         , text
         )
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (onClick)
-import Html.Extra exposing (viewIf, viewMaybe)
+import Html.Extra exposing (viewIf)
 import LucideIcons as Icons
 import Route.Path
 import Types exposing (CheckboxKind(..), ItemField(..))
@@ -94,6 +93,8 @@ type Msg
     | EditStarted Items.Item ItemField String
     | InputChanged Items.Item ItemField String
     | DeleteClicked String
+    | EnterPressed
+    | EscPressed
     | NoOp
 
 
@@ -140,34 +141,34 @@ view (Settings settings) =
             [ viewName
                 { itemId = settings.item.id
                 , onOpen = EditStarted settings.item
-                , blurred = Just NoOp
-                , focused = Just NoOp
-                , inputChange = Just <| InputChanged settings.item Name
+                , inputChange = InputChanged settings.item Name
                 , content = settings.item.name
                 , editable = settings.editable
                 , open = settings.open
+                , onEnter = EnterPressed
+                , onEsc = EscPressed
                 }
             ]
         , viewQuantity
             { itemId = settings.item.id
             , onOpen = EditStarted settings.item
-            , blurred = Just NoOp
-            , focused = Just NoOp
-            , inputChange = Just <| InputChanged settings.item
+            , inputChange = InputChanged settings.item
             , open = settings.open
             , editable = settings.editable
+            , onEnter = EnterPressed
+            , onEsc = EscPressed
             }
             settings.item.quantity
         , div [ class "item-comment-box" ]
             [ viewComment
                 { itemId = settings.item.id
                 , onOpen = EditStarted settings.item
-                , blurred = Just NoOp
-                , focused = Just NoOp
-                , inputChange = Just <| InputChanged settings.item Comment
+                , inputChange = InputChanged settings.item Comment
                 , content = settings.item.comment
                 , open = settings.open
                 , editable = settings.editable
+                , onEnter = EnterPressed
+                , onEsc = EscPressed
                 }
             , viewIf settings.switch <|
                 div

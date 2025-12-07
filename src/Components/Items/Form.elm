@@ -15,8 +15,10 @@ import Html.Attributes
         , value
         )
 import Html.Attributes.Extra exposing (role)
-import Html.Events exposing (onBlur, onClick, onFocus, onInput)
+import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (nothing)
+import Keyboard exposing (Key(..))
+import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Svg.Attributes
 import Types exposing (CheckboxKind(..), ItemField(..))
@@ -45,39 +47,31 @@ viewCheckbox onCheck disabled kind checked =
 viewName :
     { a
         | itemId : String
-        , inputChange : Maybe (String -> msg)
-        , blurred : Maybe msg
-        , focused : Maybe msg
+        , inputChange : String -> msg
         , onOpen : ItemField -> String -> msg
         , content : String
         , editable : Bool
         , open : Bool
+        , onEnter : msg
+        , onEsc : msg
     }
     -> Html msg
-viewName ({ editable, open, itemId, content } as config) =
+viewName ({ editable, open } as props) =
     let
         fieldId =
-            "item-name-" ++ itemId
+            "item-name-" ++ props.itemId
     in
     if editable && open then
-        Maybe.withDefault nothing
-            (Maybe.map3
-                (\i b f ->
-                    viewNameField
-                        { fieldId = fieldId
-                        , inputChange = i
-                        , blurred = b
-                        , focused = f
-                        , content = content
-                        }
-                )
-                config.inputChange
-                config.blurred
-                config.focused
-            )
+        viewNameField
+            { fieldId = fieldId
+            , inputChange = props.inputChange
+            , content = props.content
+            , onEnter = props.onEnter
+            , onEsc = props.onEsc
+            }
 
     else
-        viewNameStatic (config.onOpen Name fieldId) config.content fieldId
+        viewNameStatic (props.onOpen Name fieldId) props.content fieldId
 
 
 viewNameStatic : msg -> String -> String -> Html msg
@@ -89,22 +83,22 @@ viewNameField :
     { a
         | fieldId : String
         , inputChange : String -> msg
-        , blurred : msg
-        , focused : msg
         , content : String
+        , onEnter : msg
+        , onEsc : msg
     }
     -> Html msg
-viewNameField { fieldId, inputChange, blurred, focused, content } =
+viewNameField { fieldId, inputChange, content, onEnter, onEsc } =
     span [ class "input-resize-containter", attribute "data-content" content ]
         [ input
             [ type_ "text"
             , class "item-name-field with-click-outside"
             , value content
             , onInput inputChange
-            , onBlur blurred
-            , onFocus focused
             , name fieldId
             , id fieldId
+            , Keyboard.on Keyboard.Keydown
+                [ ( Enter, onEnter ), ( Escape, onEsc ) ]
             ]
             []
         ]
@@ -113,41 +107,33 @@ viewNameField { fieldId, inputChange, blurred, focused, content } =
 viewComment :
     { a
         | itemId : String
-        , inputChange : Maybe (String -> msg)
-        , blurred : Maybe msg
-        , focused : Maybe msg
+        , inputChange : String -> msg
         , onOpen : ItemField -> String -> msg
         , content : Maybe String
         , open : Bool
         , editable : Bool
+        , onEnter : msg
+        , onEsc : msg
     }
     -> Html msg
-viewComment ({ open, editable, itemId, content } as config) =
+viewComment ({ open, editable } as props) =
     let
         fieldId =
-            "item-comment-" ++ itemId
+            "item-comment-" ++ props.itemId
     in
     if editable && open then
-        Maybe.withDefault nothing
-            (Maybe.map3
-                (\i b f ->
-                    viewCommentField
-                        { fieldId = fieldId
-                        , inputChange = i
-                        , blurred = b
-                        , focused = f
-                        , content = content
-                        }
-                )
-                config.inputChange
-                config.blurred
-                config.focused
-            )
+        viewCommentField
+            { fieldId = fieldId
+            , inputChange = props.inputChange
+            , content = props.content
+            , onEnter = props.onEnter
+            , onEsc = props.onEsc
+            }
 
     else
         viewCommentStatic
-            (config.onOpen Comment fieldId)
-            config.content
+            (props.onOpen Comment fieldId)
+            props.content
             fieldId
             editable
 
@@ -173,12 +159,12 @@ viewCommentField :
     { a
         | fieldId : String
         , inputChange : String -> msg
-        , blurred : msg
-        , focused : msg
         , content : Maybe String
+        , onEnter : msg
+        , onEsc : msg
     }
     -> Html msg
-viewCommentField { fieldId, inputChange, blurred, focused, content } =
+viewCommentField { fieldId, inputChange, content, onEnter, onEsc } =
     span
         [ class "grow-container"
         , attribute "data-content" (Maybe.withDefault "" content)
@@ -187,12 +173,12 @@ viewCommentField { fieldId, inputChange, blurred, focused, content } =
             [ value (Maybe.withDefault "" content)
             , class "with-click-outside"
             , onInput inputChange
-            , onBlur blurred
-            , onFocus focused
             , name fieldId
             , rows 1
             , id fieldId
             , placeholder "Комментарий"
+            , Keyboard.on Keyboard.Keydown
+                [ ( Enter, onEnter ), ( Escape, onEsc ) ]
             ]
             []
         ]
@@ -201,61 +187,43 @@ viewCommentField { fieldId, inputChange, blurred, focused, content } =
 viewQuantity :
     { a
         | itemId : String
-        , inputChange : Maybe (ItemField -> String -> msg)
-        , blurred : Maybe msg
-        , focused : Maybe msg
+        , inputChange : ItemField -> String -> msg
         , onOpen : ItemField -> String -> msg
         , open : Bool
         , editable : Bool
+        , onEnter : msg
+        , onEsc : msg
     }
     -> Items.Quantity
     -> Html msg
-viewQuantity ({ editable, open } as config) (Items.Quantity count unit) =
+viewQuantity ({ editable, open } as props) (Items.Quantity count unit) =
     let
         countFieldId =
-            "item-quantity-count" ++ config.itemId
+            "item-quantity-count" ++ props.itemId
 
         unitFieldId =
-            "item-quantity-unit" ++ config.itemId
+            "item-quantity-unit" ++ props.itemId
     in
     if editable && open then
         span [ class "item-quantity" ]
-            [ Maybe.withDefault
-                nothing
-                (Maybe.map3
-                    (\i b f ->
-                        viewQCountField
-                            { fieldId = countFieldId
-                            , inputChange = i QCount
-                            , blurred = b
-                            , focused = f
-                            , content = count
-                            }
-                    )
-                    config.inputChange
-                    config.blurred
-                    config.focused
-                )
-            , Maybe.withDefault
-                nothing
-                (Maybe.map3
-                    (\i b f ->
-                        viewQUnitField
-                            { fieldId = unitFieldId
-                            , inputChange = i QUnit
-                            , blurred = b
-                            , focused = f
-                            , content = unit
-                            }
-                    )
-                    config.inputChange
-                    config.blurred
-                    config.focused
-                )
+            [ viewQCountField
+                { fieldId = countFieldId
+                , inputChange = props.inputChange QCount
+                , content = count
+                , onEnter = props.onEnter
+                , onEsc = props.onEsc
+                }
+            , viewQUnitField
+                { fieldId = unitFieldId
+                , inputChange = props.inputChange QUnit
+                , content = unit
+                , onEnter = props.onEnter
+                , onEsc = props.onEsc
+                }
             ]
 
     else
-        span [ onClick (config.onOpen Name countFieldId) ]
+        span [ onClick (props.onOpen Name countFieldId) ]
             [ b [] [ text (String.fromFloat count) ]
             , text " "
             , span [] [ text unit ]
@@ -266,12 +234,12 @@ viewQCountField :
     { a
         | fieldId : String
         , inputChange : String -> msg
-        , blurred : msg
-        , focused : msg
         , content : Float
+        , onEnter : msg
+        , onEsc : msg
     }
     -> Html msg
-viewQCountField { fieldId, content, inputChange, focused, blurred } =
+viewQCountField { fieldId, content, inputChange, onEnter, onEsc } =
     b
         [ class "input-resize-containter"
         , attribute "data-content" (String.fromFloat content)
@@ -282,10 +250,10 @@ viewQCountField { fieldId, content, inputChange, focused, blurred } =
             , class "item-quantity-count-field with-click-outside"
             , value <| String.fromFloat content
             , onInput inputChange
-            , onBlur blurred
-            , onFocus focused
             , name fieldId
             , id fieldId
+            , Keyboard.on Keyboard.Keydown
+                [ ( Enter, onEnter ), ( Escape, onEsc ) ]
             ]
             []
         ]
@@ -295,22 +263,22 @@ viewQUnitField :
     { a
         | fieldId : String
         , inputChange : String -> msg
-        , blurred : msg
-        , focused : msg
         , content : String
+        , onEnter : msg
+        , onEsc : msg
     }
     -> Html msg
-viewQUnitField { fieldId, content, inputChange, focused, blurred } =
+viewQUnitField { fieldId, content, inputChange, onEnter, onEsc } =
     span [ class "input-resize-containter", attribute "data-content" content ]
         [ input
             [ type_ "text"
             , class "item-quantity-unit-field with-click-outside"
             , value content
             , onInput inputChange
-            , onBlur blurred
-            , onFocus focused
             , name fieldId
             , id fieldId
+            , Keyboard.on Keyboard.Keydown
+                [ ( Enter, onEnter ), ( Escape, onEsc ) ]
             ]
             []
         ]

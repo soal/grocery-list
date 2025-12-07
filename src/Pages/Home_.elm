@@ -129,7 +129,7 @@ update msg model =
                     ( model, Effect.none )
 
         GotClickOutside ->
-            endEditing model
+            endEditAndSave model
 
         GotCatsAndItems data ->
             let
@@ -267,6 +267,12 @@ onListMsg model msg =
             , Effect.deleteCategory onTaskPortResult catId
             )
 
+        Components.Items.List.EnterPressed ->
+            endEditAndSave model
+
+        Components.Items.List.EscPressed ->
+            ( { model | draft = Empty }, Effect.none )
+
         _ ->
             ( model, Effect.none )
 
@@ -320,8 +326,8 @@ updateItemContent item field content =
             item
 
 
-endEditing : Model -> ( Model, Effect Msg )
-endEditing model =
+endEditAndSave : Model -> ( Model, Effect Msg )
+endEditAndSave model =
     case model.draft of
         Empty ->
             ( model, Effect.none )
@@ -392,6 +398,19 @@ endEditing model =
 
 
 
+-- endEditAndDiscard : Model -> ( Model, Effect msg )
+-- endEditAndDiscard model =
+-- case model.draft of
+--     Empty ->
+--         ( model, Effect.none )
+--     New _ ->
+--         ( { model | draft = Empty }, Effect.none )
+--     Existing _ ->
+--         ( { model | draft = Empty }, Effect.none )
+--     NewCat _ ->
+--         ( { model | draft = Empty }, Effect.none )
+--     ExistingCat _ ->
+--         ( { model | draft = Empty }, Effect.none )
 -- SUBSCRIPTIONS
 
 
