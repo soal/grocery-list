@@ -112,6 +112,7 @@ button {
     display: flex;
     column-gap: calc(var(--pico-block-spacing-horizontal) / 3);
     align-items: baseline;
+    padding-inline: var(--pico-block-spacing-horizontal);
 
     .counter {
       font-size: 0.65em;
@@ -153,6 +154,7 @@ button {
   flex-wrap: wrap;
   gap: 1rem;
   padding-block: 0.125rem;
+  min-height: 2.125rem;
 
   @media screen and (width < 451px) {
     background: transparent;
@@ -380,6 +382,7 @@ a {
 }
 
 .add-item-button {
+  align-items: center;
   border-radius: var(--pico-border-radius);
   border-style: dashed;
   font-size: 1.5rem;
@@ -392,6 +395,7 @@ a {
   padding-block: 0.125rem;
   line-height: 1em;
   width: 100%;
+  height: 2.125rem;
 
   & svg {
     width: 1.5rem;

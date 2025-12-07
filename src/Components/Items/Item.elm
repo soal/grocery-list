@@ -85,7 +85,7 @@ withSwitch (Settings settings) =
 
 asDraft : ItemListElement -> ItemListElement
 asDraft (Settings settings) =
-    Settings { settings | draft = True }
+    Settings { settings | draft = True, editable = True, open = True }
 
 
 type Msg
@@ -123,7 +123,6 @@ view (Settings settings) =
             ]
         , onClick (ItemClicked settings.item settings.item.state)
         ]
-        -- [ div [ class "label" ]
         [ viewCheckbox
             (\_ -> ItemChecked settings.item settings.item.state)
             False
@@ -140,32 +139,28 @@ view (Settings settings) =
         , span [ class "item-title" ]
             [ viewName
                 { itemId = settings.item.id
-                , static = not settings.editable
                 , onOpen = EditStarted settings.item
                 , blurred = Just NoOp
                 , focused = Just NoOp
                 , inputChange = Just <| InputChanged settings.item Name
                 , content = settings.item.name
+                , editable = settings.editable
                 , open = settings.open
                 }
             ]
-
-        -- , span
-        -- [ class "item-quantity" ]
         , viewQuantity
             { itemId = settings.item.id
-            , static = not settings.switch
             , onOpen = EditStarted settings.item
             , blurred = Just NoOp
             , focused = Just NoOp
             , inputChange = Just <| InputChanged settings.item
             , open = settings.open
+            , editable = settings.editable
             }
             settings.item.quantity
         , div [ class "item-comment-box" ]
             [ viewComment
                 { itemId = settings.item.id
-                , static = not settings.switch
                 , onOpen = EditStarted settings.item
                 , blurred = Just NoOp
                 , focused = Just NoOp
