@@ -284,7 +284,7 @@ getInBasketLength items =
 
 isAllDone : Dict String Item -> Bool
 isAllDone items =
-    Dict.isEmpty items && Dict.size items <= getInBasketLength items
+    not (Dict.isEmpty items) && Dict.size items <= getInBasketLength items
 
 
 filterByStates : Dict String Item -> List State -> Dict String Item
