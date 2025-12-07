@@ -114,8 +114,8 @@ button {
     }
   }
 
-  .chevron {
-    /* flex-grow: 1; */
+  .category-action.chevron {
+    padding-right: 1em;
 
     &:hover {
       color: var(--pico-primary);

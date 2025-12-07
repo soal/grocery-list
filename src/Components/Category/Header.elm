@@ -78,7 +78,7 @@ view (Settings settings) =
     let
         chevron =
             span
-                [ class "chevron category-action"
+                [ class "chevron category-action button"
                 , onClick (Toggle settings.category.id)
                 ]
                 [ if settings.state == Cats.Open then
@@ -90,7 +90,7 @@ view (Settings settings) =
 
         deleteButton catId =
             span
-                [ class "button delete-button category-action with-click-outside"
+                [ class "delete-button category-action button with-click-outside"
                 , onClick (DeleteClicked catId)
                 ]
                 [ Icons.trashIcon [] ]
