@@ -9,6 +9,7 @@ import Html.Attributes
         , classList
         , id
         , name
+        , placeholder
         , rows
         , type_
         , value
@@ -19,7 +20,6 @@ import Html.Extra exposing (nothing)
 import LucideIcons as Icons
 import Svg.Attributes
 import Types exposing (CheckboxKind(..), ItemField(..))
-import Html.Attributes exposing (placeholder)
 
 
 viewCheckbox : (Bool -> msg) -> Bool -> CheckboxKind -> Bool -> Html msg
@@ -50,16 +50,16 @@ viewName :
         , focused : Maybe msg
         , onOpen : ItemField -> String -> msg
         , content : String
-        , static : Bool
+        , editable : Bool
         , open : Bool
     }
     -> Html msg
-viewName ({ static, open } as config) =
+viewName ({ editable, open, itemId, content } as config) =
     let
         fieldId =
-            "item-name-" ++ config.itemId
+            "item-name-" ++ itemId
     in
-    if not static && open then
+    if editable && open then
         Maybe.withDefault nothing
             (Maybe.map3
                 (\i b f ->
@@ -68,7 +68,7 @@ viewName ({ static, open } as config) =
                         , inputChange = i
                         , blurred = b
                         , focused = f
-                        , content = config.content
+                        , content = content
                         }
                 )
                 config.inputChange
@@ -118,17 +118,16 @@ viewComment :
         , focused : Maybe msg
         , onOpen : ItemField -> String -> msg
         , content : Maybe String
-        , static : Bool
         , open : Bool
         , editable : Bool
     }
     -> Html msg
-viewComment ({ static, open, editable } as config) =
+viewComment ({ open, editable, itemId, content } as config) =
     let
         fieldId =
-            "item-comment-" ++ config.itemId
+            "item-comment-" ++ itemId
     in
-    if not static && open then
+    if editable && open then
         Maybe.withDefault nothing
             (Maybe.map3
                 (\i b f ->
@@ -137,7 +136,7 @@ viewComment ({ static, open, editable } as config) =
                         , inputChange = i
                         , blurred = b
                         , focused = f
-                        , content = config.content
+                        , content = content
                         }
                 )
                 config.inputChange
@@ -206,12 +205,12 @@ viewQuantity :
         , blurred : Maybe msg
         , focused : Maybe msg
         , onOpen : ItemField -> String -> msg
-        , static : Bool
         , open : Bool
+        , editable : Bool
     }
     -> Items.Quantity
     -> Html msg
-viewQuantity ({ static, open } as config) (Items.Quantity count unit) =
+viewQuantity ({ editable, open } as config) (Items.Quantity count unit) =
     let
         countFieldId =
             "item-quantity-count" ++ config.itemId
@@ -219,8 +218,8 @@ viewQuantity ({ static, open } as config) (Items.Quantity count unit) =
         unitFieldId =
             "item-quantity-unit" ++ config.itemId
     in
-    if not static && open then
-        span []
+    if editable && open then
+        span [ class "item-quantity" ]
             [ Maybe.withDefault
                 nothing
                 (Maybe.map3
@@ -258,6 +257,7 @@ viewQuantity ({ static, open } as config) (Items.Quantity count unit) =
     else
         span [ onClick (config.onOpen Name countFieldId) ]
             [ b [] [ text (String.fromFloat count) ]
+            , text " "
             , span [] [ text unit ]
             ]
 
