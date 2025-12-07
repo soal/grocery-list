@@ -55,15 +55,15 @@ button {
 
 .main-nav {
   & ul {
-    column-gap: 0.5em;
+    column-gap: 0.25em;
   }
 
-  & li {
-    & a {
-      font-size: 1rem;
-      font-weight: 600;
-    }
-  }
+  /* & li { */
+    /* & a { */
+      /* font-size: 1rem; */
+      /* font-weight: 600; */
+    /* } */
+  /* } */
 
   .link {
     color: var(--pico-secondary);
@@ -71,7 +71,9 @@ button {
     align-items: center;
     text-decoration: none;
     column-gap: 0.25em;
-    font-size: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
 
     .icon-wrapper {
       display: flex;
