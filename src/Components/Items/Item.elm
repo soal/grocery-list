@@ -123,33 +123,33 @@ view (Settings settings) =
             ]
         , onClick (ItemClicked settings.item settings.item.state)
         ]
-        [ div [ class "label" ]
-            [ viewCheckbox
-                (\_ -> ItemChecked settings.item settings.item.state)
-                False
-                (if settings.switch then
-                    Plus
+        -- [ div [ class "label" ]
+        [ viewCheckbox
+            (\_ -> ItemChecked settings.item settings.item.state)
+            False
+            (if settings.switch then
+                Plus
 
-                 else
-                    Check
-                )
-                (itemStateToBool
-                    settings.item.state
-                    settings.checkedSates
-                )
-            , span [ class "item-title" ]
-                [ viewName
-                    { itemId = settings.item.id
-                    , static = not settings.editable
-                    , onOpen = EditStarted settings.item
-                    , blurred = Just NoOp
-                    , focused = Just NoOp
-                    , inputChange = Just <| InputChanged settings.item Name
-                    , content = settings.item.name
-                    , open = settings.open
-                    }
-                , viewMaybe (\s -> span [] [ text s ]) settings.item.symbol
-                ]
+             else
+                Check
+            )
+            (itemStateToBool
+                settings.item.state
+                settings.checkedSates
+            )
+        , span [ class "item-title" ]
+            [ viewName
+                { itemId = settings.item.id
+                , static = not settings.editable
+                , onOpen = EditStarted settings.item
+                , blurred = Just NoOp
+                , focused = Just NoOp
+                , inputChange = Just <| InputChanged settings.item Name
+                , content = settings.item.name
+                , open = settings.open
+                }
+
+            -- , viewMaybe (\s -> span [] [ text s ]) settings.item.symbol
             ]
         , span
             [ class "item-quantity" ]

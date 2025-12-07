@@ -6,7 +6,7 @@
 }
 
 html {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 button {
@@ -124,7 +124,7 @@ button {
   }
 
   .chevron {
-    flex-grow: 1;
+    /* flex-grow: 1; */
 
     &:hover {
       color: var(--pico-primary);
@@ -144,23 +144,28 @@ button {
 .grocery-item {
   --base-size: 1.25rem;
   align-items: center;
+  background: transparent;
+  border-color: transparent;
+  border-style: dashed;
+  border-width: 1px;
+  box-shadow: none;
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  border-style: dashed;
-  border-color: transparent;
-  border-width: 1px;
+  padding-block: 0.125rem;
+  /* margin-bottom: 0; */
 
   @media screen and (width < 451px) {
-    background: var(--pico-card-background-color);
-    box-shadow: var(--pico-card-box-shadow);
+    /* background: var(--pico-card-background-color); */
+    /* box-shadow: var(--pico-card-box-shadow); */
+    background: transparent;
+    box-shadow: none;
     width: 100%;
   }
 
   @media screen and (width > 450px) {
     background: transparent;
     box-shadow: none;
-    /* width: fit-content; */
   }
 
   &.focused {
@@ -318,6 +323,31 @@ button {
       flex-shrink: 0;
     }
   }
+
+  &.item-form {
+    padding-block: 0;
+
+    >span {
+      /* padding-block: calc(0.5rem + 1px); */
+      padding-top: 0.125rem;
+      padding-bottom: calc(0.125rem + 1.5px);
+      /* padding-bottom: 0.5rem; */
+      /* padding-block: 0.5rem; */
+      padding-inline: 0.125rem;
+      margin-inline: -0.30rem;
+      border: none;
+      border-bottom: 2px solid transparent;
+      /* border-radius: var(--pico-border-radius); */
+      border-radius: 0;
+
+      &:focus-within {
+        /* box-shadow: var(--pico-box-shadow); */
+        border-color: var(--pico-form-element-focus-color);
+
+        /* border-color: red; */
+      }
+    }
+  }
 }
 
 .button {
@@ -428,11 +458,13 @@ a {
   }
 }
 
+
 .input-resize-containter {
-  display: inline-block;
+  /* display: inline-block; */
   position: relative;
   max-width: 100%;
   overflow: hidden;
+  height: 100%;
 
   &::after {
     content: attr(data-content) " ";
@@ -443,27 +475,29 @@ a {
     margin: 0;
     padding: 0;
     min-width: 1em;
-    /* font: 1em/1em sans-serif; */
     height: 100%;
     max-width: 100%;
+    grid-row: 1 / -1;
+    grid-column: 1 / -1;
   }
 
 
   & input[type=text] {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    border: none;
     bottom: 0;
-    margin: 0;
-    padding: 0;
-    min-width: 1em;
+    box-shadow: none;
     font-size: 1em;
     height: 100%;
+    left: 0;
+    margin: 0;
     max-width: 100%;
-    border: none;
+    min-width: 3em;
     outline: none;
-    box-shadow: none;
+    padding-inline: 0;
+    padding: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
   }
 }
 
@@ -490,7 +524,7 @@ h4 {
   height: 1.25em;
   font-size: 1em;
   margin-top: -.125em;
-  margin-inline-end: .5em;
+  /* margin-inline-end: .5em; */
   border-width: var(--pico-border-width);
   vertical-align: middle;
   cursor: pointer;
