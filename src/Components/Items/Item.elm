@@ -148,22 +148,20 @@ view (Settings settings) =
                 , content = settings.item.name
                 , open = settings.open
                 }
+            ]
 
-            -- , viewMaybe (\s -> span [] [ text s ]) settings.item.symbol
-            ]
-        , span
-            [ class "item-quantity" ]
-            [ viewQuantity
-                { itemId = settings.item.id
-                , static = not settings.switch
-                , onOpen = EditStarted settings.item
-                , blurred = Just NoOp
-                , focused = Just NoOp
-                , inputChange = Just <| InputChanged settings.item
-                , open = settings.open
-                }
-                settings.item.quantity
-            ]
+        -- , span
+        -- [ class "item-quantity" ]
+        , viewQuantity
+            { itemId = settings.item.id
+            , static = not settings.switch
+            , onOpen = EditStarted settings.item
+            , blurred = Just NoOp
+            , focused = Just NoOp
+            , inputChange = Just <| InputChanged settings.item
+            , open = settings.open
+            }
+            settings.item.quantity
         , div [ class "item-comment-box" ]
             [ viewComment
                 { itemId = settings.item.id

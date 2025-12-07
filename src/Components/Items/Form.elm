@@ -9,6 +9,7 @@ import Html.Attributes
         , classList
         , id
         , name
+        , placeholder
         , rows
         , type_
         , value
@@ -19,7 +20,6 @@ import Html.Extra exposing (nothing)
 import LucideIcons as Icons
 import Svg.Attributes
 import Types exposing (CheckboxKind(..), ItemField(..))
-import Html.Attributes exposing (placeholder)
 
 
 viewCheckbox : (Bool -> msg) -> Bool -> CheckboxKind -> Bool -> Html msg
@@ -220,7 +220,7 @@ viewQuantity ({ static, open } as config) (Items.Quantity count unit) =
             "item-quantity-unit" ++ config.itemId
     in
     if not static && open then
-        span []
+        span [ class "item-quantity" ]
             [ Maybe.withDefault
                 nothing
                 (Maybe.map3
@@ -258,6 +258,7 @@ viewQuantity ({ static, open } as config) (Items.Quantity count unit) =
     else
         span [ onClick (config.onOpen Name countFieldId) ]
             [ b [] [ text (String.fromFloat count) ]
+            , text " "
             , span [] [ text unit ]
             ]
 

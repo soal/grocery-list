@@ -153,11 +153,8 @@ button {
   flex-wrap: wrap;
   gap: 1rem;
   padding-block: 0.125rem;
-  /* margin-bottom: 0; */
 
   @media screen and (width < 451px) {
-    /* background: var(--pico-card-background-color); */
-    /* box-shadow: var(--pico-card-box-shadow); */
     background: transparent;
     box-shadow: none;
     width: 100%;
@@ -328,23 +325,15 @@ button {
     padding-block: 0;
 
     >span {
-      /* padding-block: calc(0.5rem + 1px); */
-      padding-top: 0.125rem;
-      padding-bottom: calc(0.125rem + 1.5px);
-      /* padding-bottom: 0.5rem; */
-      /* padding-block: 0.5rem; */
-      padding-inline: 0.125rem;
-      margin-inline: -0.30rem;
+      padding-top: calc(0.125rem + 1.5px);
+      padding-bottom: calc(0.125rem + 0.1px);
+      padding-inline: 0;
       border: none;
       border-bottom: 2px solid transparent;
-      /* border-radius: var(--pico-border-radius); */
       border-radius: 0;
 
       &:focus-within {
-        /* box-shadow: var(--pico-box-shadow); */
         border-color: var(--pico-form-element-focus-color);
-
-        /* border-color: red; */
       }
     }
   }
@@ -399,7 +388,9 @@ a {
   color: var(--pico-secondary);
   display: flex;
   /* justify-content: center; */
-  padding: var(--pico-block-spacing-vertical) var(--pico-block-spacing-horizontal);
+  padding-inline: var(--pico-block-spacing-horizontal);
+  padding-block: 0.125rem;
+  line-height: 1em;
   width: 100%;
 
   & svg {
@@ -460,25 +451,23 @@ a {
 
 
 .input-resize-containter {
-  /* display: inline-block; */
-  position: relative;
+  height: 100%;
   max-width: 100%;
   overflow: hidden;
-  height: 100%;
+  position: relative;
 
   &::after {
     content: attr(data-content) " ";
-    visibility: hidden;
     display: inline-block;
     height: 0;
-    white-space: pre;
-    margin: 0;
-    padding: 0;
-    min-width: 1em;
     height: 100%;
+    margin: 0;
     max-width: 100%;
-    grid-row: 1 / -1;
-    grid-column: 1 / -1;
+    min-width: 1em;
+    min-width: 3em;
+    padding: 0;
+    visibility: hidden;
+    white-space: pre;
   }
 
 
