@@ -1,6 +1,5 @@
 module Components.Category.Header exposing
     ( CategoryHeader
-    , init
     , new
     , view
     , withCounter
@@ -14,6 +13,7 @@ import Db.Items as Items
 import Dict exposing (Dict)
 import Html exposing (Html, h4, input, span, text)
 import Html.Attributes exposing (..)
+import Html.Attributes.Extra exposing (attributeMaybe)
 import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (viewIf)
 import LucideIcons as Icons
@@ -32,10 +32,19 @@ type CategoryHeader msg
 
 
 type alias Handlers msg =
-    { toggle : String -> msg
-    , input : String -> msg
-    , titleClick : Cats.Category -> msg
-    , delete : String -> msg
+    { toggle : msg
+    , input : Maybe (String -> msg)
+    , click : Maybe msg
+    , delete : Maybe msg
+    }
+
+
+defaultHandlers : { a | toggle : msg } -> Handlers msg
+defaultHandlers handlers =
+    { toggle = handlers.toggle
+    , input = Nothing
+    , click = Nothing
+    , delete = Nothing
     }
 
 
@@ -43,7 +52,7 @@ new :
     { category : Cats.Category
     , items : Dict String Items.Item
     , state : Cats.CollapsedState
-    , on : Handlers msg
+    , on : { toggle : msg }
     }
     -> CategoryHeader msg
 new props =
@@ -53,7 +62,7 @@ new props =
         , items = props.items
         , counter = False
         , catDraft = Empty
-        , on = props.on
+        , on = defaultHandlers props.on
         }
 
 
@@ -62,18 +71,31 @@ withCounter (Settings settings) =
     Settings { settings | counter = True }
 
 
-withDraft : Draft -> CategoryHeader msg -> CategoryHeader msg
-withDraft catDraft (Settings settings) =
-    Settings { settings | catDraft = catDraft }
-
-
-type alias Model =
-    {}
-
-
-init : {} -> Model
-init _ =
-    {}
+withDraft :
+    Draft
+    ->
+        { input : String -> msg
+        , click : msg
+        , delete : msg
+        }
+    -> CategoryHeader msg
+    -> CategoryHeader msg
+withDraft catDraft handlers (Settings settings) =
+    let
+        on =
+            settings.on
+    in
+    Settings
+        { settings
+            | catDraft = catDraft
+            , on =
+                { on
+                    | input = Just handlers.input
+                    , click = Just handlers.click
+                    , delete = Just handlers.delete
+                    , toggle = on.toggle
+                }
+        }
 
 
 view : CategoryHeader msg -> Html msg
@@ -82,7 +104,7 @@ view (Settings ({ on } as settings)) =
         chevron =
             span
                 [ class "chevron category-action button"
-                , onClick (on.toggle settings.category.id)
+                , onClick on.toggle
                 ]
                 [ if settings.state == Cats.Open then
                     Icons.chevronDownIcon []
@@ -91,15 +113,15 @@ view (Settings ({ on } as settings)) =
                     Icons.chevronRightIcon []
                 ]
 
-        deleteButton catId =
+        deleteButton =
             span
                 [ class "delete-button category-action button with-click-outside"
-                , onClick (on.delete catId)
+                , attributeMaybe onClick on.delete
                 ]
                 [ Icons.trashIcon [] ]
 
         staticTitle =
-            span [ onClick (on.titleClick settings.category) ]
+            span [ attributeMaybe onClick on.click ]
                 [ text settings.category.name ]
 
         ( title, action ) =
@@ -114,12 +136,12 @@ view (Settings ({ on } as settings)) =
                                 [ type_ "text"
                                 , id ("category-name-" ++ cat.id)
                                 , class "with-click-outside"
-                                , onInput on.input
+                                , attributeMaybe onInput on.input
                                 , value cat.name
                                 ]
                                 []
                             ]
-                        , deleteButton cat.id
+                        , deleteButton
                         )
 
                     else
@@ -134,18 +156,24 @@ view (Settings ({ on } as settings)) =
                             [ input
                                 [ type_ "text"
                                 , id ("category-name-" ++ cat.id)
-                                , onInput on.input
+                                , attributeMaybe onInput on.input
                                 , value cat.name
                                 ]
                                 []
                             ]
-                        , deleteButton cat.id
+                        , deleteButton
                         )
 
                     else
                         ( staticTitle, chevron )
 
-                _ ->
+                Empty ->
+                    ( staticTitle, chevron )
+
+                New _ ->
+                    ( staticTitle, chevron )
+
+                Existing _ ->
                     ( staticTitle, chevron )
     in
     h4 []

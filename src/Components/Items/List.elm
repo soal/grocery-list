@@ -193,12 +193,7 @@ viewCatHeader options state category =
         { category = category
         , items = options.items
         , state = state
-        , on =
-            { toggle = onCatToggle state
-            , input = InputChanged Name
-            , titleClick = CatTitleClicked
-            , delete = CatDeleteClicked
-            }
+        , on = { toggle = onCatToggle state category.id }
         }
         |> (if options.counter == True then
                 Components.Category.Header.withCounter
@@ -206,7 +201,16 @@ viewCatHeader options state category =
             else
                 identity
            )
-        |> Components.Category.Header.withDraft options.draft
+        |> (if options.editable then
+                Components.Category.Header.withDraft options.draft
+                    { input = InputChanged Name
+                    , click = CatTitleClicked category
+                    , delete = CatDeleteClicked category.id
+                    }
+
+            else
+                identity
+           )
         |> Components.Category.Header.view
 
 
