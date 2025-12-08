@@ -7,7 +7,6 @@ module Components.Category.Header exposing
     )
 
 import Components.Counter
-import Components.Items.Item exposing (Msg(..))
 import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)

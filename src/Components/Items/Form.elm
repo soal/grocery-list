@@ -14,7 +14,7 @@ import Html.Attributes
         , type_
         , value
         )
-import Html.Attributes.Extra exposing (role)
+import Html.Attributes.Extra exposing (attributeMaybe, role)
 import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (nothing)
 import Keyboard exposing (Key(..))
@@ -24,7 +24,7 @@ import Svg.Attributes
 import Types exposing (CheckboxKind(..), ItemField(..))
 
 
-viewCheckbox : (Bool -> msg) -> Bool -> CheckboxKind -> Bool -> Html msg
+viewCheckbox : Maybe (Bool -> msg) -> Bool -> CheckboxKind -> Bool -> Html msg
 viewCheckbox onCheck disabled kind checked =
     div
         [ role "checkbox"
@@ -34,7 +34,7 @@ viewCheckbox onCheck disabled kind checked =
             , ( "check", kind == Check )
             , ( "disabled", disabled )
             ]
-        , onClick (onCheck <| not checked)
+        , attributeMaybe onClick (Maybe.map (\f -> f <| not checked) onCheck)
         ]
         [ if kind == Plus then
             Icons.plusIcon [ Svg.Attributes.strokeWidth "3" ]
@@ -47,13 +47,13 @@ viewCheckbox onCheck disabled kind checked =
 viewName :
     { a
         | itemId : String
-        , inputChange : String -> msg
-        , onOpen : ItemField -> String -> msg
+        , inputChange : Maybe (String -> msg)
+        , onOpen : Maybe (ItemField -> String -> msg)
         , content : String
         , editable : Bool
         , open : Bool
-        , onEnter : msg
-        , onEsc : msg
+        , onEnter : Maybe msg
+        , onEsc : Maybe msg
     }
     -> Html msg
 viewName ({ editable, open } as props) =
@@ -71,21 +71,28 @@ viewName ({ editable, open } as props) =
             }
 
     else
-        viewNameStatic (props.onOpen Name fieldId) props.content fieldId
+        viewNameStatic
+            (Maybe.map (\f -> f Name fieldId) props.onOpen)
+            props.content
+            fieldId
 
 
-viewNameStatic : msg -> String -> String -> Html msg
+viewNameStatic : Maybe msg -> String -> String -> Html msg
 viewNameStatic onOpen content fieldId =
-    span [ id fieldId, onClick onOpen ] [ text content ]
+    span
+        [ id fieldId
+        , attributeMaybe onClick onOpen
+        ]
+        [ text content ]
 
 
 viewNameField :
     { a
         | fieldId : String
-        , inputChange : String -> msg
+        , inputChange : Maybe (String -> msg)
         , content : String
-        , onEnter : msg
-        , onEsc : msg
+        , onEnter : Maybe msg
+        , onEsc : Maybe msg
     }
     -> Html msg
 viewNameField { fieldId, inputChange, content, onEnter, onEsc } =
@@ -94,11 +101,12 @@ viewNameField { fieldId, inputChange, content, onEnter, onEsc } =
             [ type_ "text"
             , class "item-name-field with-click-outside"
             , value content
-            , onInput inputChange
+            , attributeMaybe onInput inputChange
             , name fieldId
             , id fieldId
-            , Keyboard.on Keyboard.Keydown
-                [ ( Enter, onEnter ), ( Escape, onEsc ) ]
+            , attributeMaybe
+                (Keyboard.on Keyboard.Keydown)
+                (maybeKbd onEnter onEsc)
             ]
             []
         ]
@@ -107,13 +115,13 @@ viewNameField { fieldId, inputChange, content, onEnter, onEsc } =
 viewComment :
     { a
         | itemId : String
-        , inputChange : String -> msg
-        , onOpen : ItemField -> String -> msg
+        , inputChange : Maybe (String -> msg)
+        , onOpen : Maybe (ItemField -> String -> msg)
         , content : Maybe String
         , open : Bool
         , editable : Bool
-        , onEnter : msg
-        , onEsc : msg
+        , onEnter : Maybe msg
+        , onEsc : Maybe msg
     }
     -> Html msg
 viewComment ({ open, editable } as props) =
@@ -132,15 +140,19 @@ viewComment ({ open, editable } as props) =
 
     else
         viewCommentStatic
-            (props.onOpen Comment fieldId)
+            (Maybe.map (\f -> f Comment fieldId) props.onOpen)
             props.content
             fieldId
             editable
 
 
-viewCommentStatic : msg -> Maybe String -> String -> Bool -> Html msg
+viewCommentStatic : Maybe msg -> Maybe String -> String -> Bool -> Html msg
 viewCommentStatic onOpen content fieldId editable =
-    span [ class "item-comment", id fieldId, onClick onOpen ]
+    span
+        [ class "item-comment"
+        , id fieldId
+        , attributeMaybe onClick onOpen
+        ]
         [ case content of
             Just comment ->
                 text comment
@@ -158,10 +170,10 @@ viewCommentStatic onOpen content fieldId editable =
 viewCommentField :
     { a
         | fieldId : String
-        , inputChange : String -> msg
+        , inputChange : Maybe (String -> msg)
         , content : Maybe String
-        , onEnter : msg
-        , onEsc : msg
+        , onEnter : Maybe msg
+        , onEsc : Maybe msg
     }
     -> Html msg
 viewCommentField { fieldId, inputChange, content, onEnter, onEsc } =
@@ -172,13 +184,14 @@ viewCommentField { fieldId, inputChange, content, onEnter, onEsc } =
         [ textarea
             [ value (Maybe.withDefault "" content)
             , class "with-click-outside"
-            , onInput inputChange
+            , attributeMaybe onInput inputChange
             , name fieldId
             , rows 1
             , id fieldId
             , placeholder "Комментарий"
-            , Keyboard.on Keyboard.Keydown
-                [ ( Enter, onEnter ), ( Escape, onEsc ) ]
+            , attributeMaybe
+                (Keyboard.on Keyboard.Keydown)
+                (maybeKbd onEnter onEsc)
             ]
             []
         ]
@@ -187,12 +200,12 @@ viewCommentField { fieldId, inputChange, content, onEnter, onEsc } =
 viewQuantity :
     { a
         | itemId : String
-        , inputChange : ItemField -> String -> msg
-        , onOpen : ItemField -> String -> msg
+        , inputChange : Maybe (ItemField -> String -> msg)
+        , onOpen : Maybe (ItemField -> String -> msg)
         , open : Bool
         , editable : Bool
-        , onEnter : msg
-        , onEsc : msg
+        , onEnter : Maybe msg
+        , onEsc : Maybe msg
     }
     -> Items.Quantity
     -> Html msg
@@ -208,14 +221,14 @@ viewQuantity ({ editable, open } as props) (Items.Quantity count unit) =
         span [ class "item-quantity" ]
             [ viewQCountField
                 { fieldId = countFieldId
-                , inputChange = props.inputChange QCount
+                , inputChange = Maybe.map (\f -> f QCount) props.inputChange
                 , content = count
                 , onEnter = props.onEnter
                 , onEsc = props.onEsc
                 }
             , viewQUnitField
                 { fieldId = unitFieldId
-                , inputChange = props.inputChange QUnit
+                , inputChange = Maybe.map (\f -> f QUnit) props.inputChange
                 , content = unit
                 , onEnter = props.onEnter
                 , onEsc = props.onEsc
@@ -223,7 +236,10 @@ viewQuantity ({ editable, open } as props) (Items.Quantity count unit) =
             ]
 
     else
-        span [ onClick (props.onOpen Name countFieldId) ]
+        span
+            [ attributeMaybe onClick <|
+                Maybe.map (\f -> f Name countFieldId) props.onOpen
+            ]
             [ b [] [ text (String.fromFloat count) ]
             , text " "
             , span [] [ text unit ]
@@ -233,10 +249,10 @@ viewQuantity ({ editable, open } as props) (Items.Quantity count unit) =
 viewQCountField :
     { a
         | fieldId : String
-        , inputChange : String -> msg
+        , inputChange : Maybe (String -> msg)
         , content : Float
-        , onEnter : msg
-        , onEsc : msg
+        , onEnter : Maybe msg
+        , onEsc : Maybe msg
     }
     -> Html msg
 viewQCountField { fieldId, content, inputChange, onEnter, onEsc } =
@@ -249,11 +265,12 @@ viewQCountField { fieldId, content, inputChange, onEnter, onEsc } =
             , attribute "inputmode" "decimal"
             , class "item-quantity-count-field with-click-outside"
             , value <| String.fromFloat content
-            , onInput inputChange
+            , attributeMaybe onInput inputChange
             , name fieldId
             , id fieldId
-            , Keyboard.on Keyboard.Keydown
-                [ ( Enter, onEnter ), ( Escape, onEsc ) ]
+            , attributeMaybe
+                (Keyboard.on Keyboard.Keydown)
+                (maybeKbd onEnter onEsc)
             ]
             []
         ]
@@ -262,10 +279,10 @@ viewQCountField { fieldId, content, inputChange, onEnter, onEsc } =
 viewQUnitField :
     { a
         | fieldId : String
-        , inputChange : String -> msg
+        , inputChange : Maybe (String -> msg)
         , content : String
-        , onEnter : msg
-        , onEsc : msg
+        , onEnter : Maybe msg
+        , onEsc : Maybe msg
     }
     -> Html msg
 viewQUnitField { fieldId, content, inputChange, onEnter, onEsc } =
@@ -274,11 +291,20 @@ viewQUnitField { fieldId, content, inputChange, onEnter, onEsc } =
             [ type_ "text"
             , class "item-quantity-unit-field with-click-outside"
             , value content
-            , onInput inputChange
+            , attributeMaybe onInput inputChange
             , name fieldId
             , id fieldId
-            , Keyboard.on Keyboard.Keydown
-                [ ( Enter, onEnter ), ( Escape, onEsc ) ]
+            , attributeMaybe
+                (Keyboard.on Keyboard.Keydown)
+                (maybeKbd onEnter onEsc)
             ]
             []
         ]
+
+
+maybeKbd : Maybe keyFunc -> Maybe keyFunc -> Maybe (List ( Key, keyFunc ))
+maybeKbd onEnter onEsc =
+    Maybe.map2
+        (\enter esc -> [ ( Enter, enter ), ( Escape, esc ) ])
+        onEnter
+        onEsc

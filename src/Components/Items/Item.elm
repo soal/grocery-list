@@ -1,12 +1,12 @@
 module Components.Items.Item exposing
     ( ItemListElement
-    , Msg(..)
     , asDraft
     , new
     , view
+    , withCheck
+    , withClick
+    , withEditing
     , withLink
-    , withMark
-    , withSwitch
     )
 
 import Components.Items.Form
@@ -27,6 +27,7 @@ import Html
         , text
         )
 import Html.Attributes exposing (class, classList)
+import Html.Attributes.Extra exposing (attributeMaybe)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (viewIf)
 import LucideIcons as Icons
@@ -35,26 +36,39 @@ import Types exposing (CheckboxKind(..), ItemField(..))
 
 
 type alias Handlers msg =
-    { click : Items.Item -> Items.State -> msg
-    , check : Items.Item -> Items.State -> msg
-    , editStart : Items.Item -> ItemField -> String -> msg
-    , input : ItemField -> String -> msg
-    , delete : String -> msg
-    , enter : msg
-    , esc : msg
+    { click : Maybe msg
+    , check : Maybe (Bool -> msg)
+    , edit : Maybe (ItemField -> String -> msg)
+    , input : Maybe (ItemField -> String -> msg)
+    , delete : Maybe msg
+    , enter : Maybe msg
+    , esc : Maybe msg
     }
 
 
-type ItemListElement
+defaultHandlers : Handlers msg
+defaultHandlers =
+    { click = Nothing
+    , check = Nothing
+    , edit = Nothing
+    , input = Nothing
+    , delete = Nothing
+    , enter = Nothing
+    , esc = Nothing
+    }
+
+
+type ItemListElement msg
     = Settings
         { item : Items.Item
         , link : Bool
         , checkedSates : List Items.State
-        , mark : Bool
-        , switch : Bool
+        , done : Bool
+        , required : Bool
         , open : Bool
         , draft : Bool
         , editable : Bool
+        , on : Handlers msg
         }
 
 
@@ -64,53 +78,96 @@ new :
     , open : Bool
     , editable : Bool
     }
-    -> ItemListElement
+    -> ItemListElement msg
 new props =
     Settings
         { item = props.item
         , link = False
-        , mark = False
-        , switch = False
+        , done = False
+        , required = False
         , draft = False
         , checkedSates = props.checkedSates
         , open = props.open
         , editable = props.editable
+        , on = defaultHandlers
         }
 
 
-withLink : ItemListElement -> ItemListElement
+withClick : msg -> ItemListElement msg -> ItemListElement msg
+withClick onClick (Settings settings) =
+    let
+        on =
+            settings.on
+    in
+    Settings { settings | done = True, on = { on | click = Just onClick } }
+
+
+withCheck : (Bool -> msg) -> ItemListElement msg -> ItemListElement msg
+withCheck onCheck (Settings settings) =
+    let
+        on =
+            settings.on
+    in
+    Settings { settings | required = True, on = { on | check = Just onCheck } }
+
+
+withLink : ItemListElement msg -> ItemListElement msg
 withLink (Settings settings) =
     Settings { settings | link = True }
 
 
-withMark : ItemListElement -> ItemListElement
-withMark (Settings settings) =
-    Settings { settings | mark = True }
+withEditing :
+    { edit : ItemField -> String -> msg
+    , input : ItemField -> String -> msg
+    , delete : msg
+    , enter : msg
+    , esc : msg
+    }
+    -> ItemListElement msg
+    -> ItemListElement msg
+withEditing handlers (Settings settings) =
+    let
+        on =
+            settings.on
+    in
+    Settings
+        { settings
+            | editable = True
+            , on =
+                { on
+                    | edit = Just handlers.edit
+                    , input = Just handlers.input
+                    , delete = Just handlers.delete
+                    , enter = Just handlers.enter
+                    , esc = Just handlers.esc
+                }
+        }
 
 
-withSwitch : ItemListElement -> ItemListElement
-withSwitch (Settings settings) =
-    Settings { settings | switch = True }
-
-
-asDraft : ItemListElement -> ItemListElement
+asDraft : ItemListElement msg -> ItemListElement msg
 asDraft (Settings settings) =
-    Settings { settings | draft = True, editable = True, open = True }
+    Settings
+        { settings
+            | draft = True
+            , editable = True
+            , open = True
+        }
 
 
-type Msg
-    = ItemClicked Items.Item Items.State
-    | ItemChecked Items.Item Items.State
-    | EditStarted Items.Item ItemField String
-    | InputChanged Items.Item ItemField String
-    | DeleteClicked String
-    | EnterPressed
-    | EscPressed
-    | NoOp
+
+-- type Msg
+--     = ItemClicked Items.Item Items.State
+--     | ItemChecked Items.Item Items.State
+--     | EditStarted Items.Item ItemField String
+--     | InputChanged Items.Item ItemField String
+--     | DeleteClicked String
+--     | EnterPressed
+--     | EscPressed
+--     | NoOp
 
 
-view : ItemListElement -> Html Msg
-view (Settings settings) =
+view : ItemListElement msg -> Html msg
+view (Settings ({ on } as settings)) =
     let
         link =
             if settings.link == True then
@@ -124,7 +181,7 @@ view (Settings settings) =
                 text ""
 
         checkMark =
-            settings.mark && settings.item.state == Items.InBasket
+            settings.done && settings.item.state == Items.InBasket
     in
     article
         [ class "grocery-item"
@@ -133,12 +190,12 @@ view (Settings settings) =
             , ( "item-draft", settings.draft )
             , ( "item-form", settings.open )
             ]
-        , onClick (ItemClicked settings.item settings.item.state)
+        , attributeMaybe onClick settings.on.click
         ]
         [ viewCheckbox
-            (\_ -> ItemChecked settings.item settings.item.state)
+            on.check
             False
-            (if settings.switch then
+            (if settings.required then
                 Plus
 
              else
@@ -151,40 +208,40 @@ view (Settings settings) =
         , span [ class "item-title" ]
             [ viewName
                 { itemId = settings.item.id
-                , onOpen = EditStarted settings.item
-                , inputChange = InputChanged settings.item Name
+                , onOpen = on.edit
+                , inputChange = Maybe.map (\f -> f Name) on.input
                 , content = settings.item.name
                 , editable = settings.editable
                 , open = settings.open
-                , onEnter = EnterPressed
-                , onEsc = EscPressed
+                , onEnter = on.enter
+                , onEsc = on.esc
                 }
             ]
         , viewQuantity
             { itemId = settings.item.id
-            , onOpen = EditStarted settings.item
-            , inputChange = InputChanged settings.item
+            , onOpen = on.edit
+            , inputChange = on.input
             , open = settings.open
             , editable = settings.editable
-            , onEnter = EnterPressed
-            , onEsc = EscPressed
+            , onEnter = on.enter
+            , onEsc = on.esc
             }
             settings.item.quantity
         , div [ class "item-comment-box" ]
             [ viewComment
                 { itemId = settings.item.id
-                , onOpen = EditStarted settings.item
-                , inputChange = InputChanged settings.item Comment
+                , onOpen = on.edit
+                , inputChange = Maybe.map (\f -> f Comment) on.input
                 , content = settings.item.comment
                 , open = settings.open
                 , editable = settings.editable
-                , onEnter = EnterPressed
-                , onEsc = EscPressed
+                , onEnter = on.enter
+                , onEsc = on.esc
                 }
-            , viewIf settings.switch <|
+            , viewIf settings.required <|
                 div
                     [ class "button delete-button"
-                    , onClick (DeleteClicked settings.item.id)
+                    , attributeMaybe onClick on.delete
                     ]
                     [ Icons.trashIcon [] ]
             , link

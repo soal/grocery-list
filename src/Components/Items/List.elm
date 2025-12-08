@@ -335,53 +335,31 @@ viewItem { item, mark, link, switch, checkedStates, open, editable } =
                 identity
            )
         |> (if mark == True then
-                Components.Items.Item.withMark
+                Components.Items.Item.withClick (ItemClicked item item.state)
 
             else
                 identity
            )
         |> (if switch == True then
-                Components.Items.Item.withSwitch
+                Components.Items.Item.withCheck
+                    (\_ -> ItemChecked item item.state)
+
+            else
+                identity
+           )
+        |> (if editable == True then
+                Components.Items.Item.withEditing
+                    { edit = EditStarted item
+                    , input = InputChanged
+                    , delete = ItemDeleteClicked item.id
+                    , enter = EnterPressed
+                    , esc = EscPressed
+                    }
 
             else
                 identity
            )
         |> Components.Items.Item.view
-        |> Html.map
-            (\msg ->
-                case msg of
-                    Components.Items.Item.ItemChecked clickedItem state ->
-                        ItemChecked clickedItem state
-
-                    Components.Items.Item.ItemClicked clickedItem state ->
-                        ItemClicked clickedItem state
-
-                    Components.Items.Item.EditStarted openItem field fieldId ->
-                        if editable then
-                            EditStarted openItem field fieldId
-
-                        else
-                            NoOp
-
-                    Components.Items.Item.InputChanged _ field content ->
-                        if editable then
-                            InputChanged field content
-
-                        else
-                            NoOp
-
-                    Components.Items.Item.DeleteClicked clickedItem ->
-                        ItemDeleteClicked clickedItem
-
-                    Components.Items.Item.EnterPressed ->
-                        EnterPressed
-
-                    Components.Items.Item.EscPressed ->
-                        EscPressed
-
-                    _ ->
-                        NoOp
-            )
 
 
 viewDraft :
@@ -393,19 +371,15 @@ viewDraft :
 viewDraft { draft, open, category } =
     case ( open, draft ) of
         ( True, New item ) ->
-            Components.Items.Item.new
-                { item = item, checkedSates = [], open = True, editable = True }
-                |> Components.Items.Item.asDraft
-                |> Components.Items.Item.view
-                |> Html.map
-                    (\msg ->
-                        case msg of
-                            Components.Items.Item.InputChanged _ field content ->
-                                InputChanged field content
-
-                            _ ->
-                                NoOp
-                    )
+            viewItem
+                { item = item
+                , mark = False
+                , link = False
+                , switch = True
+                , checkedStates = []
+                , open = True
+                , editable = True
+                }
 
         _ ->
             button
