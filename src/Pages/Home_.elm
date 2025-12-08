@@ -435,7 +435,7 @@ view shared model =
             , collapsedCatIds = model.collapsedCats
             }
             |> Components.Items.List.withLink
-            |> Components.Items.List.withSwitch
+            |> Components.Items.List.withCheck
             |> Components.Items.List.withDraft
                 model.catWithDraft
                 model.draft

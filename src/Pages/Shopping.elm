@@ -225,7 +225,7 @@ view shared model =
                         , checkedSates = [ Items.InBasket ]
                         , collapsedCatIds = model.collapsedCats
                         }
-                        |> Components.Items.List.withMark
+                        |> Components.Items.List.withClick
                         |> Components.Items.List.withCounter
                         |> Components.Items.List.view
                         |> Html.map GotItemListMsg

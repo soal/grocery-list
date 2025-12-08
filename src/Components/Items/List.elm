@@ -3,11 +3,11 @@ module Components.Items.List exposing
     , Msg(..)
     , new
     , view
+    , withCheck
+    , withClick
     , withCounter
     , withDraft
     , withLink
-    , withMark
-    , withSwitch
     )
 
 import Components.Category.Header
@@ -32,8 +32,8 @@ type alias Options =
     , categories : List Cats.Category
     , collapsedCatIds : Set String
     , link : Bool
-    , mark : Bool
-    , switch : Bool
+    , clickable : Bool
+    , checkable : Bool
     , counter : Bool
     , checkedStates : List Items.State
     , editable : Bool
@@ -59,8 +59,8 @@ new props =
         , categories = props.categories
         , collapsedCatIds = props.collapsedCatIds
         , link = False
-        , mark = False
-        , switch = False
+        , clickable = False
+        , checkable = False
         , counter = False
         , checkedStates = props.checkedSates
         , editable = False
@@ -72,9 +72,9 @@ withLink (Settings settings) =
     Settings { settings | link = True }
 
 
-withMark : ItemsList -> ItemsList
-withMark (Settings settings) =
-    Settings { settings | mark = True }
+withClick : ItemsList -> ItemsList
+withClick (Settings settings) =
+    Settings { settings | clickable = True }
 
 
 withCounter : ItemsList -> ItemsList
@@ -82,9 +82,9 @@ withCounter (Settings settings) =
     Settings { settings | counter = True }
 
 
-withSwitch : ItemsList -> ItemsList
-withSwitch (Settings settings) =
-    Settings { settings | switch = True }
+withCheck : ItemsList -> ItemsList
+withCheck (Settings settings) =
+    Settings { settings | checkable = True }
 
 
 withDraft :
@@ -158,7 +158,7 @@ viewCategory options category =
     ( category.id
     , div
         [ class "grocery-category"
-        , classList [ ( "shopping-page", options.mark ) ]
+        , classList [ ( "shopping-page", options.clickable ) ]
         ]
         [ viewCatHeader options state category
         , viewCatItems options category
@@ -258,9 +258,9 @@ viewItems options itemsKeyed =
             ( id
             , viewItem
                 { item = activeItem
-                , clickable = options.mark
+                , clickable = options.clickable
                 , link = options.link
-                , checkable = options.switch
+                , checkable = options.checkable
                 , checkedStates = options.checkedStates
                 , open = isItemOpen
                 , editable = options.editable

@@ -57,27 +57,18 @@ button {
 
 .nav-header {
   @media screen and (width < 451px) {
-    display: none;
+    box-shadow: var(--pico-box-shadow);
+    background-color: var(--pico-background-color);
+    display: block;
+    position: fixed;
+    bottom: 0;
+    z-index: 2;
   }
 
   @media screen and (width > 450px) {
-    display: block;
-  }
-}
-
-.nav-footer {
-  background-color: var(--pico-background-color);
-  box-shadow: var(--pico-box-shadow);
-  position: fixed;
-  bottom: 0;
-
-  @media screen and (width < 451px) {
-    display: block;
+    position: relative;
   }
 
-  @media screen and (width > 450px) {
-    display: none;
-  }
 }
 
 .app-main {
@@ -90,13 +81,6 @@ button {
   & ul {
     column-gap: 0.25em;
   }
-
-  /* & li { */
-  /* & a { */
-  /* font-size: 1rem; */
-  /* font-weight: 600; */
-  /* } */
-  /* } */
 
   .link {
     color: var(--pico-secondary);
@@ -131,8 +115,6 @@ button {
 .grocery-category {
   margin-bottom: calc(1.5 * var(--pico-form-element-spacing-horizontal));
   position: relative;
-  content-visibility: auto;
-  contain-intrinsic-size: 5rem auto;
   z-index: 1;
 
   & h4 {
@@ -162,13 +144,13 @@ button {
   .category-body {
     height: auto;
     transition: height 100ms ease-in-out;
-    overflow-y: hidden;
+    overflow-y: clip;
+    overflow-x: visible;
 
     &.collapsed {
       height: 0;
       overflow: hidden;
       z-index: 0;
-      /* transition: height 1s ease-out; */
     }
 
     &.animating {
@@ -182,7 +164,7 @@ button {
   align-items: center;
   background: transparent;
   content-visibility: auto;
-  contain-intrinsic-size: 2.125rem auto;
+  contain-intrinsic-size: auto 2.125rem;
   border-color: transparent;
   border-style: dashed;
   border-width: 1px;
@@ -567,7 +549,8 @@ h4 {
   transition: background-color var(--pico-transition), border-color var(--pico-transition), color var(--pico-transition), box-shadow var(--pico-transition);
 
   >svg {
-    display: none;
+    /* display: none; */
+    content-visibility: hidden;
   }
 
   &.checked {
@@ -575,7 +558,8 @@ h4 {
     --pico-border-color: var(--pico-primary-border);
 
     >svg {
-      display: block;
+      /* display: block; */
+      content-visibility: visible;
     }
   }
 

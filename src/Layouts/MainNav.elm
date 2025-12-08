@@ -2,7 +2,7 @@ module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
 import Dict
 import Effect exposing (Effect)
-import Html exposing (Html, a, footer, header, li, main_, nav, span, text, ul)
+import Html exposing (Html, a, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on, onClick)
 import Html.Lazy exposing (lazy2)
@@ -113,8 +113,6 @@ view props { model, content } =
             [ header [ class "nav-header app-container" ]
                 [ lazy2 viewNavBar model.currentRoute props.onAddClick ]
             , main_ [ class "app-main app-container" ] content.body
-            , footer [ class "nav-footer app-container" ]
-                [ lazy2 viewNavBar model.currentRoute props.onAddClick ]
             ]
         ]
     }
