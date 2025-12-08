@@ -193,6 +193,12 @@ viewCatHeader options state category =
         { category = category
         , items = options.items
         , state = state
+        , on =
+            { toggle = onCatToggle state
+            , input = InputChanged Name
+            , titleClick = CatTitleClicked
+            , delete = CatDeleteClicked
+            }
         }
         |> (if options.counter == True then
                 Components.Category.Header.withCounter
@@ -202,26 +208,16 @@ viewCatHeader options state category =
            )
         |> Components.Category.Header.withDraft options.draft
         |> Components.Category.Header.view
-        |> Html.map
-            (\msg ->
-                case msg of
-                    Components.Category.Header.Toggle id ->
-                        CollapseClicked id <|
-                            if state == Cats.Open then
-                                Cats.Collapsed
 
-                            else
-                                Cats.Open
 
-                    Components.Category.Header.InputChanged content ->
-                        InputChanged Name content
+onCatToggle : Cats.CollapsedState -> String -> Msg
+onCatToggle state catId =
+    CollapseClicked catId <|
+        if state == Cats.Open then
+            Cats.Collapsed
 
-                    Components.Category.Header.TitleClicked cat ->
-                        CatTitleClicked cat
-
-                    Components.Category.Header.DeleteClicked catId ->
-                        CatDeleteClicked catId
-            )
+        else
+            Cats.Open
 
 
 viewItems : Options -> List ( String, Items.Item ) -> List ( String, Html Msg )

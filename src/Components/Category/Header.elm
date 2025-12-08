@@ -1,6 +1,5 @@
 module Components.Category.Header exposing
     ( CategoryHeader
-    , Msg(..)
     , init
     , new
     , view
@@ -21,22 +20,32 @@ import LucideIcons as Icons
 import Types exposing (Draft(..))
 
 
-type CategoryHeader
+type CategoryHeader msg
     = Settings
         { category : Cats.Category
         , state : Cats.CollapsedState
         , items : Dict String Items.Item
         , counter : Bool
         , catDraft : Draft
+        , on : Handlers msg
         }
+
+
+type alias Handlers msg =
+    { toggle : String -> msg
+    , input : String -> msg
+    , titleClick : Cats.Category -> msg
+    , delete : String -> msg
+    }
 
 
 new :
     { category : Cats.Category
     , items : Dict String Items.Item
     , state : Cats.CollapsedState
+    , on : Handlers msg
     }
-    -> CategoryHeader
+    -> CategoryHeader msg
 new props =
     Settings
         { category = props.category
@@ -44,15 +53,16 @@ new props =
         , items = props.items
         , counter = False
         , catDraft = Empty
+        , on = props.on
         }
 
 
-withCounter : CategoryHeader -> CategoryHeader
+withCounter : CategoryHeader msg -> CategoryHeader msg
 withCounter (Settings settings) =
     Settings { settings | counter = True }
 
 
-withDraft : Draft -> CategoryHeader -> CategoryHeader
+withDraft : Draft -> CategoryHeader msg -> CategoryHeader msg
 withDraft catDraft (Settings settings) =
     Settings { settings | catDraft = catDraft }
 
@@ -66,20 +76,13 @@ init _ =
     {}
 
 
-type Msg
-    = Toggle String
-    | InputChanged String
-    | TitleClicked Cats.Category
-    | DeleteClicked String
-
-
-view : CategoryHeader -> Html Msg
-view (Settings settings) =
+view : CategoryHeader msg -> Html msg
+view (Settings ({ on } as settings)) =
     let
         chevron =
             span
                 [ class "chevron category-action button"
-                , onClick (Toggle settings.category.id)
+                , onClick (on.toggle settings.category.id)
                 ]
                 [ if settings.state == Cats.Open then
                     Icons.chevronDownIcon []
@@ -91,12 +94,12 @@ view (Settings settings) =
         deleteButton catId =
             span
                 [ class "delete-button category-action button with-click-outside"
-                , onClick (DeleteClicked catId)
+                , onClick (on.delete catId)
                 ]
                 [ Icons.trashIcon [] ]
 
         staticTitle =
-            span [ onClick (TitleClicked settings.category) ]
+            span [ onClick (on.titleClick settings.category) ]
                 [ text settings.category.name ]
 
         ( title, action ) =
@@ -111,7 +114,7 @@ view (Settings settings) =
                                 [ type_ "text"
                                 , id ("category-name-" ++ cat.id)
                                 , class "with-click-outside"
-                                , onInput InputChanged
+                                , onInput on.input
                                 , value cat.name
                                 ]
                                 []
@@ -131,7 +134,7 @@ view (Settings settings) =
                             [ input
                                 [ type_ "text"
                                 , id ("category-name-" ++ cat.id)
-                                , onInput InputChanged
+                                , onInput on.input
                                 , value cat.name
                                 ]
                                 []

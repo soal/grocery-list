@@ -34,6 +34,17 @@ import Route.Path
 import Types exposing (CheckboxKind(..), ItemField(..))
 
 
+type alias Handlers msg =
+    { click : Items.Item -> Items.State -> msg
+    , check : Items.Item -> Items.State -> msg
+    , editStart : Items.Item -> ItemField -> String -> msg
+    , input : ItemField -> String -> msg
+    , delete : String -> msg
+    , enter : msg
+    , esc : msg
+    }
+
+
 type ItemListElement
     = Settings
         { item : Items.Item
