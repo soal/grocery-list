@@ -4,6 +4,37 @@
   --pico-block-spacing-horizontal: 1rem;
   --pico-block-spacing-vertical: 0.5rem;
   interpolate-size: allow-keywords;
+  ;
+}
+
+@keyframes move-out {
+  from {
+    transform: translateX(0%);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes move-in {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0%);
+  }
+}
+
+/* Apply the custom animation to the old and new page states */
+
+::view-transition-old(root) {
+  animation: 0.4s ease-in both move-out;
+}
+
+::view-transition-new(root) {
+  animation: 0.4s ease-in both move-in;
 }
 
 html {
@@ -52,6 +83,7 @@ button {
 .app-main {
   margin-bottom: 8rem;
   padding-top: var(--pico-block-spacing-vertical);
+  view-transition-name: root;
 }
 
 .main-nav {
@@ -99,6 +131,8 @@ button {
 .grocery-category {
   margin-bottom: calc(1.5 * var(--pico-form-element-spacing-horizontal));
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: 5rem auto;
   z-index: 1;
 
   & h4 {
@@ -128,7 +162,7 @@ button {
   .category-body {
     height: auto;
     transition: height 100ms ease-in-out;
-    overflow: hidden;
+    overflow-y: hidden;
 
     &.collapsed {
       height: 0;
@@ -148,9 +182,7 @@ button {
   align-items: center;
   background: transparent;
   content-visibility: auto;
-  min-height: 2.125rem;
   contain-intrinsic-size: 2.125rem auto;
-  /* intrins-size: 2.125rem; */
   border-color: transparent;
   border-style: dashed;
   border-width: 1px;
@@ -237,10 +269,6 @@ button {
       width: calc(var(--base-size) * 1.5);
       height: calc(var(--base-size) * 1.5);
     }
-  }
-
-  &.item-draft {
-    border-style: solid;
   }
 
   .item-comment-box {
@@ -407,8 +435,10 @@ a {
     height: 1.5rem;
   }
 
-  &:hover {
+  &:hover,
+  &:focus {
     border-color: var(--pico-primary-border);
+    box-shadow: none;
     color: var(--pico-primary);
     cursor: pointer;
     transition: color 0.25s ease-in-out, border-color 0.25s ease-in-out;

@@ -1,6 +1,6 @@
 module Components.Items.Item exposing
     ( ItemListElement
-    , asDraft
+    , asForm
     , new
     , view
     , withCheck
@@ -63,10 +63,9 @@ type ItemListElement msg
         { item : Items.Item
         , link : Bool
         , checkedSates : List Items.State
-        , done : Bool
-        , required : Bool
+        , clickable : Bool
+        , checkable : Bool
         , open : Bool
-        , draft : Bool
         , editable : Bool
         , on : Handlers msg
         }
@@ -83,9 +82,8 @@ new props =
     Settings
         { item = props.item
         , link = False
-        , done = False
-        , required = False
-        , draft = False
+        , clickable = False
+        , checkable = False
         , checkedSates = props.checkedSates
         , open = props.open
         , editable = props.editable
@@ -99,7 +97,7 @@ withClick onClick (Settings settings) =
         on =
             settings.on
     in
-    Settings { settings | done = True, on = { on | click = Just onClick } }
+    Settings { settings | clickable = True, on = { on | click = Just onClick } }
 
 
 withCheck : (Bool -> msg) -> ItemListElement msg -> ItemListElement msg
@@ -108,7 +106,7 @@ withCheck onCheck (Settings settings) =
         on =
             settings.on
     in
-    Settings { settings | required = True, on = { on | check = Just onCheck } }
+    Settings { settings | checkable = True, on = { on | check = Just onCheck } }
 
 
 withLink : ItemListElement msg -> ItemListElement msg
@@ -117,12 +115,7 @@ withLink (Settings settings) =
 
 
 withEditing :
-    { edit : ItemField -> String -> msg
-    , input : ItemField -> String -> msg
-    , delete : msg
-    , enter : msg
-    , esc : msg
-    }
+    { edit : ItemField -> String -> msg }
     -> ItemListElement msg
     -> ItemListElement msg
 withEditing handlers (Settings settings) =
@@ -133,37 +126,34 @@ withEditing handlers (Settings settings) =
     Settings
         { settings
             | editable = True
+            , on = { on | edit = Just handlers.edit }
+        }
+
+
+asForm :
+    { input : ItemField -> String -> msg
+    , delete : msg
+    , enter : msg
+    , esc : msg
+    }
+    -> ItemListElement msg
+    -> ItemListElement msg
+asForm handlers (Settings settings) =
+    let
+        on =
+            settings.on
+    in
+    Settings
+        { settings
+            | open = True
             , on =
                 { on
-                    | edit = Just handlers.edit
-                    , input = Just handlers.input
+                    | input = Just handlers.input
                     , delete = Just handlers.delete
                     , enter = Just handlers.enter
                     , esc = Just handlers.esc
                 }
         }
-
-
-asDraft : ItemListElement msg -> ItemListElement msg
-asDraft (Settings settings) =
-    Settings
-        { settings
-            | draft = True
-            , editable = True
-            , open = True
-        }
-
-
-
--- type Msg
---     = ItemClicked Items.Item Items.State
---     | ItemChecked Items.Item Items.State
---     | EditStarted Items.Item ItemField String
---     | InputChanged Items.Item ItemField String
---     | DeleteClicked String
---     | EnterPressed
---     | EscPressed
---     | NoOp
 
 
 view : ItemListElement msg -> Html msg
@@ -181,13 +171,12 @@ view (Settings ({ on } as settings)) =
                 text ""
 
         checkMark =
-            settings.done && settings.item.state == Items.InBasket
+            settings.clickable && settings.item.state == Items.InBasket
     in
     article
         [ class "grocery-item"
         , classList
             [ ( "in-basket", checkMark )
-            , ( "item-draft", settings.draft )
             , ( "item-form", settings.open )
             ]
         , attributeMaybe onClick settings.on.click
@@ -195,7 +184,7 @@ view (Settings ({ on } as settings)) =
         [ viewCheckbox
             on.check
             False
-            (if settings.required then
+            (if settings.checkable then
                 Plus
 
              else
@@ -238,7 +227,7 @@ view (Settings ({ on } as settings)) =
                 , onEnter = on.enter
                 , onEsc = on.esc
                 }
-            , viewIf settings.required <|
+            , viewIf settings.checkable <|
                 div
                     [ class "button delete-button"
                     , attributeMaybe onClick on.delete

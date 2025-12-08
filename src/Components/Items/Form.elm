@@ -56,12 +56,12 @@ viewName :
         , onEsc : Maybe msg
     }
     -> Html msg
-viewName ({ editable, open } as props) =
+viewName props =
     let
         fieldId =
             "item-name-" ++ props.itemId
     in
-    if editable && open then
+    if props.open then
         viewNameField
             { fieldId = fieldId
             , inputChange = props.inputChange
@@ -124,12 +124,12 @@ viewComment :
         , onEsc : Maybe msg
     }
     -> Html msg
-viewComment ({ open, editable } as props) =
+viewComment props =
     let
         fieldId =
             "item-comment-" ++ props.itemId
     in
-    if editable && open then
+    if props.open then
         viewCommentField
             { fieldId = fieldId
             , inputChange = props.inputChange
@@ -143,7 +143,7 @@ viewComment ({ open, editable } as props) =
             (Maybe.map (\f -> f Comment fieldId) props.onOpen)
             props.content
             fieldId
-            editable
+            props.editable
 
 
 viewCommentStatic : Maybe msg -> Maybe String -> String -> Bool -> Html msg
@@ -209,7 +209,7 @@ viewQuantity :
     }
     -> Items.Quantity
     -> Html msg
-viewQuantity ({ editable, open } as props) (Items.Quantity count unit) =
+viewQuantity props (Items.Quantity count unit) =
     let
         countFieldId =
             "item-quantity-count" ++ props.itemId
@@ -217,7 +217,7 @@ viewQuantity ({ editable, open } as props) (Items.Quantity count unit) =
         unitFieldId =
             "item-quantity-unit" ++ props.itemId
     in
-    if editable && open then
+    if props.open then
         span [ class "item-quantity" ]
             [ viewQCountField
                 { fieldId = countFieldId

@@ -258,9 +258,9 @@ viewItems options itemsKeyed =
             ( id
             , viewItem
                 { item = activeItem
-                , mark = options.mark
+                , clickable = options.mark
                 , link = options.link
-                , switch = options.switch
+                , checkable = options.switch
                 , checkedStates = options.checkedStates
                 , open = isItemOpen
                 , editable = options.editable
@@ -313,15 +313,15 @@ getItemsWithoutCat allItems categories =
 
 viewItem :
     { item : Items.Item
-    , mark : Bool
     , link : Bool
-    , switch : Bool
+    , clickable : Bool
+    , checkable : Bool
     , checkedStates : List Items.State
     , open : Bool
     , editable : Bool
     }
     -> Html Msg
-viewItem { item, mark, link, switch, checkedStates, open, editable } =
+viewItem { item, clickable, link, checkedStates, open, checkable, editable } =
     Components.Items.Item.new
         { item = item
         , checkedSates = checkedStates
@@ -334,13 +334,13 @@ viewItem { item, mark, link, switch, checkedStates, open, editable } =
             else
                 identity
            )
-        |> (if mark == True then
+        |> (if clickable == True then
                 Components.Items.Item.withClick (ItemClicked item item.state)
 
             else
                 identity
            )
-        |> (if switch == True then
+        |> (if checkable == True then
                 Components.Items.Item.withCheck
                     (\_ -> ItemChecked item item.state)
 
@@ -348,9 +348,14 @@ viewItem { item, mark, link, switch, checkedStates, open, editable } =
                 identity
            )
         |> (if editable == True then
-                Components.Items.Item.withEditing
-                    { edit = EditStarted item
-                    , input = InputChanged
+                Components.Items.Item.withEditing { edit = EditStarted item }
+
+            else
+                identity
+           )
+        |> (if open == True then
+                Components.Items.Item.asForm
+                    { input = InputChanged
                     , delete = ItemDeleteClicked item.id
                     , enter = EnterPressed
                     , esc = EscPressed
@@ -373,12 +378,12 @@ viewDraft { draft, open, category } =
         ( True, New item ) ->
             viewItem
                 { item = item
-                , mark = False
                 , link = False
-                , switch = True
+                , clickable = False
+                , checkable = False
                 , checkedStates = []
                 , open = True
-                , editable = True
+                , editable = False
                 }
 
         _ ->
