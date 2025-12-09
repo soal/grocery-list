@@ -75,7 +75,6 @@ new :
     { item : Items.Item
     , checkedSates : List Items.State
     , open : Bool
-    , editable : Bool
     }
     -> ItemListElement msg
 new props =
@@ -86,7 +85,7 @@ new props =
         , checkable = False
         , checkedSates = props.checkedSates
         , open = props.open
-        , editable = props.editable
+        , editable = False
         , on = defaultHandlers
         }
 
@@ -115,7 +114,7 @@ withLink (Settings settings) =
 
 
 withEditing :
-    { edit : ItemField -> String -> msg }
+    { edit : ItemField -> String -> msg, delete : msg }
     -> ItemListElement msg
     -> ItemListElement msg
 withEditing handlers (Settings settings) =
@@ -126,7 +125,11 @@ withEditing handlers (Settings settings) =
     Settings
         { settings
             | editable = True
-            , on = { on | edit = Just handlers.edit }
+            , on =
+                { on
+                    | edit = Just handlers.edit
+                    , delete = Just handlers.delete
+                }
         }
 
 
@@ -179,7 +182,7 @@ view (Settings ({ on } as settings)) =
             [ ( "in-basket", checkMark )
             , ( "item-form", settings.open )
             ]
-        , attributeMaybe onClick settings.on.click
+        , attributeMaybe onClick on.click
         ]
         [ viewCheckbox
             on.check
@@ -227,9 +230,9 @@ view (Settings ({ on } as settings)) =
                 , onEnter = on.enter
                 , onEsc = on.esc
                 }
-            , viewIf settings.checkable <|
+            , viewIf settings.editable <|
                 div
-                    [ class "button delete-button"
+                    [ class "button delete-button with-click-outside"
                     , attributeMaybe onClick on.delete
                     ]
                     [ Icons.trashIcon [] ]

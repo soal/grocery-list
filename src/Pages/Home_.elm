@@ -1,6 +1,7 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
 import Browser.Dom
+import Components.Items.Item
 import Components.Items.List
 import DataUpdate
 import Db.Categories as Cats
@@ -8,8 +9,12 @@ import Db.Items as Items
 import Db.Settings exposing (CatsAndItems)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
-import Html
+import Html exposing (button)
+import Html.Attributes exposing (class)
+import Html.Events exposing (onClick)
+import Html.Extra exposing (nothing)
 import Layouts
+import LucideIcons as Icons
 import Page exposing (Page)
 import Route exposing (Route)
 import Set exposing (Set)
@@ -100,6 +105,12 @@ type Msg
     | GotDraftUpdateTime Draft Time.Posix
     | GotItemStateUpdateTime Items.Item Time.Posix
     | GotCatAddClick
+      -- ITEM WITHOUT CATEGORY
+    | GotItemAddClick
+    | GotInput ItemField String
+    | GotItemDeleteClick String
+    | GotEnterKey
+    | GotEscKey
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -129,7 +140,7 @@ update msg model =
                     ( model, Effect.none )
 
         GotClickOutside ->
-            endEditAndSave model
+            endEditAndSave model False
 
         GotCatsAndItems data ->
             let
@@ -143,6 +154,11 @@ update msg model =
         GotCatAddClick ->
             ( model
             , Effect.requestUuid GotCatUuid
+            )
+
+        GotItemAddClick ->
+            ( { model | catWithDraft = Nothing }
+            , Effect.requestUuid GotItemUuid
             )
 
         GotCatUuid uuid_ ->
@@ -190,6 +206,45 @@ update msg model =
             , Effect.storeItem onTaskPortResult { item | updated = timestamp }
             )
 
+        GotInput field content ->
+            if model.draft == Empty then
+                ( model, Effect.none )
+
+            else
+                let
+                    altered =
+                        alterDraft model.draft field content
+                in
+                ( { model | draft = altered }
+                , Effect.getTime (GotDraftUpdateTime altered)
+                )
+
+        GotEscKey ->
+            ( { model | draft = Empty }, Effect.none )
+
+        GotEnterKey ->
+            endEditAndSave model True
+
+        GotItemDeleteClick itemId ->
+            let
+                category =
+                    model.categories
+                        |> List.filter (\c -> List.member itemId c.items)
+                        |> List.head
+            in
+            ( { model
+                | items = Dict.remove itemId model.items
+                , categories =
+                    List.map
+                        (Cats.removeItem itemId)
+                        model.categories
+              }
+            , Effect.batch
+                [ Effect.deleteItem onTaskPortResult itemId
+                , Effect.maybe (Effect.storeCategory onTaskPortResult) category
+                ]
+            )
+
 
 onListMsg : Model -> Components.Items.List.Msg -> ( Model, Effect Msg )
 onListMsg model msg =
@@ -212,22 +267,15 @@ onListMsg model msg =
 
         Components.Items.List.EditStarted item _ fieldId ->
             ( { model | draft = Existing item }
-            , Effect.sendCmd <|
-                Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
+            , Effect.batch
+                [ Effect.sendCmd <|
+                    Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
+                , Effect.selectInput (\_ -> NoOp) fieldId
+                ]
             )
 
         Components.Items.List.InputChanged field content ->
-            if model.draft == Empty then
-                ( model, Effect.none )
-
-            else
-                let
-                    altered =
-                        alterDraft model.draft field content
-                in
-                ( { model | draft = altered }
-                , Effect.getTime (GotDraftUpdateTime altered)
-                )
+            ( model, Effect.sendMsg (GotInput field content) )
 
         Components.Items.List.DraftOpened category ->
             ( { model | catWithDraft = Just category.id }
@@ -235,24 +283,7 @@ onListMsg model msg =
             )
 
         Components.Items.List.ItemDeleteClicked itemId ->
-            let
-                category =
-                    model.categories
-                        |> List.filter (\c -> List.member itemId c.items)
-                        |> List.head
-            in
-            ( { model
-                | items = Dict.remove itemId model.items
-                , categories =
-                    List.map
-                        (Cats.removeItem itemId)
-                        model.categories
-              }
-            , Effect.batch
-                [ Effect.deleteItem onTaskPortResult itemId
-                , Effect.maybe (Effect.storeCategory onTaskPortResult) category
-                ]
-            )
+            ( model, Effect.sendMsg (GotItemDeleteClick itemId) )
 
         Components.Items.List.CatTitleClicked category ->
             ( { model | draft = ExistingCat category }
@@ -268,10 +299,10 @@ onListMsg model msg =
             )
 
         Components.Items.List.EnterPressed ->
-            endEditAndSave model
+            endEditAndSave model True
 
         Components.Items.List.EscPressed ->
-            ( { model | draft = Empty }, Effect.none )
+            ( model, Effect.sendMsg GotEscKey )
 
         _ ->
             ( model, Effect.none )
@@ -326,8 +357,8 @@ updateItemContent item field content =
             item
 
 
-endEditAndSave : Model -> ( Model, Effect Msg )
-endEditAndSave model =
+endEditAndSave : Model -> Bool -> ( Model, Effect Msg )
+endEditAndSave model addNew =
     case model.draft of
         Empty ->
             ( model, Effect.none )
@@ -340,6 +371,7 @@ endEditAndSave model =
             ( { model
                 | items = Items.alter model.items newItem
                 , draft = Empty
+                , catWithDraft = Nothing
               }
             , Effect.storeItem onTaskPortResult newItem
             )
@@ -354,7 +386,7 @@ endEditAndSave model =
                 )
 
             else
-                endItemDraft model item
+                endItemDraft model item addNew
 
         NewCat cat ->
             if String.isEmpty cat.name then
@@ -398,19 +430,6 @@ endEditAndSave model =
 
 
 
--- endEditAndDiscard : Model -> ( Model, Effect msg )
--- endEditAndDiscard model =
--- case model.draft of
---     Empty ->
---         ( model, Effect.none )
---     New _ ->
---         ( { model | draft = Empty }, Effect.none )
---     Existing _ ->
---         ( { model | draft = Empty }, Effect.none )
---     NewCat _ ->
---         ( { model | draft = Empty }, Effect.none )
---     ExistingCat _ ->
---         ( { model | draft = Empty }, Effect.none )
 -- SUBSCRIPTIONS
 
 
@@ -427,8 +446,7 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     { title = shared.titlePrefix ++ "Список"
     , body =
-        [ -- if Dict.size model.items > 0 then
-          Components.Items.List.new
+        [ Components.Items.List.new
             { items = model.items
             , categories = model.categories
             , checkedSates = [ Items.Required, Items.InBasket ]
@@ -441,6 +459,26 @@ view shared model =
                 model.draft
             |> Components.Items.List.view
             |> Html.map GotItemListMsg
+        , case ( model.draft, model.catWithDraft ) of
+            ( New item, Nothing ) ->
+                Components.Items.Item.new
+                    { item = item
+                    , checkedSates = []
+                    , open = True
+                    }
+                    |> Components.Items.Item.asForm
+                        { input = GotInput
+                        , delete = GotItemDeleteClick item.id
+                        , enter = GotEnterKey
+                        , esc = GotEscKey
+                        }
+                    |> Components.Items.Item.view
+
+            ( _, _ ) ->
+                nothing
+        , button [ class "main-action", onClick GotItemAddClick ]
+            [ Icons.plusIcon []
+            ]
         ]
     }
 
@@ -475,8 +513,8 @@ onTaskPortResult res =
             NoOp
 
 
-endItemDraft : Model -> Items.Item -> ( Model, Effect Msg )
-endItemDraft model item =
+endItemDraft : Model -> Items.Item -> Bool -> ( Model, Effect Msg )
+endItemDraft model item addNew =
     let
         alteredCat =
             model.catWithDraft
@@ -487,11 +525,18 @@ endItemDraft model item =
 
         newItem =
             { item | slug = slugify item.name }
+
+        catWithDraft =
+            if addNew == True then
+                model.catWithDraft
+
+            else
+                Nothing
     in
     ( { model
         | items = Items.alter model.items newItem
         , draft = Empty
-        , catWithDraft = Nothing
+        , catWithDraft = catWithDraft
         , categories =
             alteredCat
                 |> Maybe.map (Cats.alter model.categories)
@@ -499,7 +544,11 @@ endItemDraft model item =
       }
     , Effect.batch
         [ Effect.storeItem onTaskPortResult newItem
-        , Effect.requestUuid GotItemUuid
         , Effect.maybe (Effect.storeCategory onTaskPortResult) alteredCat
+        , if addNew == True then
+            Effect.requestUuid GotItemUuid
+
+          else
+            Effect.none
         ]
     )

@@ -172,6 +172,14 @@ function getUuid() {
 	return window.crypto.randomUUID();
 }
 
+function selectInput(id: string) {
+	window.requestAnimationFrame(() => {
+		const el = document.getElementById(id);
+		if (["INPUT", "TEXTAREA"].includes(el.tagName)) {
+			(el as HTMLInputElement).select();
+		}
+	});
+}
 TaskPort.register("initDb", initDb);
 TaskPort.register("storeDump", storeDump);
 TaskPort.register("queryAllCatsAndItems", queryAllCatsAndItems);
@@ -183,6 +191,7 @@ TaskPort.register("deleteItem", deleteItem);
 
 TaskPort.register("storeCategory", storeCategory);
 TaskPort.register("deleteCategory", deleteCategory);
+TaskPort.register("selectInput", selectInput);
 
 export const flags = () => ({
 	settings: {

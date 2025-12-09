@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , deleteCategory, deleteItem, getTime, importData, initDb, maybe, queryAll, requestUuid, storeAllItems, storeCategory, storeDump, storeItem
+    , deleteCategory, deleteItem, getTime, importData, initDb, maybe, queryAll, requestUuid, selectInput, storeAllItems, storeCategory, storeDump, storeItem
     )
 
 {-|
@@ -66,6 +66,7 @@ type Effect msg
     | QueryItem (TaskPort.Result Items.Item -> msg) String
     | StoreCategory (TaskPort.Result Bool -> msg) Cats.Category
     | DeleteCategory (TaskPort.Result Bool -> msg) String
+    | SelectInput (TaskPort.Result Bool -> msg) String
 
 
 
@@ -75,6 +76,23 @@ type Effect msg
 getTime : (Time.Posix -> msg) -> Effect msg
 getTime onResult =
     GetTime onResult
+
+
+selectInput : (TaskPort.Result Bool -> msg) -> String -> Effect msg
+selectInput onResult id =
+    SelectInput onResult id
+
+
+selectInputEffect : (TaskPort.Result Bool -> msg) -> String -> Cmd msg
+selectInputEffect onResult id =
+    Task.attempt onResult
+        (TaskPort.call
+            { function = "selectInput"
+            , valueDecoder = JD.bool
+            , argsEncoder = JE.string
+            }
+            id
+        )
 
 
 
@@ -396,6 +414,9 @@ map fn effect =
         StoreDump onResult dump ->
             StoreDump (onResult >> fn) dump
 
+        SelectInput onResult id ->
+            SelectInput (onResult >> fn) id
+
 
 {-| Elm Land depends on this function to perform your effects.
 -}
@@ -469,3 +490,6 @@ toCmd options effect =
 
         StoreDump onResult dump ->
             storeDumpEffect onResult dump
+
+        SelectInput onResult id ->
+            selectInputEffect onResult id

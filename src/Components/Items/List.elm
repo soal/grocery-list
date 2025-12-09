@@ -326,7 +326,6 @@ viewItem { item, clickable, link, checkedStates, open, checkable, editable } =
         { item = item
         , checkedSates = checkedStates
         , open = open
-        , editable = editable
         }
         |> (if link == True then
                 Components.Items.Item.withLink
@@ -348,7 +347,10 @@ viewItem { item, clickable, link, checkedStates, open, checkable, editable } =
                 identity
            )
         |> (if editable == True then
-                Components.Items.Item.withEditing { edit = EditStarted item }
+                Components.Items.Item.withEditing
+                    { edit = EditStarted item
+                    , delete = ItemDeleteClicked item.id
+                    }
 
             else
                 identity
