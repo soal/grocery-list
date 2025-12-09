@@ -1,5 +1,6 @@
 module Db.Items exposing
-    ( Item
+    ( Id
+    , Item
     , Quantity(..)
     , State(..)
     , alter
@@ -14,7 +15,6 @@ module Db.Items exposing
     , map
     , queryBySlug
     , setAllStuffed
-    , setId
     , setState
     , setUpdated
     , store
@@ -28,6 +28,10 @@ import Json.Encode.Extra as JEE
 import Task
 import TaskPort
 import Time
+
+
+type alias Id =
+    String
 
 
 type State
@@ -101,7 +105,7 @@ encodeQuantity quantity =
 
 
 type alias Item =
-    { id : String
+    { id : Id
     , name : String
     , quantity : Quantity
     , comment : Maybe String
@@ -150,7 +154,7 @@ encode item =
         ]
 
 
-emptyItem : Maybe String -> Item
+emptyItem : Maybe Id -> Item
 emptyItem maybeId =
     Item
         (Maybe.withDefault "empty" maybeId)
@@ -165,42 +169,37 @@ emptyItem maybeId =
         0
 
 
-map : (Item -> a) -> Dict String Item -> Dict String a
+map : (Item -> a) -> Dict Id Item -> Dict Id a
 map fn items =
     Dict.map (\_ v -> fn v) items
 
 
-setState : State -> String -> Dict String Item -> Dict String Item
+setState : State -> Id -> Dict Id Item -> Dict Id Item
 setState state id allItems =
     Dict.update id
         (Maybe.map <| switchState state [])
         allItems
 
 
-incFrequency : String -> Dict String Item -> Dict String Item
+incFrequency : Id -> Dict Id Item -> Dict Id Item
 incFrequency id allItems =
     Dict.update id
         (Maybe.map <| \item -> { item | frequency = item.frequency + 1 })
         allItems
 
 
-setUpdated : Dict String Item -> String -> Time.Posix -> Dict String Item
+setUpdated : Dict Id Item -> Id -> Time.Posix -> Dict Id Item
 setUpdated allItems id timestamp =
     Dict.update id
         (Maybe.map <| \item -> { item | updated = timestamp })
         allItems
 
 
-alter : Dict String Item -> Item -> Dict String Item
+alter : Dict Id Item -> Item -> Dict Id Item
 alter allItems item =
     Dict.insert item.id
         item
         allItems
-
-
-setId : String -> Item -> Item
-setId id draft =
-    { draft | id = id }
 
 
 switchState : State -> List State -> Item -> Item
@@ -215,7 +214,7 @@ switchState newState oldStates item =
         item
 
 
-setAllStuffed : Dict String Item -> Dict String Item
+setAllStuffed : Dict Id Item -> Dict Id Item
 setAllStuffed items =
     map
         (switchState Stuffed [ InBasket ])
@@ -225,6 +224,7 @@ setAllStuffed items =
 store : (TaskPort.Result Bool -> msg) -> Item -> Cmd msg
 store onResult item =
     let
+        call : Item -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "storeItem"
@@ -235,9 +235,10 @@ store onResult item =
     Task.attempt onResult <| call item
 
 
-delete : (TaskPort.Result Bool -> msg) -> String -> Cmd msg
+delete : (TaskPort.Result Bool -> msg) -> Id -> Cmd msg
 delete onResult itemId =
     let
+        call : String -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "deleteItem"
@@ -250,10 +251,11 @@ delete onResult itemId =
 
 storeAll :
     (TaskPort.Result Bool -> msg)
-    -> Dict String Item
+    -> Dict Id Item
     -> Cmd msg
 storeAll onResult items =
     let
+        call : Dict String Item -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "storeAllItems"
@@ -267,6 +269,7 @@ storeAll onResult items =
 queryBySlug : (TaskPort.Result Item -> msg) -> String -> Cmd msg
 queryBySlug onResult slug =
     let
+        call : String -> TaskPort.Task Item
         call =
             TaskPort.call
                 { function = "queryBySlug"
@@ -277,16 +280,16 @@ queryBySlug onResult slug =
     Task.attempt onResult <| call slug
 
 
-getInBasketLength : Dict String Item -> Int
+getInBasketLength : Dict Id Item -> Int
 getInBasketLength items =
     Dict.size (filterByStates items [ InBasket ])
 
 
-isAllDone : Dict String Item -> Bool
+isAllDone : Dict Id Item -> Bool
 isAllDone items =
     not (Dict.isEmpty items) && Dict.size items <= getInBasketLength items
 
 
-filterByStates : Dict String Item -> List State -> Dict String Item
+filterByStates : Dict Id Item -> List State -> Dict Id Item
 filterByStates items states =
     Dict.filter (\_ { state } -> List.member state states) items

@@ -3,6 +3,8 @@
   --pico-spacing: 0.5rem;
   --pico-block-spacing-horizontal: 1rem;
   --pico-block-spacing-vertical: 0.5rem;
+  interpolate-size: allow-keywords;
+  ;
 }
 
 html {
@@ -25,45 +27,30 @@ button {
 
 .nav-header {
   @media screen and (width < 451px) {
-    display: none;
+    box-shadow: var(--pico-box-shadow);
+    background-color: var(--pico-background-color);
+    display: block;
+    position: fixed;
+    bottom: 0;
+    z-index: 2;
   }
 
   @media screen and (width > 450px) {
-    display: block;
-  }
-}
-
-.nav-footer {
-  background-color: var(--pico-background-color);
-  box-shadow: var(--pico-box-shadow);
-  position: fixed;
-  bottom: 0;
-
-  @media screen and (width < 451px) {
-    display: block;
+    position: relative;
   }
 
-  @media screen and (width > 450px) {
-    display: none;
-  }
 }
 
 .app-main {
-  margin-bottom: 8rem;
+  margin-bottom: 10rem;
   padding-top: var(--pico-block-spacing-vertical);
+  view-transition-name: root;
 }
 
 .main-nav {
   & ul {
     column-gap: 0.25em;
   }
-
-  /* & li { */
-    /* & a { */
-      /* font-size: 1rem; */
-      /* font-weight: 600; */
-    /* } */
-  /* } */
 
   .link {
     color: var(--pico-secondary);
@@ -97,6 +84,8 @@ button {
 
 .grocery-category {
   margin-bottom: calc(1.5 * var(--pico-form-element-spacing-horizontal));
+  position: relative;
+  z-index: 1;
 
   & h4 {
     display: flex;
@@ -114,8 +103,8 @@ button {
     }
   }
 
-  .chevron {
-    /* flex-grow: 1; */
+  .category-action.chevron {
+    padding-right: 1em;
 
     &:hover {
       color: var(--pico-primary);
@@ -124,10 +113,18 @@ button {
 
   .category-body {
     height: auto;
+    transition: height 100ms ease-in-out;
+    overflow-y: clip;
+    overflow-x: visible;
 
     &.collapsed {
       height: 0;
       overflow: hidden;
+      z-index: 0;
+    }
+
+    &.animating {
+      z-index: 0;
     }
   }
 }
@@ -136,6 +133,8 @@ button {
   --base-size: 1.25rem;
   align-items: center;
   background: transparent;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 2.125rem;
   border-color: transparent;
   border-style: dashed;
   border-width: 1px;
@@ -224,8 +223,21 @@ button {
     }
   }
 
-  &.item-draft {
-    border-style: solid;
+  .item-quantity {
+    align-items: baseline;
+    display: inline-block;
+    text-align: center;
+
+    .input-resize-container {
+      & input[type=text] {
+        text-align: center;
+      }
+
+      & input[type=text],
+      &::after {
+        min-width: 1rem;
+      }
+    }
   }
 
   .item-comment-box {
@@ -293,13 +305,6 @@ button {
     padding: 0;
     margin: 0;
     resize: none;
-  }
-
-  .item-quantity {
-    align-items: baseline;
-    display: flex;
-    text-align: center;
-    column-gap: 0.25em;
   }
 
   .item-comment {
@@ -392,8 +397,10 @@ a {
     height: 1.5rem;
   }
 
-  &:hover {
+  &:hover,
+  &:focus {
     border-color: var(--pico-primary-border);
+    box-shadow: none;
     color: var(--pico-primary);
     cursor: pointer;
     transition: color 0.25s ease-in-out, border-color 0.25s ease-in-out;
@@ -403,6 +410,7 @@ a {
 .end-shopping-button {
   display: block;
   margin-inline: auto;
+  margin-block: calc(3 * var(--pico-block-spacing-horizontal));
 
   &.all-done {
     background-color: var(--pico-form-element-valid-focus-color);
@@ -436,7 +444,7 @@ a {
 }
 
 .label {
-  .input-resize-containter {
+  .input-resize-container {
     &::after {
       font-weight: 700;
     }
@@ -444,7 +452,7 @@ a {
 }
 
 
-.input-resize-containter {
+.input-resize-container {
   height: 100%;
   max-width: 100%;
   overflow: hidden;
@@ -522,7 +530,8 @@ h4 {
   transition: background-color var(--pico-transition), border-color var(--pico-transition), color var(--pico-transition), box-shadow var(--pico-transition);
 
   >svg {
-    display: none;
+    /* display: none; */
+    content-visibility: hidden;
   }
 
   &.checked {
@@ -530,7 +539,8 @@ h4 {
     --pico-border-color: var(--pico-primary-border);
 
     >svg {
-      display: block;
+      /* display: block; */
+      content-visibility: visible;
     }
   }
 
@@ -559,4 +569,19 @@ p {
 h1 {
   margin-bottom: calc(var(--pico-block-spacing-vertical) * 4);
 
+}
+
+.main-action {
+  border-radius: 100%;
+  position: fixed;
+  bottom: 5rem;
+  right: 2rem;
+  padding: 0;
+  font-size: 1.5rem;
+  height: 3rem;
+  width: 3rem;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

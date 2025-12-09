@@ -16,7 +16,6 @@ import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
-import Shared.Msg exposing (Msg(..))
 import Task
 import TaskPort
 import View exposing (View)

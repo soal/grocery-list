@@ -1,12 +1,12 @@
 module Components.Items.Item exposing
     ( ItemListElement
-    , Msg(..)
-    , asDraft
+    , asForm
     , new
     , view
+    , withCheck
+    , withClick
+    , withEditing
     , withLink
-    , withMark
-    , withSwitch
     )
 
 import Components.Items.Form
@@ -23,85 +23,152 @@ import Html
         , a
         , article
         , div
-        , h4
         , span
         , text
         )
 import Html.Attributes exposing (class, classList)
+import Html.Attributes.Extra exposing (attributeMaybe)
 import Html.Events exposing (onClick)
-import Html.Extra exposing (viewIf, viewMaybe)
+import Html.Extra exposing (viewIf)
 import LucideIcons as Icons
 import Route.Path
-import Types exposing (CheckboxKind(..), ItemField(..))
+import Types exposing (CheckboxKind(..), FormState(..), ItemField(..))
 
 
-type ItemListElement
+type alias Handlers msg =
+    { click : Maybe msg
+    , check : Maybe (Bool -> msg)
+    , edit : Maybe (ItemField -> String -> msg)
+    , input : Maybe (ItemField -> String -> msg)
+    , delete : Maybe msg
+    , enter : Maybe msg
+    , esc : Maybe msg
+    }
+
+
+defaultHandlers : Handlers msg
+defaultHandlers =
+    { click = Nothing
+    , check = Nothing
+    , edit = Nothing
+    , input = Nothing
+    , delete = Nothing
+    , enter = Nothing
+    , esc = Nothing
+    }
+
+
+type ItemListElement msg
     = Settings
         { item : Items.Item
         , link : Bool
         , checkedSates : List Items.State
-        , mark : Bool
-        , switch : Bool
-        , open : Bool
-        , draft : Bool
+        , clickable : Bool
+        , checkable : Bool
+        , formState : FormState
         , editable : Bool
+        , on : Handlers msg
         }
 
 
 new :
     { item : Items.Item
     , checkedSates : List Items.State
-    , open : Bool
-    , editable : Bool
+    , formState : FormState
     }
-    -> ItemListElement
+    -> ItemListElement msg
 new props =
     Settings
         { item = props.item
         , link = False
-        , mark = False
-        , switch = False
-        , draft = False
+        , clickable = False
+        , checkable = False
         , checkedSates = props.checkedSates
-        , open = props.open
-        , editable = props.editable
+        , formState = props.formState
+        , editable = False
+        , on = defaultHandlers
         }
 
 
-withLink : ItemListElement -> ItemListElement
+withClick : msg -> ItemListElement msg -> ItemListElement msg
+withClick onClick (Settings settings) =
+    let
+        on : Handlers msg
+        on =
+            settings.on
+    in
+    Settings { settings | clickable = True, on = { on | click = Just onClick } }
+
+
+withCheck : (Bool -> msg) -> ItemListElement msg -> ItemListElement msg
+withCheck onCheck (Settings settings) =
+    let
+        on : Handlers msg
+        on =
+            settings.on
+    in
+    Settings { settings | checkable = True, on = { on | check = Just onCheck } }
+
+
+withLink : ItemListElement msg -> ItemListElement msg
 withLink (Settings settings) =
     Settings { settings | link = True }
 
 
-withMark : ItemListElement -> ItemListElement
-withMark (Settings settings) =
-    Settings { settings | mark = True }
-
-
-withSwitch : ItemListElement -> ItemListElement
-withSwitch (Settings settings) =
-    Settings { settings | switch = True }
-
-
-asDraft : ItemListElement -> ItemListElement
-asDraft (Settings settings) =
-    Settings { settings | draft = True, editable = True, open = True }
-
-
-type Msg
-    = ItemClicked Items.Item Items.State
-    | ItemChecked Items.Item Items.State
-    | EditStarted Items.Item ItemField String
-    | InputChanged Items.Item ItemField String
-    | DeleteClicked String
-    | NoOp
-
-
-view : ItemListElement -> Html Msg
-view (Settings settings) =
+withEditing :
+    { edit : ItemField -> String -> msg, delete : msg }
+    -> ItemListElement msg
+    -> ItemListElement msg
+withEditing handlers (Settings settings) =
     let
+        on : Handlers msg
+        on =
+            settings.on
+    in
+    Settings
+        { settings
+            | editable = True
+            , on =
+                { on
+                    | edit = Just handlers.edit
+                    , delete = Just handlers.delete
+                }
+        }
+
+
+asForm :
+    { input : ItemField -> String -> msg
+    , delete : msg
+    , enter : msg
+    , esc : msg
+    }
+    -> ItemListElement msg
+    -> ItemListElement msg
+asForm handlers (Settings settings) =
+    let
+        on : Handlers msg
+        on =
+            settings.on
+    in
+    Settings
+        { settings
+            | formState = Form
+            , on =
+                { on
+                    | input = Just handlers.input
+                    , delete = Just handlers.delete
+                    , enter = Just handlers.enter
+                    , esc = Just handlers.esc
+                }
+        }
+
+
+view : ItemListElement msg -> Html msg
+view (Settings ({ on } as settings)) =
+    let
+        link : Html msg
         link =
-            if settings.link == True then
+            if settings.link then
                 a
                     [ Route.Path.href
                         (Route.Path.Items_Item_ { item = settings.item.slug })
@@ -111,22 +178,22 @@ view (Settings settings) =
             else
                 text ""
 
+        checkMark : Bool
         checkMark =
-            settings.mark && settings.item.state == Items.InBasket
+            settings.clickable && settings.item.state == Items.InBasket
     in
     article
         [ class "grocery-item"
         , classList
             [ ( "in-basket", checkMark )
-            , ( "item-draft", settings.draft )
-            , ( "item-form", settings.open )
+            , ( "item-form", settings.formState == Form )
             ]
-        , onClick (ItemClicked settings.item settings.item.state)
+        , attributeMaybe onClick on.click
         ]
         [ viewCheckbox
-            (\_ -> ItemChecked settings.item settings.item.state)
+            on.check
             False
-            (if settings.switch then
+            (if settings.checkable then
                 Plus
 
              else
@@ -139,40 +206,40 @@ view (Settings settings) =
         , span [ class "item-title" ]
             [ viewName
                 { itemId = settings.item.id
-                , onOpen = EditStarted settings.item
-                , blurred = Just NoOp
-                , focused = Just NoOp
-                , inputChange = Just <| InputChanged settings.item Name
+                , onOpen = on.edit
+                , inputChange = Maybe.map (\f -> f Name) on.input
                 , content = settings.item.name
                 , editable = settings.editable
-                , open = settings.open
+                , formState = settings.formState
+                , onEnter = on.enter
+                , onEsc = on.esc
                 }
             ]
         , viewQuantity
             { itemId = settings.item.id
-            , onOpen = EditStarted settings.item
-            , blurred = Just NoOp
-            , focused = Just NoOp
-            , inputChange = Just <| InputChanged settings.item
-            , open = settings.open
+            , onOpen = on.edit
+            , inputChange = on.input
+            , formState = settings.formState
             , editable = settings.editable
+            , onEnter = on.enter
+            , onEsc = on.esc
             }
             settings.item.quantity
         , div [ class "item-comment-box" ]
             [ viewComment
                 { itemId = settings.item.id
-                , onOpen = EditStarted settings.item
-                , blurred = Just NoOp
-                , focused = Just NoOp
-                , inputChange = Just <| InputChanged settings.item Comment
+                , onOpen = on.edit
+                , inputChange = Maybe.map (\f -> f Comment) on.input
                 , content = settings.item.comment
-                , open = settings.open
+                , formState = settings.formState
                 , editable = settings.editable
+                , onEnter = on.enter
+                , onEsc = on.esc
                 }
-            , viewIf settings.switch <|
+            , viewIf settings.editable <|
                 div
-                    [ class "button delete-button"
-                    , onClick (DeleteClicked settings.item.id)
+                    [ class "button delete-button with-click-outside"
+                    , attributeMaybe onClick on.delete
                     ]
                     [ Icons.trashIcon [] ]
             , link

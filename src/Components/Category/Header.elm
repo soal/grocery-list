@@ -1,7 +1,5 @@
 module Components.Category.Header exposing
     ( CategoryHeader
-    , Msg(..)
-    , init
     , new
     , view
     , withCounter
@@ -9,34 +7,59 @@ module Components.Category.Header exposing
     )
 
 import Components.Counter
-import Components.Items.Item exposing (Msg(..))
 import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
 import Html exposing (Html, h4, input, span, text)
-import Html.Attributes exposing (..)
+import Html.Attributes exposing (attribute, class, id, type_, value)
+import Html.Attributes.Extra exposing (attributeMaybe)
 import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (viewIf)
+import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Types exposing (Draft(..))
+import Utils exposing (maybeKbd)
 
 
-type CategoryHeader
+type CategoryHeader msg
     = Settings
         { category : Cats.Category
         , state : Cats.CollapsedState
         , items : Dict String Items.Item
         , counter : Bool
         , catDraft : Draft
+        , on : Handlers msg
         }
+
+
+type alias Handlers msg =
+    { toggle : msg
+    , input : Maybe (String -> msg)
+    , click : Maybe msg
+    , delete : Maybe msg
+    , enter : Maybe msg
+    , esc : Maybe msg
+    }
+
+
+defaultHandlers : { a | toggle : msg } -> Handlers msg
+defaultHandlers handlers =
+    { toggle = handlers.toggle
+    , input = Nothing
+    , click = Nothing
+    , delete = Nothing
+    , enter = Nothing
+    , esc = Nothing
+    }
 
 
 new :
     { category : Cats.Category
     , items : Dict String Items.Item
     , state : Cats.CollapsedState
+    , on : { toggle : msg }
     }
-    -> CategoryHeader
+    -> CategoryHeader msg
 new props =
     Settings
         { category = props.category
@@ -44,42 +67,54 @@ new props =
         , items = props.items
         , counter = False
         , catDraft = Empty
+        , on = defaultHandlers props.on
         }
 
 
-withCounter : CategoryHeader -> CategoryHeader
+withCounter : CategoryHeader msg -> CategoryHeader msg
 withCounter (Settings settings) =
     Settings { settings | counter = True }
 
 
-withDraft : Draft -> CategoryHeader -> CategoryHeader
-withDraft catDraft (Settings settings) =
-    Settings { settings | catDraft = catDraft }
-
-
-type alias Model =
-    {}
-
-
-init : {} -> Model
-init _ =
-    {}
-
-
-type Msg
-    = Toggle String
-    | InputChanged String
-    | TitleClicked Cats.Category
-    | DeleteClicked String
-
-
-view : CategoryHeader -> Html Msg
-view (Settings settings) =
+withDraft :
+    Draft
+    ->
+        { input : String -> msg
+        , click : msg
+        , delete : msg
+        , enter : msg
+        , esc : msg
+        }
+    -> CategoryHeader msg
+    -> CategoryHeader msg
+withDraft catDraft handlers (Settings settings) =
     let
+        on : Handlers msg
+        on =
+            settings.on
+    in
+    Settings
+        { settings
+            | catDraft = catDraft
+            , on =
+                { on
+                    | input = Just handlers.input
+                    , click = Just handlers.click
+                    , delete = Just handlers.delete
+                    , enter = Just handlers.enter
+                    , esc = Just handlers.esc
+                }
+        }
+
+
+view : CategoryHeader msg -> Html msg
+view (Settings ({ on } as settings)) =
+    let
+        chevron : Html msg
         chevron =
             span
-                [ class "chevron category-action"
-                , onClick (Toggle settings.category.id)
+                [ class "chevron category-action button"
+                , onClick on.toggle
                 ]
                 [ if settings.state == Cats.Open then
                     Icons.chevronDownIcon []
@@ -88,15 +123,17 @@ view (Settings settings) =
                     Icons.chevronRightIcon []
                 ]
 
-        deleteButton catId =
+        deleteButton : Html msg
+        deleteButton =
             span
-                [ class "button delete-button category-action with-click-outside"
-                , onClick (DeleteClicked catId)
+                [ class "delete-button category-action button with-click-outside"
+                , attributeMaybe onClick on.delete
                 ]
                 [ Icons.trashIcon [] ]
 
+        staticTitle : Html msg
         staticTitle =
-            span [ onClick (TitleClicked settings.category) ]
+            span [ attributeMaybe onClick on.click ]
                 [ text settings.category.name ]
 
         ( title, action ) =
@@ -104,19 +141,22 @@ view (Settings settings) =
                 NewCat cat ->
                     if cat.id == settings.category.id then
                         ( span
-                            [ class "input-resize-containter"
+                            [ class "input-resize-container"
                             , attribute "data-content" cat.name
                             ]
                             [ input
                                 [ type_ "text"
                                 , id ("category-name-" ++ cat.id)
                                 , class "with-click-outside"
-                                , onInput InputChanged
+                                , attributeMaybe onInput on.input
                                 , value cat.name
+                                , attributeMaybe
+                                    (Keyboard.on Keyboard.Keydown)
+                                    (maybeKbd on.enter on.esc)
                                 ]
                                 []
                             ]
-                        , deleteButton cat.id
+                        , deleteButton
                         )
 
                     else
@@ -125,24 +165,33 @@ view (Settings settings) =
                 ExistingCat cat ->
                     if cat.id == settings.category.id then
                         ( span
-                            [ class "input-resize-containter"
+                            [ class "input-resize-container"
                             , attribute "data-content" cat.name
                             ]
                             [ input
                                 [ type_ "text"
                                 , id ("category-name-" ++ cat.id)
-                                , onInput InputChanged
+                                , attributeMaybe onInput on.input
                                 , value cat.name
+                                , attributeMaybe
+                                    (Keyboard.on Keyboard.Keydown)
+                                    (maybeKbd on.enter on.esc)
                                 ]
                                 []
                             ]
-                        , deleteButton cat.id
+                        , deleteButton
                         )
 
                     else
                         ( staticTitle, chevron )
 
-                _ ->
+                Empty ->
+                    ( staticTitle, chevron )
+
+                New _ ->
+                    ( staticTitle, chevron )
+
+                Existing _ ->
                     ( staticTitle, chevron )
     in
     h4 []

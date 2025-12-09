@@ -3,11 +3,11 @@ module Components.Items.List exposing
     , Msg(..)
     , new
     , view
+    , withCheck
+    , withClick
     , withCounter
     , withDraft
     , withLink
-    , withMark
-    , withSwitch
     )
 
 import Components.Category.Header
@@ -16,24 +16,24 @@ import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
 import Html exposing (Html, button, div)
-import Html.Attributes exposing (class, classList, id)
+import Html.Attributes exposing (class, classList)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (viewIf)
 import Html.Keyed
 import LucideIcons as Icons
 import Set exposing (Set)
-import Types exposing (Draft(..), ItemField(..))
+import Types exposing (DomId, Draft(..), FormState(..), ItemField(..))
 
 
 type alias Options =
-    { items : Dict String Items.Item
+    { items : Dict Items.Id Items.Item
     , draft : Draft
-    , catWithDraft : Maybe String
+    , catWithDraft : Maybe Cats.Id
     , categories : List Cats.Category
-    , collapsedCatIds : Set String
+    , collapsedCatIds : Set Cats.Id
     , link : Bool
-    , mark : Bool
-    , switch : Bool
+    , clickable : Bool
+    , checkable : Bool
     , counter : Bool
     , checkedStates : List Items.State
     , editable : Bool
@@ -45,9 +45,9 @@ type ItemsList
 
 
 new :
-    { items : Dict String Items.Item
+    { items : Dict Items.Id Items.Item
     , categories : List Cats.Category
-    , collapsedCatIds : Set String
+    , collapsedCatIds : Set Cats.Id
     , checkedSates : List Items.State
     }
     -> ItemsList
@@ -59,8 +59,8 @@ new props =
         , categories = props.categories
         , collapsedCatIds = props.collapsedCatIds
         , link = False
-        , mark = False
-        , switch = False
+        , clickable = False
+        , checkable = False
         , counter = False
         , checkedStates = props.checkedSates
         , editable = False
@@ -72,9 +72,9 @@ withLink (Settings settings) =
     Settings { settings | link = True }
 
 
-withMark : ItemsList -> ItemsList
-withMark (Settings settings) =
-    Settings { settings | mark = True }
+withClick : ItemsList -> ItemsList
+withClick (Settings settings) =
+    Settings { settings | clickable = True }
 
 
 withCounter : ItemsList -> ItemsList
@@ -82,13 +82,13 @@ withCounter (Settings settings) =
     Settings { settings | counter = True }
 
 
-withSwitch : ItemsList -> ItemsList
-withSwitch (Settings settings) =
-    Settings { settings | switch = True }
+withCheck : ItemsList -> ItemsList
+withCheck (Settings settings) =
+    Settings { settings | checkable = True }
 
 
 withDraft :
-    Maybe String
+    Maybe Cats.Id
     -> Draft
     -> ItemsList
     -> ItemsList
@@ -103,18 +103,21 @@ withDraft catWithDraft draft (Settings settings) =
 
 type Msg
     = -- CATEGORY
-      CollapseClicked String Cats.CollapsedState
+      CollapseClicked Cats.Id Cats.CollapsedState
     | CatTitleClicked Cats.Category
-    | CatDeleteClicked String
+    | CatDeleteClicked Cats.Id
       -- ITEM
     | ItemClicked Items.Item Items.State
     | ItemChecked Items.Item Items.State
-    | ItemDeleteClicked String
+    | ItemDeleteClicked Items.Id
       -- DRAFT
     | DraftOpened Cats.Category
     | InputChanged ItemField String
-    | EditStarted Items.Item ItemField String
-    | NoOp
+    | EditStarted Items.Item ItemField DomId
+    | EnterPressed
+      -- | ShiftEnterPressed
+      -- | CtrlEnterPressed
+    | EscPressed
 
 
 view : ItemsList -> Html Msg
@@ -144,6 +147,7 @@ viewCategory :
     -> ( String, Html Msg )
 viewCategory options category =
     let
+        state : Cats.CollapsedState
         state =
             if Set.member category.id options.collapsedCatIds then
                 Cats.Collapsed
@@ -154,7 +158,7 @@ viewCategory options category =
     ( category.id
     , div
         [ class "grocery-category"
-        , classList [ ( "shopping-page", options.mark ) ]
+        , classList [ ( "shopping-page", options.clickable ) ]
         ]
         [ viewCatHeader options state category
         , viewCatItems options category
@@ -189,76 +193,78 @@ viewCatHeader options state category =
         { category = category
         , items = options.items
         , state = state
+        , on = { toggle = onCatToggle state category.id }
         }
-        |> (if options.counter == True then
+        |> (if options.counter then
                 Components.Category.Header.withCounter
 
             else
                 identity
            )
-        |> Components.Category.Header.withDraft options.draft
+        |> (if options.editable then
+                Components.Category.Header.withDraft options.draft
+                    { input = InputChanged Name
+                    , click = CatTitleClicked category
+                    , delete = CatDeleteClicked category.id
+                    , enter = EnterPressed
+                    , esc = EscPressed
+                    }
+
+            else
+                identity
+           )
         |> Components.Category.Header.view
-        |> Html.map
-            (\msg ->
-                case msg of
-                    Components.Category.Header.Toggle id ->
-                        CollapseClicked id <|
-                            if state == Cats.Open then
-                                Cats.Collapsed
-
-                            else
-                                Cats.Open
-
-                    Components.Category.Header.InputChanged content ->
-                        InputChanged Name content
-
-                    Components.Category.Header.TitleClicked cat ->
-                        CatTitleClicked cat
-
-                    Components.Category.Header.DeleteClicked catId ->
-                        CatDeleteClicked catId
-            )
 
 
-viewItems : Options -> List ( String, Items.Item ) -> List ( String, Html Msg )
+onCatToggle : Cats.CollapsedState -> Cats.Id -> Msg
+onCatToggle state catId =
+    CollapseClicked catId <|
+        if state == Cats.Open then
+            Cats.Collapsed
+
+        else
+            Cats.Open
+
+
+viewItems : Options -> List ( Items.Id, Items.Item ) -> List ( Items.Id, Html Msg )
 viewItems options itemsKeyed =
     List.map
         (\( id, item ) ->
             let
                 -- TODO: something more elegant
-                ( isItemOpen, activeItem ) =
+                ( formState, activeItem ) =
                     case options.draft of
                         Empty ->
-                            ( False, item )
+                            ( Static, item )
 
                         New draft ->
                             if draft.id == id then
-                                ( True, draft )
+                                ( Form, draft )
 
                             else
-                                ( False, item )
+                                ( Static, item )
 
                         Existing draft ->
                             if draft.id == id then
-                                ( True, draft )
+                                ( Form, draft )
 
                             else
-                                ( False, item )
+                                ( Static, item )
 
                         NewCat _ ->
-                            ( False, item )
+                            ( Static, item )
 
                         ExistingCat _ ->
-                            ( False, item )
+                            ( Static, item )
             in
             ( id
             , viewItem
                 { item = activeItem
-                , mark = options.mark
+                , clickable = options.clickable
                 , link = options.link
-                , switch = options.switch
+                , checkable = options.checkable
                 , checkedStates = options.checkedStates
-                , open = isItemOpen
+                , formState = formState
                 , editable = options.editable
                 }
             )
@@ -269,7 +275,7 @@ viewItems options itemsKeyed =
 viewCatItems :
     Options
     -> Cats.Category
-    -> List ( String, Html Msg )
+    -> List ( Items.Id, Html Msg )
 viewCatItems options category =
     ( options.items, category )
         |> getCatItems
@@ -277,24 +283,23 @@ viewCatItems options category =
 
 
 getCatItems :
-    ( Dict String Items.Item, Cats.Category )
-    -> List ( String, Items.Item )
+    ( Dict Items.Id Items.Item, Cats.Category )
+    -> List ( Items.Id, Items.Item )
 getCatItems ( allItems, category ) =
-    List.map (\id -> Dict.get id allItems) category.items
-        |> List.filterMap identity
+    List.filterMap (\id -> Dict.get id allItems) category.items
         |> List.map (\item -> ( item.id, item ))
 
 
 getItemsWithoutCat :
-    Dict String Items.Item
+    Dict Items.Id Items.Item
     -> List Cats.Category
-    -> List ( String, Items.Item )
+    -> List ( Items.Id, Items.Item )
 getItemsWithoutCat allItems categories =
     allItems
         |> Dict.toList
         |> (\itemList ->
                 ( itemList
-                , List.concat (List.map .items categories)
+                , List.concatMap .items categories
                 )
            )
         |> (\( itemPairs, itemIds ) ->
@@ -309,69 +314,60 @@ getItemsWithoutCat allItems categories =
 
 viewItem :
     { item : Items.Item
-    , mark : Bool
     , link : Bool
-    , switch : Bool
+    , clickable : Bool
+    , checkable : Bool
     , checkedStates : List Items.State
-    , open : Bool
+    , formState : FormState
     , editable : Bool
     }
     -> Html Msg
-viewItem { item, mark, link, switch, checkedStates, open, editable } =
+viewItem { item, clickable, link, checkedStates, formState, checkable, editable } =
     Components.Items.Item.new
         { item = item
         , checkedSates = checkedStates
-        , open = open
-        , editable = editable
+        , formState = formState
         }
-        |> (if link == True then
+        |> (if link then
                 Components.Items.Item.withLink
 
             else
                 identity
            )
-        |> (if mark == True then
-                Components.Items.Item.withMark
+        |> (if clickable then
+                Components.Items.Item.withClick (ItemClicked item item.state)
 
             else
                 identity
            )
-        |> (if switch == True then
-                Components.Items.Item.withSwitch
+        |> (if checkable then
+                Components.Items.Item.withCheck
+                    (\_ -> ItemChecked item item.state)
+
+            else
+                identity
+           )
+        |> (if editable then
+                Components.Items.Item.withEditing
+                    { edit = EditStarted item
+                    , delete = ItemDeleteClicked item.id
+                    }
+
+            else
+                identity
+           )
+        |> (if formState == Form then
+                Components.Items.Item.asForm
+                    { input = InputChanged
+                    , delete = ItemDeleteClicked item.id
+                    , enter = EnterPressed
+                    , esc = EscPressed
+                    }
 
             else
                 identity
            )
         |> Components.Items.Item.view
-        |> Html.map
-            (\msg ->
-                case msg of
-                    Components.Items.Item.ItemChecked clickedItem state ->
-                        ItemChecked clickedItem state
-
-                    Components.Items.Item.ItemClicked clickedItem state ->
-                        ItemClicked clickedItem state
-
-                    Components.Items.Item.EditStarted openItem field fieldId ->
-                        if editable then
-                            EditStarted openItem field fieldId
-
-                        else
-                            NoOp
-
-                    Components.Items.Item.InputChanged _ field content ->
-                        if editable then
-                            InputChanged field content
-
-                        else
-                            NoOp
-
-                    Components.Items.Item.DeleteClicked clickedItem ->
-                        ItemDeleteClicked clickedItem
-
-                    _ ->
-                        NoOp
-            )
 
 
 viewDraft :
@@ -383,19 +379,15 @@ viewDraft :
 viewDraft { draft, open, category } =
     case ( open, draft ) of
         ( True, New item ) ->
-            Components.Items.Item.new
-                { item = item, checkedSates = [], open = True, editable = True }
-                |> Components.Items.Item.asDraft
-                |> Components.Items.Item.view
-                |> Html.map
-                    (\msg ->
-                        case msg of
-                            Components.Items.Item.InputChanged _ field content ->
-                                InputChanged field content
-
-                            _ ->
-                                NoOp
-                    )
+            viewItem
+                { item = item
+                , link = False
+                , clickable = False
+                , checkable = False
+                , checkedStates = []
+                , formState = Form
+                , editable = False
+                }
 
         _ ->
             button
