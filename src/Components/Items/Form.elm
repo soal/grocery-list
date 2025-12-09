@@ -21,7 +21,7 @@ import Keyboard exposing (Key(..))
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Svg.Attributes
-import Types exposing (CheckboxKind(..), ItemField(..))
+import Types exposing (CheckboxKind(..), FormState(..), ItemField(..))
 
 
 viewCheckbox : Maybe (Bool -> msg) -> Bool -> CheckboxKind -> Bool -> Html msg
@@ -51,7 +51,7 @@ viewName :
         , onOpen : Maybe (ItemField -> String -> msg)
         , content : String
         , editable : Bool
-        , open : Bool
+        , formState : FormState
         , onEnter : Maybe msg
         , onEsc : Maybe msg
     }
@@ -61,7 +61,7 @@ viewName props =
         fieldId =
             "item-name-" ++ props.itemId
     in
-    if props.open then
+    if props.formState == Form then
         viewNameField
             { fieldId = fieldId
             , inputChange = props.inputChange
@@ -118,7 +118,7 @@ viewComment :
         , inputChange : Maybe (String -> msg)
         , onOpen : Maybe (ItemField -> String -> msg)
         , content : Maybe String
-        , open : Bool
+        , formState : FormState
         , editable : Bool
         , onEnter : Maybe msg
         , onEsc : Maybe msg
@@ -129,7 +129,7 @@ viewComment props =
         fieldId =
             "item-comment-" ++ props.itemId
     in
-    if props.open then
+    if props.formState == Form then
         viewCommentField
             { fieldId = fieldId
             , inputChange = props.inputChange
@@ -202,7 +202,7 @@ viewQuantity :
         | itemId : String
         , inputChange : Maybe (ItemField -> String -> msg)
         , onOpen : Maybe (ItemField -> String -> msg)
-        , open : Bool
+        , formState : FormState
         , editable : Bool
         , onEnter : Maybe msg
         , onEsc : Maybe msg
@@ -217,7 +217,7 @@ viewQuantity props (Items.Quantity count unit) =
         unitFieldId =
             "item-quantity-unit" ++ props.itemId
     in
-    if props.open then
+    if props.formState == Form then
         span [ class "item-quantity" ]
             [ viewQCountField
                 { fieldId = countFieldId

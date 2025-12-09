@@ -6,6 +6,15 @@ import Dict exposing (Dict)
 import Set exposing (Set)
 
 
+type FormState
+    = Static
+    | Form
+
+
+type alias DomId =
+    String
+
+
 type Draft
     = New Items.Item
     | Existing Items.Item

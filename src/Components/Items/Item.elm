@@ -32,7 +32,7 @@ import Html.Events exposing (onClick)
 import Html.Extra exposing (viewIf)
 import LucideIcons as Icons
 import Route.Path
-import Types exposing (CheckboxKind(..), ItemField(..))
+import Types exposing (CheckboxKind(..), FormState(..), ItemField(..))
 
 
 type alias Handlers msg =
@@ -65,7 +65,7 @@ type ItemListElement msg
         , checkedSates : List Items.State
         , clickable : Bool
         , checkable : Bool
-        , open : Bool
+        , formState : FormState
         , editable : Bool
         , on : Handlers msg
         }
@@ -74,7 +74,7 @@ type ItemListElement msg
 new :
     { item : Items.Item
     , checkedSates : List Items.State
-    , open : Bool
+    , formState : FormState
     }
     -> ItemListElement msg
 new props =
@@ -84,7 +84,7 @@ new props =
         , clickable = False
         , checkable = False
         , checkedSates = props.checkedSates
-        , open = props.open
+        , formState = props.formState
         , editable = False
         , on = defaultHandlers
         }
@@ -148,7 +148,7 @@ asForm handlers (Settings settings) =
     in
     Settings
         { settings
-            | open = True
+            | formState = Form
             , on =
                 { on
                     | input = Just handlers.input
@@ -180,7 +180,7 @@ view (Settings ({ on } as settings)) =
         [ class "grocery-item"
         , classList
             [ ( "in-basket", checkMark )
-            , ( "item-form", settings.open )
+            , ( "item-form", settings.formState == Form )
             ]
         , attributeMaybe onClick on.click
         ]
@@ -204,7 +204,7 @@ view (Settings ({ on } as settings)) =
                 , inputChange = Maybe.map (\f -> f Name) on.input
                 , content = settings.item.name
                 , editable = settings.editable
-                , open = settings.open
+                , formState = settings.formState
                 , onEnter = on.enter
                 , onEsc = on.esc
                 }
@@ -213,7 +213,7 @@ view (Settings ({ on } as settings)) =
             { itemId = settings.item.id
             , onOpen = on.edit
             , inputChange = on.input
-            , open = settings.open
+            , formState = settings.formState
             , editable = settings.editable
             , onEnter = on.enter
             , onEsc = on.esc
@@ -225,7 +225,7 @@ view (Settings ({ on } as settings)) =
                 , onOpen = on.edit
                 , inputChange = Maybe.map (\f -> f Comment) on.input
                 , content = settings.item.comment
-                , open = settings.open
+                , formState = settings.formState
                 , editable = settings.editable
                 , onEnter = on.enter
                 , onEsc = on.esc

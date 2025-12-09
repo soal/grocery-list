@@ -1,6 +1,7 @@
 module Db.Categories exposing
     ( Category
     , CollapsedState(..)
+    , Id
     , add
     , addItem
     , alter
@@ -22,6 +23,10 @@ import Json.Encode as JE
 import Task
 import TaskPort
 import Time
+
+
+type alias Id =
+    String
 
 
 type CollapsedState

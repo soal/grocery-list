@@ -22,7 +22,7 @@ import Shared exposing (update)
 import Task
 import TaskPort
 import Time
-import Types exposing (Draft(..), ItemField(..))
+import Types exposing (..)
 import Utils exposing (slugify)
 import View exposing (View)
 
@@ -52,9 +52,9 @@ toLayout _ =
 
 type alias Model =
     { draft : Draft
-    , collapsedCats : Set String
-    , catWithDraft : Maybe String
-    , items : Dict String Items.Item
+    , collapsedCats : Set Cats.Id
+    , catWithDraft : Maybe Cats.Id
+    , items : Dict Items.Id Items.Item
     , categories : List Cats.Category
     , titlePrefix : String
     , error : Maybe String
@@ -108,7 +108,7 @@ type Msg
       -- ITEM WITHOUT CATEGORY
     | GotItemAddClick
     | GotInput ItemField String
-    | GotItemDeleteClick String
+    | GotItemDeleteClick Items.Id
     | GotEnterKey
     | GotEscKey
 
@@ -464,7 +464,7 @@ view shared model =
                 Components.Items.Item.new
                     { item = item
                     , checkedSates = []
-                    , open = True
+                    , formState = Form
                     }
                     |> Components.Items.Item.asForm
                         { input = GotInput
