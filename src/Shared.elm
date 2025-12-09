@@ -12,7 +12,7 @@ module Shared exposing
 
 -}
 
-import Db.Settings as AppSettings
+import Data.Settings as AppSettings
 import Effect exposing (Effect)
 import Json.Decode exposing (field, map)
 import Route exposing (Route)

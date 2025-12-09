@@ -1,11 +1,11 @@
 module Pages.Shopping exposing (ContentState, Model, Msg, page)
 
-import Components.Counter
-import Components.Items.List
+import Views.Counter
+import Views.Items.List
 import DataUpdate
-import Db.Categories as Cats
-import Db.Items as Items
-import Db.Settings exposing (CatsAndItems)
+import Data.Categories as Cats
+import Data.Items as Items
+import Data.Settings exposing (CatsAndItems)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, button, div, h3, text)
@@ -96,7 +96,7 @@ type Msg
     | GotError (Maybe String)
     | ClickedEndShopping
     | GotStateUpdateTime Items.Item Time.Posix
-    | GotItemListMsg Components.Items.List.Msg
+    | GotItemListMsg Views.Items.List.Msg
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -139,7 +139,7 @@ update msg model =
 
         GotItemListMsg listMsg ->
             case listMsg of
-                Components.Items.List.CollapseClicked catId state ->
+                Views.Items.List.CollapseClicked catId state ->
                     let
                         updated : Set Cats.Id
                         updated =
@@ -153,7 +153,7 @@ update msg model =
                     , Effect.none
                     )
 
-                Components.Items.List.ItemClicked item state ->
+                Views.Items.List.ItemClicked item state ->
                     let
                         newState : Items.State
                         newState =
@@ -226,15 +226,15 @@ view shared model =
                         filteredCats =
                             filterCategories filteredItems model.categories
                     in
-                    [ Components.Items.List.new
+                    [ Views.Items.List.new
                         { items = filteredItems
                         , categories = filteredCats
                         , checkedSates = [ Items.InBasket ]
                         , collapsedCatIds = model.collapsedCats
                         }
-                        |> Components.Items.List.withClick
-                        |> Components.Items.List.withCounter
-                        |> Components.Items.List.view
+                        |> Views.Items.List.withClick
+                        |> Views.Items.List.withCounter
+                        |> Views.Items.List.view
                         |> Html.map GotItemListMsg
                     , viewEndButton filteredItems
                     ]
@@ -253,7 +253,7 @@ viewEndButton items =
             , onClick ClickedEndShopping
             , disabled (Items.getInBasketLength items <= 0)
             ]
-            [ Components.Counter.view
+            [ Views.Counter.view
                 (Items.map .state items)
                 (Dict.keys items)
                 Items.InBasket

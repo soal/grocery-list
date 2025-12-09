@@ -4,7 +4,7 @@ module Shared.Model exposing
     , Model
     )
 
-import Db.Settings exposing (AppSettings)
+import Data.Settings exposing (AppSettings)
 
 
 type DbStatus

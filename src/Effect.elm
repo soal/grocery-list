@@ -26,9 +26,9 @@ module Effect exposing
 -}
 
 import Browser.Navigation
-import Db.Categories as Cats
-import Db.Items as Items
-import Db.Settings exposing (CatsAndItems, DataDump, dumpDecoder, encodeDump)
+import Data.Categories as Cats
+import Data.Items as Items
+import Data.Settings exposing (CatsAndItems, DataDump, dumpDecoder, encodeDump)
 import Dict exposing (Dict)
 import Json.Decode as JD
 import Json.Encode as JE

@@ -1,4 +1,4 @@
-module Components.Items.List exposing
+module Views.Items.List exposing
     ( ItemsList
     , Msg(..)
     , new
@@ -10,10 +10,10 @@ module Components.Items.List exposing
     , withLink
     )
 
-import Components.Category.Header
-import Components.Items.Item
-import Db.Categories as Cats
-import Db.Items as Items
+import Views.Category.Header
+import Views.Items.Item
+import Data.Categories as Cats
+import Data.Items as Items
 import Dict exposing (Dict)
 import Html exposing (Html, button, div)
 import Html.Attributes exposing (class, classList)
@@ -189,20 +189,20 @@ viewCatHeader :
     -> Cats.Category
     -> Html Msg
 viewCatHeader options state category =
-    Components.Category.Header.new
+    Views.Category.Header.new
         { category = category
         , items = options.items
         , state = state
         , on = { toggle = onCatToggle state category.id }
         }
         |> (if options.counter then
-                Components.Category.Header.withCounter
+                Views.Category.Header.withCounter
 
             else
                 identity
            )
         |> (if options.editable then
-                Components.Category.Header.withDraft options.draft
+                Views.Category.Header.withDraft options.draft
                     { input = InputChanged Name
                     , click = CatTitleClicked category
                     , delete = CatDeleteClicked category.id
@@ -213,7 +213,7 @@ viewCatHeader options state category =
             else
                 identity
            )
-        |> Components.Category.Header.view
+        |> Views.Category.Header.view
 
 
 onCatToggle : Cats.CollapsedState -> Cats.Id -> Msg
@@ -323,32 +323,32 @@ viewItem :
     }
     -> Html Msg
 viewItem { item, clickable, link, checkedStates, formState, checkable, editable } =
-    Components.Items.Item.new
+    Views.Items.Item.new
         { item = item
         , checkedSates = checkedStates
         , formState = formState
         }
         |> (if link then
-                Components.Items.Item.withLink
+                Views.Items.Item.withLink
 
             else
                 identity
            )
         |> (if clickable then
-                Components.Items.Item.withClick (ItemClicked item item.state)
+                Views.Items.Item.withClick (ItemClicked item item.state)
 
             else
                 identity
            )
         |> (if checkable then
-                Components.Items.Item.withCheck
+                Views.Items.Item.withCheck
                     (\_ -> ItemChecked item item.state)
 
             else
                 identity
            )
         |> (if editable then
-                Components.Items.Item.withEditing
+                Views.Items.Item.withEditing
                     { edit = EditStarted item
                     , delete = ItemDeleteClicked item.id
                     }
@@ -357,7 +357,7 @@ viewItem { item, clickable, link, checkedStates, formState, checkable, editable 
                 identity
            )
         |> (if formState == Form then
-                Components.Items.Item.asForm
+                Views.Items.Item.asForm
                     { input = InputChanged
                     , delete = ItemDeleteClicked item.id
                     , enter = EnterPressed
@@ -367,7 +367,7 @@ viewItem { item, clickable, link, checkedStates, formState, checkable, editable 
             else
                 identity
            )
-        |> Components.Items.Item.view
+        |> Views.Items.Item.view
 
 
 viewDraft :

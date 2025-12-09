@@ -1,8 +1,8 @@
 module Pages.Settings exposing (Model, Msg, page)
 
-import Db.Categories as Cats
-import Db.Items as Items
-import Db.Settings exposing (CatsAndItems)
+import Data.Categories as Cats
+import Data.Items as Items
+import Data.Settings exposing (CatsAndItems)
 import Effect exposing (Effect)
 import File exposing (File)
 import File.Download

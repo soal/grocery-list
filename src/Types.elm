@@ -1,7 +1,7 @@
 module Types exposing (CheckboxKind(..), DomId, Draft(..), FormState(..), ItemField(..))
 
-import Db.Categories as Cats
-import Db.Items as Items
+import Data.Categories as Cats
+import Data.Items as Items
 
 
 type FormState

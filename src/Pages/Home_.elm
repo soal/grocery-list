@@ -1,12 +1,12 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
 import Browser.Dom
-import Components.Items.Item
-import Components.Items.List
+import Views.Items.Item
+import Views.Items.List
 import DataUpdate
-import Db.Categories as Cats
-import Db.Items as Items
-import Db.Settings exposing (CatsAndItems)
+import Data.Categories as Cats
+import Data.Items as Items
+import Data.Settings exposing (CatsAndItems)
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (button)
@@ -101,7 +101,7 @@ type Msg
     | GotClickOutside
     | GotItemUuid (TaskPort.Result String)
     | GotCatUuid (TaskPort.Result String)
-    | GotItemListMsg Components.Items.List.Msg
+    | GotItemListMsg Views.Items.List.Msg
     | GotDraftUpdateTime Draft Time.Posix
     | GotItemStateUpdateTime Items.Item Time.Posix
     | GotCatAddClick
@@ -251,10 +251,10 @@ update msg model =
             )
 
 
-onListMsg : Model -> Components.Items.List.Msg -> ( Model, Effect Msg )
+onListMsg : Model -> Views.Items.List.Msg -> ( Model, Effect Msg )
 onListMsg model msg =
     case msg of
-        Components.Items.List.CollapseClicked catId state ->
+        Views.Items.List.CollapseClicked catId state ->
             let
                 altered : Set Cats.Id
                 altered =
@@ -268,10 +268,10 @@ onListMsg model msg =
             , Effect.none
             )
 
-        Components.Items.List.ItemChecked item state ->
+        Views.Items.List.ItemChecked item state ->
             toggleItemState model item state
 
-        Components.Items.List.EditStarted item _ fieldId ->
+        Views.Items.List.EditStarted item _ fieldId ->
             ( { model | draft = Existing item }
             , Effect.batch
                 [ Effect.sendCmd <|
@@ -280,18 +280,18 @@ onListMsg model msg =
                 ]
             )
 
-        Components.Items.List.InputChanged field content ->
+        Views.Items.List.InputChanged field content ->
             ( model, Effect.sendMsg (GotInput field content) )
 
-        Components.Items.List.DraftOpened category ->
+        Views.Items.List.DraftOpened category ->
             ( { model | catWithDraft = Just category.id }
             , Effect.requestUuid GotItemUuid
             )
 
-        Components.Items.List.ItemDeleteClicked itemId ->
+        Views.Items.List.ItemDeleteClicked itemId ->
             ( model, Effect.sendMsg (GotItemDeleteClick itemId) )
 
-        Components.Items.List.CatTitleClicked category ->
+        Views.Items.List.CatTitleClicked category ->
             ( { model | draft = ExistingCat category }
             , Effect.sendCmd <|
                 Task.attempt
@@ -299,15 +299,15 @@ onListMsg model msg =
                     (Browser.Dom.focus <| "category-name-" ++ category.id)
             )
 
-        Components.Items.List.CatDeleteClicked catId ->
+        Views.Items.List.CatDeleteClicked catId ->
             ( { model | categories = Cats.delete catId model.categories }
             , Effect.deleteCategory onTaskPortResult catId
             )
 
-        Components.Items.List.EnterPressed ->
+        Views.Items.List.EnterPressed ->
             endEditAndSave model True
 
-        Components.Items.List.EscPressed ->
+        Views.Items.List.EscPressed ->
             ( model, Effect.sendMsg GotEscKey )
 
         _ ->
@@ -451,33 +451,33 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     { title = shared.titlePrefix ++ "Список"
     , body =
-        [ Components.Items.List.new
+        [ Views.Items.List.new
             { items = model.items
             , categories = model.categories
             , checkedSates = [ Items.Required, Items.InBasket ]
             , collapsedCatIds = model.collapsedCats
             }
-            -- |> Components.Items.List.withLink
-            |> Components.Items.List.withCheck
-            |> Components.Items.List.withDraft
+            -- |> Views.Items.List.withLink
+            |> Views.Items.List.withCheck
+            |> Views.Items.List.withDraft
                 model.catWithDraft
                 model.draft
-            |> Components.Items.List.view
+            |> Views.Items.List.view
             |> Html.map GotItemListMsg
         , case ( model.draft, model.catWithDraft ) of
             ( New item, Nothing ) ->
-                Components.Items.Item.new
+                Views.Items.Item.new
                     { item = item
                     , checkedSates = []
                     , formState = Form
                     }
-                    |> Components.Items.Item.asForm
+                    |> Views.Items.Item.asForm
                         { input = GotInput
                         , delete = GotItemDeleteClick item.id
                         , enter = GotEnterKey
                         , esc = GotEscKey
                         }
-                    |> Components.Items.Item.view
+                    |> Views.Items.Item.view
 
             _ ->
                 nothing

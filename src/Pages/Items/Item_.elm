@@ -1,6 +1,6 @@
 module Pages.Items.Item_ exposing (Model, Msg, page)
 
-import Db.Items as Items
+import Data.Items as Items
 import Effect exposing (Effect)
 import Html exposing (div, h1, text)
 import Html.Attributes exposing (class)

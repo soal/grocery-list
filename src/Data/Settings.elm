@@ -1,7 +1,15 @@
-module Db.Settings exposing (AppSettings, AppTheme(..), CatsAndItems, DataDump, decoder, dumpDecoder, encodeDump)
+module Data.Settings exposing
+    ( AppSettings
+    , AppTheme(..)
+    , CatsAndItems
+    , DataDump
+    , decoder
+    , dumpDecoder
+    , encodeDump
+    )
 
-import Db.Categories as Cats
-import Db.Items as Items
+import Data.Categories as Cats
+import Data.Items as Items
 import Dict exposing (Dict)
 import Json.Decode as JD exposing (Decoder)
 import Json.Encode as JE

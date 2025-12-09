@@ -1,6 +1,6 @@
 module Shared.Msg exposing (Msg(..))
 
-import Db.Settings exposing (DataDump)
+import Data.Settings exposing (DataDump)
 import TaskPort
 
 
