@@ -457,7 +457,7 @@ view shared model =
             , checkedSates = [ Items.Required, Items.InBasket ]
             , collapsedCatIds = model.collapsedCats
             }
-            |> Components.Items.List.withLink
+            -- |> Components.Items.List.withLink
             |> Components.Items.List.withCheck
             |> Components.Items.List.withDraft
                 model.catWithDraft
