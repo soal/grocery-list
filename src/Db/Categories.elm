@@ -54,7 +54,7 @@ type CollapsedState
 
 
 type alias Category =
-    { id : String
+    { id : Id
     , name : String
     , items : List String
     , created : Time.Posix
@@ -84,7 +84,7 @@ encode cat =
         ]
 
 
-emptyCategory : Maybe String -> Category
+emptyCategory : Maybe Id -> Category
 emptyCategory maybeId =
     Category
         (Maybe.withDefault "empty" maybeId)
@@ -94,14 +94,14 @@ emptyCategory maybeId =
         (Time.millisToPosix 0)
 
 
-getByid : List Category -> String -> Maybe Category
+getByid : List Category -> Id -> Maybe Category
 getByid categories catId =
     categories
         |> List.filter (\cat -> cat.id == catId)
         |> List.head
 
 
-sortItemsByFreq : Dict String Items.Item -> Category -> Category
+sortItemsByFreq : Dict Items.Id Items.Item -> Category -> Category
 sortItemsByFreq items category =
     { category
         | items =
@@ -109,7 +109,7 @@ sortItemsByFreq items category =
                 (\itemId ->
                     case Dict.get itemId items of
                         Just item ->
-                            0 - item.frequency
+                            -item.frequency
 
                         Nothing ->
                             0
@@ -136,12 +136,12 @@ alter categories category =
         categories
 
 
-addItem : String -> Category -> Category
+addItem : Items.Id -> Category -> Category
 addItem itemId category =
     { category | items = List.append category.items [ itemId ] }
 
 
-removeItem : String -> Category -> Category
+removeItem : Items.Id -> Category -> Category
 removeItem itemId category =
     if List.member itemId category.items then
         { category | items = List.filter (\id -> id /= itemId) category.items }
@@ -153,6 +153,7 @@ removeItem itemId category =
 store : (TaskPort.Result Bool -> msg) -> Category -> Cmd msg
 store onResult category =
     let
+        call : Category -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "storeCategory"
@@ -163,14 +164,15 @@ store onResult category =
     Task.attempt onResult <| call category
 
 
-delete : String -> List Category -> List Category
+delete : Id -> List Category -> List Category
 delete catId categories =
     List.filter (\{ id } -> id /= catId) categories
 
 
-deleteStored : (TaskPort.Result Bool -> msg) -> String -> Cmd msg
+deleteStored : (TaskPort.Result Bool -> msg) -> Id -> Cmd msg
 deleteStored onResult categoryId =
     let
+        call : Id -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "deleteCategory"

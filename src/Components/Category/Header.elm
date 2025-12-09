@@ -11,11 +11,10 @@ import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
 import Html exposing (Html, h4, input, span, text)
-import Html.Attributes exposing (..)
+import Html.Attributes exposing (attribute, class, id, type_, value)
 import Html.Attributes.Extra exposing (attributeMaybe)
 import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (viewIf)
-import Keyboard exposing (Key(..))
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Types exposing (Draft(..))
@@ -90,6 +89,7 @@ withDraft :
     -> CategoryHeader msg
 withDraft catDraft handlers (Settings settings) =
     let
+        on : Handlers msg
         on =
             settings.on
     in
@@ -101,7 +101,6 @@ withDraft catDraft handlers (Settings settings) =
                     | input = Just handlers.input
                     , click = Just handlers.click
                     , delete = Just handlers.delete
-                    , toggle = on.toggle
                     , enter = Just handlers.enter
                     , esc = Just handlers.esc
                 }
@@ -111,6 +110,7 @@ withDraft catDraft handlers (Settings settings) =
 view : CategoryHeader msg -> Html msg
 view (Settings ({ on } as settings)) =
     let
+        chevron : Html msg
         chevron =
             span
                 [ class "chevron category-action button"
@@ -123,6 +123,7 @@ view (Settings ({ on } as settings)) =
                     Icons.chevronRightIcon []
                 ]
 
+        deleteButton : Html msg
         deleteButton =
             span
                 [ class "delete-button category-action button with-click-outside"
@@ -130,6 +131,7 @@ view (Settings ({ on } as settings)) =
                 ]
                 [ Icons.trashIcon [] ]
 
+        staticTitle : Html msg
         staticTitle =
             span [ attributeMaybe onClick on.click ]
                 [ text settings.category.name ]

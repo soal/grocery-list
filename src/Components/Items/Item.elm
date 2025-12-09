@@ -93,6 +93,7 @@ new props =
 withClick : msg -> ItemListElement msg -> ItemListElement msg
 withClick onClick (Settings settings) =
     let
+        on : Handlers msg
         on =
             settings.on
     in
@@ -102,6 +103,7 @@ withClick onClick (Settings settings) =
 withCheck : (Bool -> msg) -> ItemListElement msg -> ItemListElement msg
 withCheck onCheck (Settings settings) =
     let
+        on : Handlers msg
         on =
             settings.on
     in
@@ -119,6 +121,7 @@ withEditing :
     -> ItemListElement msg
 withEditing handlers (Settings settings) =
     let
+        on : Handlers msg
         on =
             settings.on
     in
@@ -143,6 +146,7 @@ asForm :
     -> ItemListElement msg
 asForm handlers (Settings settings) =
     let
+        on : Handlers msg
         on =
             settings.on
     in
@@ -162,8 +166,9 @@ asForm handlers (Settings settings) =
 view : ItemListElement msg -> Html msg
 view (Settings ({ on } as settings)) =
     let
+        link : Html msg
         link =
-            if settings.link == True then
+            if settings.link then
                 a
                     [ Route.Path.href
                         (Route.Path.Items_Item_ { item = settings.item.slug })
@@ -173,6 +178,7 @@ view (Settings ({ on } as settings)) =
             else
                 text ""
 
+        checkMark : Bool
         checkMark =
             settings.clickable && settings.item.state == Items.InBasket
     in

@@ -151,11 +151,8 @@ guardStrField mapper item data =
 
 
 type Msg
-    = StartEditing ItemField (Maybe String)
-    | FinishEditing ItemField
-    | UpdateField ItemField (Maybe String)
+    = UpdateField ItemField (Maybe String)
     | ClickedOutside
-    | GotItem Items.Item
     | NoOp
 
 

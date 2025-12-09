@@ -15,7 +15,6 @@ module Db.Items exposing
     , map
     , queryBySlug
     , setAllStuffed
-    , setId
     , setState
     , setUpdated
     , store
@@ -203,11 +202,6 @@ alter allItems item =
         allItems
 
 
-setId : Id -> Item -> Item
-setId id draft =
-    { draft | id = id }
-
-
 switchState : State -> List State -> Item -> Item
 switchState newState oldStates item =
     if List.isEmpty oldStates then
@@ -230,6 +224,7 @@ setAllStuffed items =
 store : (TaskPort.Result Bool -> msg) -> Item -> Cmd msg
 store onResult item =
     let
+        call : Item -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "storeItem"
@@ -243,6 +238,7 @@ store onResult item =
 delete : (TaskPort.Result Bool -> msg) -> Id -> Cmd msg
 delete onResult itemId =
     let
+        call : String -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "deleteItem"
@@ -259,6 +255,7 @@ storeAll :
     -> Cmd msg
 storeAll onResult items =
     let
+        call : Dict String Item -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "storeAllItems"
@@ -272,6 +269,7 @@ storeAll onResult items =
 queryBySlug : (TaskPort.Result Item -> msg) -> String -> Cmd msg
 queryBySlug onResult slug =
     let
+        call : String -> TaskPort.Task Item
         call =
             TaskPort.call
                 { function = "queryBySlug"

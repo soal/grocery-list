@@ -35,7 +35,7 @@ import Json.Encode as JE
 import Route
 import Route.Path
 import Shared.Model
-import Shared.Msg exposing (Msg(..))
+import Shared.Msg
 import Task
 import TaskPort
 import Time
@@ -110,17 +110,20 @@ initDbEffect :
     -> Cmd msg
 initDbEffect shared onResult =
     let
+        params : { name : String, version : Int }
         params =
             { name = shared.dbConfig.name
             , version = shared.dbConfig.version
             }
 
+        encoder : { name : String, version : Int } -> JE.Value
         encoder args =
             JE.object
                 [ ( "name", JE.string args.name )
                 , ( "version", JE.int args.version )
                 ]
 
+        call : { name : String, version : Int } -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "initDb"
@@ -145,12 +148,14 @@ queryAll onResult =
 queryAllEffect : (TaskPort.Result CatsAndItems -> msg) -> Cmd msg
 queryAllEffect onResult =
     let
+        valueDecoder : JD.Decoder CatsAndItems
         valueDecoder =
             JD.map2
                 CatsAndItems
                 (JD.field "categories" <| JD.list Cats.decoder)
                 (JD.field "items" <| JD.dict Items.decoder)
 
+        call : TaskPort.Task CatsAndItems
         call =
             TaskPort.callNoArgs
                 { function = "queryAllCatsAndItems"
@@ -200,6 +205,7 @@ storeDump onResult dump =
 storeDumpEffect : (TaskPort.Result Bool -> msg) -> DataDump -> Cmd msg
 storeDumpEffect onResult dump =
     let
+        call : DataDump -> TaskPort.Task Bool
         call =
             TaskPort.call
                 { function = "storeDump"
@@ -218,6 +224,7 @@ requestUuid onResult =
 requestUuidEffect : (TaskPort.Result String -> msg) -> Cmd msg
 requestUuidEffect onResult =
     let
+        call : TaskPort.Task String
         call =
             TaskPort.callNoArgs
                 { function = "getUuid"

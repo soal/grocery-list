@@ -121,6 +121,7 @@ view props { model, content } =
 viewNavBar : Route () -> msg -> Html msg
 viewNavBar currentRoute onAddClick =
     let
+        links : List (NavLink msg)
         links =
             [ { path = Route.Path.Home_
               , text = "Список"

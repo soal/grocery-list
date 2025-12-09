@@ -16,7 +16,7 @@ import Db.Categories as Cats
 import Db.Items as Items
 import Dict exposing (Dict)
 import Html exposing (Html, button, div)
-import Html.Attributes exposing (class, classList, id)
+import Html.Attributes exposing (class, classList)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (viewIf)
 import Html.Keyed
@@ -118,7 +118,6 @@ type Msg
       -- | ShiftEnterPressed
       -- | CtrlEnterPressed
     | EscPressed
-    | NoOp
 
 
 view : ItemsList -> Html Msg
@@ -148,6 +147,7 @@ viewCategory :
     -> ( String, Html Msg )
 viewCategory options category =
     let
+        state : Cats.CollapsedState
         state =
             if Set.member category.id options.collapsedCatIds then
                 Cats.Collapsed
@@ -195,7 +195,7 @@ viewCatHeader options state category =
         , state = state
         , on = { toggle = onCatToggle state category.id }
         }
-        |> (if options.counter == True then
+        |> (if options.counter then
                 Components.Category.Header.withCounter
 
             else
@@ -286,8 +286,7 @@ getCatItems :
     ( Dict Items.Id Items.Item, Cats.Category )
     -> List ( Items.Id, Items.Item )
 getCatItems ( allItems, category ) =
-    List.map (\id -> Dict.get id allItems) category.items
-        |> List.filterMap identity
+    List.filterMap (\id -> Dict.get id allItems) category.items
         |> List.map (\item -> ( item.id, item ))
 
 
@@ -300,7 +299,7 @@ getItemsWithoutCat allItems categories =
         |> Dict.toList
         |> (\itemList ->
                 ( itemList
-                , List.concat (List.map .items categories)
+                , List.concatMap .items categories
                 )
            )
         |> (\( itemPairs, itemIds ) ->
@@ -329,26 +328,26 @@ viewItem { item, clickable, link, checkedStates, formState, checkable, editable 
         , checkedSates = checkedStates
         , formState = formState
         }
-        |> (if link == True then
+        |> (if link then
                 Components.Items.Item.withLink
 
             else
                 identity
            )
-        |> (if clickable == True then
+        |> (if clickable then
                 Components.Items.Item.withClick (ItemClicked item item.state)
 
             else
                 identity
            )
-        |> (if checkable == True then
+        |> (if checkable then
                 Components.Items.Item.withCheck
                     (\_ -> ItemChecked item item.state)
 
             else
                 identity
            )
-        |> (if editable == True then
+        |> (if editable then
                 Components.Items.Item.withEditing
                     { edit = EditStarted item
                     , delete = ItemDeleteClicked item.id

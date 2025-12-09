@@ -16,7 +16,7 @@ import Db.Settings as AppSettings
 import Effect exposing (Effect)
 import Json.Decode exposing (field, map)
 import Route exposing (Route)
-import Shared.Model exposing (DbConfig, DbStatus(..))
+import Shared.Model exposing (DbConfig, DbStatus)
 import Shared.Msg exposing (Msg(..))
 
 
@@ -75,6 +75,7 @@ update _ msg model =
 
         Shared.Msg.DbInitialized result ->
             let
+                res : DbStatus
                 res =
                     case result of
                         Ok _ ->

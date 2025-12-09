@@ -1,4 +1,4 @@
-module Pages.Shopping exposing (Model, Msg, page)
+module Pages.Shopping exposing (ContentState, Model, Msg, page)
 
 import Components.Counter
 import Components.Items.List
@@ -121,6 +121,7 @@ update msg model =
 
         ClickedEndShopping ->
             let
+                updated : Dict Items.Id Items.Item
                 updated =
                     Items.setAllStuffed model.items
             in
@@ -140,6 +141,7 @@ update msg model =
             case listMsg of
                 Components.Items.List.CollapseClicked catId state ->
                     let
+                        updated : Set Cats.Id
                         updated =
                             if state == Cats.Open then
                                 Set.remove catId model.collapsedCats
@@ -153,6 +155,7 @@ update msg model =
 
                 Components.Items.List.ItemClicked item state ->
                     let
+                        newState : Items.State
                         newState =
                             case state of
                                 Items.Required ->
@@ -161,6 +164,7 @@ update msg model =
                                 _ ->
                                     Items.Required
 
+                        altered : Dict Items.Id Items.Item
                         altered =
                             Items.setState newState item.id model.items
                     in
@@ -201,15 +205,6 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     { title = shared.titlePrefix ++ "В магазине"
     , body =
-        let
-            filteredItems =
-                Items.filterByStates
-                    model.items
-                    [ Items.Required, Items.InBasket ]
-
-            filteredCats =
-                filterCategories filteredItems model.categories
-        in
         case model.state of
             Initial ->
                 [ nothing ]
@@ -218,7 +213,19 @@ view shared model =
                 [ nothing ]
 
             Ready ->
+                let
+                    filteredItems : Dict Items.Id Items.Item
+                    filteredItems =
+                        Items.filterByStates
+                            model.items
+                            [ Items.Required, Items.InBasket ]
+                in
                 if Dict.size filteredItems > 0 then
+                    let
+                        filteredCats : List Cats.Category
+                        filteredCats =
+                            filterCategories filteredItems model.categories
+                    in
                     [ Components.Items.List.new
                         { items = filteredItems
                         , categories = filteredCats

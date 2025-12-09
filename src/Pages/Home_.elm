@@ -18,11 +18,11 @@ import LucideIcons as Icons
 import Page exposing (Page)
 import Route exposing (Route)
 import Set exposing (Set)
-import Shared exposing (update)
+import Shared
 import Task
 import TaskPort
 import Time
-import Types exposing (..)
+import Types exposing (Draft(..), FormState(..), ItemField(..))
 import Utils exposing (slugify)
 import View exposing (View)
 
@@ -128,6 +128,7 @@ update msg model =
             case uuid_ of
                 Ok uuid ->
                     let
+                        fieldId : String
                         fieldId =
                             "item-name-" ++ uuid
                     in
@@ -144,6 +145,7 @@ update msg model =
 
         GotCatsAndItems data ->
             let
+                sorted : List Cats.Category
                 sorted =
                     List.map (Cats.sortItemsByFreq data.items) data.categories
             in
@@ -182,6 +184,7 @@ update msg model =
 
         GotDraftUpdateTime draft timestamp ->
             let
+                altered : Draft
                 altered =
                     case draft of
                         New item ->
@@ -212,6 +215,7 @@ update msg model =
 
             else
                 let
+                    altered : Draft
                     altered =
                         alterDraft model.draft field content
                 in
@@ -227,6 +231,7 @@ update msg model =
 
         GotItemDeleteClick itemId ->
             let
+                category : Maybe Cats.Category
                 category =
                     model.categories
                         |> List.filter (\c -> List.member itemId c.items)
@@ -251,6 +256,7 @@ onListMsg model msg =
     case msg of
         Components.Items.List.CollapseClicked catId state ->
             let
+                altered : Set Cats.Id
                 altered =
                     if state == Cats.Open then
                         Set.remove catId model.collapsedCats
@@ -341,6 +347,7 @@ updateItemContent item field content =
                 (Items.Quantity _ unit) =
                     item.quantity
 
+                newCount : Float
                 newCount =
                     Maybe.withDefault 0 (String.toFloat content)
             in
@@ -353,9 +360,6 @@ updateItemContent item field content =
             in
             { item | quantity = Items.Quantity count content }
 
-        _ ->
-            item
-
 
 endEditAndSave : Model -> Bool -> ( Model, Effect Msg )
 endEditAndSave model addNew =
@@ -365,6 +369,7 @@ endEditAndSave model addNew =
 
         Existing item ->
             let
+                newItem : Items.Item
                 newItem =
                     { item | slug = slugify item.name }
             in
@@ -474,7 +479,7 @@ view shared model =
                         }
                     |> Components.Items.Item.view
 
-            ( _, _ ) ->
+            _ ->
                 nothing
         , button [ class "main-action", onClick GotItemAddClick ]
             [ Icons.plusIcon []
@@ -486,6 +491,7 @@ view shared model =
 toggleItemState : Model -> Items.Item -> Items.State -> ( Model, Effect Msg )
 toggleItemState model item state =
     let
+        altered : Dict Items.Id Items.Item
         altered =
             case state of
                 Items.Stuffed ->
@@ -516,18 +522,21 @@ onTaskPortResult res =
 endItemDraft : Model -> Items.Item -> Bool -> ( Model, Effect Msg )
 endItemDraft model item addNew =
     let
+        alteredCat : Maybe Cats.Category
         alteredCat =
             model.catWithDraft
                 |> Maybe.andThen
                     (Cats.getByid model.categories)
-                |> Maybe.andThen
-                    (Cats.addItem item.id >> Just)
+                |> Maybe.map
+                    (Cats.addItem item.id)
 
+        newItem : Items.Item
         newItem =
             { item | slug = slugify item.name }
 
+        catWithDraft : Maybe Cats.Id
         catWithDraft =
-            if addNew == True then
+            if addNew then
                 model.catWithDraft
 
             else
@@ -545,7 +554,7 @@ endItemDraft model item addNew =
     , Effect.batch
         [ Effect.storeItem onTaskPortResult newItem
         , Effect.maybe (Effect.storeCategory onTaskPortResult) alteredCat
-        , if addNew == True then
+        , if addNew then
             Effect.requestUuid GotItemUuid
 
           else

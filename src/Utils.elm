@@ -1,16 +1,7 @@
-module Utils exposing (..)
+module Utils exposing (maybeKbd, slugify)
 
-import Db.Categories exposing (CollapsedState(..))
-import Dict
 import Keyboard exposing (Key(..))
-import Set exposing (Set)
-import Types exposing (CollapsedCats)
 import Url.Builder
-
-
-getCollapsesCatsForPage : String -> CollapsedCats -> Set String
-getCollapsesCatsForPage pageName collapsedMap =
-    Maybe.withDefault Set.empty (Dict.get pageName collapsedMap)
 
 
 slugify : String -> String

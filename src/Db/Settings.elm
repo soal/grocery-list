@@ -1,4 +1,4 @@
-module Db.Settings exposing (..)
+module Db.Settings exposing (AppSettings, AppTheme(..), CatsAndItems, DataDump, decoder, dumpDecoder, encodeDump)
 
 import Db.Categories as Cats
 import Db.Items as Items

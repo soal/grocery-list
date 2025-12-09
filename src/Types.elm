@@ -1,9 +1,7 @@
-module Types exposing (..)
+module Types exposing (CheckboxKind(..), DomId, Draft(..), FormState(..), ItemField(..))
 
 import Db.Categories as Cats
 import Db.Items as Items
-import Dict exposing (Dict)
-import Set exposing (Set)
 
 
 type FormState
@@ -33,8 +31,3 @@ type ItemField
     | QCount
     | QUnit
     | Comment
-    | Symbol
-
-
-type alias CollapsedCats =
-    Dict String (Set String)

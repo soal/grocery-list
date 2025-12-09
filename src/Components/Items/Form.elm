@@ -1,4 +1,4 @@
-module Components.Items.Form exposing (..)
+module Components.Items.Form exposing (viewCheckbox, viewComment, viewName, viewQuantity)
 
 import Db.Items as Items
 import Html exposing (Html, b, div, input, span, text, textarea)
@@ -17,7 +17,6 @@ import Html.Attributes
 import Html.Attributes.Extra exposing (attributeMaybe, role)
 import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (nothing)
-import Keyboard exposing (Key(..))
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Svg.Attributes
@@ -59,6 +58,7 @@ viewName :
     -> Html msg
 viewName props =
     let
+        fieldId : String
         fieldId =
             "item-name-" ++ props.itemId
     in
@@ -127,6 +127,7 @@ viewComment :
     -> Html msg
 viewComment props =
     let
+        fieldId : String
         fieldId =
             "item-comment-" ++ props.itemId
     in
@@ -212,13 +213,16 @@ viewQuantity :
     -> Html msg
 viewQuantity props (Items.Quantity count unit) =
     let
+        countFieldId : String
         countFieldId =
             "item-quantity-count" ++ props.itemId
-
-        unitFieldId =
-            "item-quantity-unit" ++ props.itemId
     in
     if props.formState == Form then
+        let
+            unitFieldId : String
+            unitFieldId =
+                "item-quantity-unit" ++ props.itemId
+        in
         span [ class "item-quantity" ]
             [ viewQCountField
                 { fieldId = countFieldId
