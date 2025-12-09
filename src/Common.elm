@@ -1,4 +1,4 @@
-module Types exposing (CheckboxKind(..), DomId, Draft(..), FormState(..), ItemField(..))
+module Common exposing (CheckboxKind(..), DomId, Draft(..), FormState(..), ItemField(..))
 
 import Data.Categories as Cats
 import Data.Items as Items

@@ -22,7 +22,7 @@ import Shared
 import Task
 import TaskPort
 import Time
-import Types exposing (Draft(..), FormState(..), ItemField(..))
+import Common exposing (Draft(..), FormState(..), ItemField(..))
 import Utils exposing (slugify)
 import View exposing (View)
 

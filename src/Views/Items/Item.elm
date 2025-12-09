@@ -32,7 +32,7 @@ import Html.Events exposing (onClick)
 import Html.Extra exposing (viewIf)
 import LucideIcons as Icons
 import Route.Path
-import Types exposing (CheckboxKind(..), FormState(..), ItemField(..))
+import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
 
 
 type alias Handlers msg =

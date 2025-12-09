@@ -22,7 +22,7 @@ import Html.Extra exposing (viewIf)
 import Html.Keyed
 import LucideIcons as Icons
 import Set exposing (Set)
-import Types exposing (DomId, Draft(..), FormState(..), ItemField(..))
+import Common exposing (DomId, Draft(..), FormState(..), ItemField(..))
 
 
 type alias Options =

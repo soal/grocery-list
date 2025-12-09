@@ -17,7 +17,7 @@ import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (viewIf)
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
-import Types exposing (Draft(..))
+import Common exposing (Draft(..))
 import Utils exposing (maybeKbd)
 
 

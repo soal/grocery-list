@@ -20,7 +20,7 @@ import Html.Extra exposing (nothing)
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Svg.Attributes
-import Types exposing (CheckboxKind(..), FormState(..), ItemField(..))
+import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
 import Utils exposing (maybeKbd)
 
 
