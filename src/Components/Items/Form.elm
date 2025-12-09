@@ -97,7 +97,7 @@ viewNameField :
     }
     -> Html msg
 viewNameField { fieldId, inputChange, content, onEnter, onEsc } =
-    span [ class "input-resize-containter", attribute "data-content" content ]
+    span [ class "input-resize-container", attribute "data-content" content ]
         [ input
             [ type_ "text"
             , class "item-name-field with-click-outside"
@@ -245,7 +245,7 @@ viewQuantity props (Items.Quantity count unit) =
             [ attributeMaybe onClick <|
                 Maybe.map (\f -> f Name countFieldId) props.onOpen
             ]
-            [ b [] [ text (String.fromFloat count) ]
+            [ b [ class "item-quantity" ] [ text (String.fromFloat count) ]
             , text " "
             , span [] [ text unit ]
             ]
@@ -262,7 +262,7 @@ viewQCountField :
     -> Html msg
 viewQCountField { fieldId, content, inputChange, onEnter, onEsc } =
     b
-        [ class "input-resize-containter"
+        [ class "input-resize-container"
         , attribute "data-content" (String.fromFloat content)
         ]
         [ input
@@ -291,7 +291,7 @@ viewQUnitField :
     }
     -> Html msg
 viewQUnitField { fieldId, content, inputChange, onEnter, onEsc } =
-    span [ class "input-resize-containter", attribute "data-content" content ]
+    span [ class "input-resize-container", attribute "data-content" content ]
         [ input
             [ type_ "text"
             , class "item-quantity-unit-field with-click-outside"

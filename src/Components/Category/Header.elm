@@ -141,7 +141,7 @@ view (Settings ({ on } as settings)) =
                 NewCat cat ->
                     if cat.id == settings.category.id then
                         ( span
-                            [ class "input-resize-containter"
+                            [ class "input-resize-container"
                             , attribute "data-content" cat.name
                             ]
                             [ input
@@ -165,7 +165,7 @@ view (Settings ({ on } as settings)) =
                 ExistingCat cat ->
                     if cat.id == settings.category.id then
                         ( span
-                            [ class "input-resize-containter"
+                            [ class "input-resize-container"
                             , attribute "data-content" cat.name
                             ]
                             [ input

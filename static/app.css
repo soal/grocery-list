@@ -223,6 +223,23 @@ button {
     }
   }
 
+  .item-quantity {
+    align-items: baseline;
+    display: inline-block;
+    text-align: center;
+
+    .input-resize-container {
+      & input[type=text] {
+        text-align: center;
+      }
+
+      & input[type=text],
+      &::after {
+        min-width: 1rem;
+      }
+    }
+  }
+
   .item-comment-box {
     align-items: center;
     display: flex;
@@ -288,13 +305,6 @@ button {
     padding: 0;
     margin: 0;
     resize: none;
-  }
-
-  .item-quantity {
-    align-items: baseline;
-    display: flex;
-    text-align: center;
-    column-gap: 0.25em;
   }
 
   .item-comment {
@@ -434,7 +444,7 @@ a {
 }
 
 .label {
-  .input-resize-containter {
+  .input-resize-container {
     &::after {
       font-weight: 700;
     }
@@ -442,7 +452,7 @@ a {
 }
 
 
-.input-resize-containter {
+.input-resize-container {
   height: 100%;
   max-width: 100%;
   overflow: hidden;
