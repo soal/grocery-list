@@ -22,6 +22,7 @@ import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Svg.Attributes
 import Types exposing (CheckboxKind(..), FormState(..), ItemField(..))
+import Utils exposing (maybeKbd)
 
 
 viewCheckbox : Maybe (Bool -> msg) -> Bool -> CheckboxKind -> Bool -> Html msg
@@ -300,11 +301,3 @@ viewQUnitField { fieldId, content, inputChange, onEnter, onEsc } =
             ]
             []
         ]
-
-
-maybeKbd : Maybe keyFunc -> Maybe keyFunc -> Maybe (List ( Key, keyFunc ))
-maybeKbd onEnter onEsc =
-    Maybe.map2
-        (\enter esc -> [ ( Enter, enter ), ( Escape, esc ) ])
-        onEnter
-        onEsc

@@ -15,8 +15,11 @@ import Html.Attributes exposing (..)
 import Html.Attributes.Extra exposing (attributeMaybe)
 import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (viewIf)
+import Keyboard exposing (Key(..))
+import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Types exposing (Draft(..))
+import Utils exposing (maybeKbd)
 
 
 type CategoryHeader msg
@@ -35,6 +38,8 @@ type alias Handlers msg =
     , input : Maybe (String -> msg)
     , click : Maybe msg
     , delete : Maybe msg
+    , enter : Maybe msg
+    , esc : Maybe msg
     }
 
 
@@ -44,6 +49,8 @@ defaultHandlers handlers =
     , input = Nothing
     , click = Nothing
     , delete = Nothing
+    , enter = Nothing
+    , esc = Nothing
     }
 
 
@@ -76,6 +83,8 @@ withDraft :
         { input : String -> msg
         , click : msg
         , delete : msg
+        , enter : msg
+        , esc : msg
         }
     -> CategoryHeader msg
     -> CategoryHeader msg
@@ -93,6 +102,8 @@ withDraft catDraft handlers (Settings settings) =
                     , click = Just handlers.click
                     , delete = Just handlers.delete
                     , toggle = on.toggle
+                    , enter = Just handlers.enter
+                    , esc = Just handlers.esc
                 }
         }
 
@@ -137,6 +148,9 @@ view (Settings ({ on } as settings)) =
                                 , class "with-click-outside"
                                 , attributeMaybe onInput on.input
                                 , value cat.name
+                                , attributeMaybe
+                                    (Keyboard.on Keyboard.Keydown)
+                                    (maybeKbd on.enter on.esc)
                                 ]
                                 []
                             ]
@@ -157,6 +171,9 @@ view (Settings ({ on } as settings)) =
                                 , id ("category-name-" ++ cat.id)
                                 , attributeMaybe onInput on.input
                                 , value cat.name
+                                , attributeMaybe
+                                    (Keyboard.on Keyboard.Keydown)
+                                    (maybeKbd on.enter on.esc)
                                 ]
                                 []
                             ]

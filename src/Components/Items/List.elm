@@ -115,8 +115,8 @@ type Msg
     | InputChanged ItemField String
     | EditStarted Items.Item ItemField DomId
     | EnterPressed
-    | ShiftEnterPressed
-    | CtrlEnterPressed
+      -- | ShiftEnterPressed
+      -- | CtrlEnterPressed
     | EscPressed
     | NoOp
 
@@ -206,6 +206,8 @@ viewCatHeader options state category =
                     { input = InputChanged Name
                     , click = CatTitleClicked category
                     , delete = CatDeleteClicked category.id
+                    , enter = EnterPressed
+                    , esc = EscPressed
                     }
 
             else

@@ -2,6 +2,7 @@ module Utils exposing (..)
 
 import Db.Categories exposing (CollapsedState(..))
 import Dict
+import Keyboard exposing (Key(..))
 import Set exposing (Set)
 import Types exposing (CollapsedCats)
 import Url.Builder
@@ -20,3 +21,9 @@ slugify str =
         |> String.replace " " "-"
 
 
+maybeKbd : Maybe keyFunc -> Maybe keyFunc -> Maybe (List ( Key, keyFunc ))
+maybeKbd onEnter onEsc =
+    Maybe.map2
+        (\enter esc -> [ ( Enter, enter ), ( Escape, esc ) ])
+        onEnter
+        onEsc
