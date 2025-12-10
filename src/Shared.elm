@@ -53,7 +53,8 @@ init _ _ =
       , titlePrefix = "Покупки: "
       , error = Nothing
       }
-    , Effect.initDb Shared.Msg.DbInitialized
+      -- , Effect.initDb Shared.Msg.DbInitialized
+    , Effect.none
     )
 
 

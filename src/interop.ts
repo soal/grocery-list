@@ -1,6 +1,11 @@
 import Dexie, { type EntityTable, liveQuery } from "dexie";
 import * as TaskPort from "elm-taskport/dist/taskport.min.js";
 import { ClickOutside } from "./web-components/clickOutside.js";
+import * as Y from "yjs";
+import { IndexeddbPersistence } from "y-indexeddb";
+import { HocuspocusProvider } from "@hocuspocus/provider";
+
+// import { WebrtcProvider } from "y-webrtc";
 
 window.customElements.define("on-click-outside", ClickOutside);
 
@@ -46,15 +51,17 @@ type DataDump = {
 	categories: Category[];
 };
 
-type DB = Dexie & {
-	settings: EntityTable<AppSettings, "id">;
-	items: EntityTable<Item, "id">;
-	categories: EntityTable<Category, "id">;
-	lastUpdatedBy: EntityTable<{ id: number; clientId: string }, "id">;
+let clientId: number | null = null;
+
+type Data = {
+	room?: string;
+	doc?: Y.Doc;
+	items?: Y.Map<Item>;
+	categories?: Y.Array<Category>;
+	provider?: HocuspocusProvider;
 };
 
-let db: DB | null = null;
-const clientId = window.crypto.randomUUID();
+const data: Data = {};
 
 async function initDb({
 	name,
@@ -63,106 +70,123 @@ async function initDb({
 	name: string;
 	version: number;
 }): Promise<boolean | Error> {
-	try {
-		db = new Dexie(name) as DB;
+	return new Promise((resolve, reject) => {
+		try {
+			data.room = name;
+			data.doc = new Y.Doc();
+			clientId = data.doc.clientID;
 
-		db.version(version).stores({
-			settings: "id, theme",
-			items:
-				"id, name, quantity, comment, slug, symbol, state, created, updated",
-			categories: "id, name, items, state, created, updated",
-			lastUpdatedBy: "id, clientId",
-		});
-		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
-	} catch (error) {
-		return error;
-	}
+			data.categories = data.doc.getArray("categories");
+			data.items = data.doc.getMap("items");
 
-	return true;
+			const persistence = new IndexeddbPersistence(name, data.doc);
+			persistence.once("synced", () => {
+				console.log("INITIAL CONTENT LOADED");
+				resolve(true);
+			});
+
+			data.provider = new HocuspocusProvider({
+				url: "ws://127.0.0.1:4444",
+				name: name,
+				document: data.doc,
+			});
+		} catch (error) {
+			reject(error);
+		}
+	});
 }
 
-async function queryAllCatsAndItems() {
-	if (db) {
-		const items = await db.items.toArray().then((itemArray) =>
-			itemArray.reduce((acc, item) => {
-				acc[item.id] = item;
-				return acc;
-			}, {}),
-		);
-		return {
-			categories: await db.categories.toArray(),
-			items,
-		};
-	}
-	return {
+function queryAllCatsAndItems() {
+	const result = {
 		categories: [],
 		items: {},
 	};
-}
-
-async function storeItem(item: Item) {
-	if (db) {
-		item.lastUpdatedBy = clientId;
-		await db.items.put(item);
-		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
-		return true;
+	if (data.doc) {
+		result.categories = data.categories.toJSON();
+		result.items = data.items.toJSON();
 	}
-	false;
+	return result;
 }
 
-async function deleteItem(itemId: string) {
-	if (db) {
-		await db.items.delete(itemId);
-		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
+function storeItem(item: Item) {
+	if (data.items) {
+		data.items.set(item.id, item);
 		return true;
 	}
 	return false;
 }
 
-async function storeAllItems(items: Item[]) {
-	if (db) {
-		await db.items.bulkPut(Object.values(items));
-		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
-		return true;
-	}
-	false;
-}
-
-async function deleteCategory(categoryId: string) {
-	if (db) {
-		await db.categories.delete(categoryId);
+function deleteItem(itemId: string) {
+	if (data.items) {
+		data.items.delete(itemId);
 		return true;
 	}
 	return false;
 }
 
-async function storeCategory(category: Category) {
-	if (db) {
-		category.lastUpdatedBy = clientId;
-		await db.categories.put(category);
-		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
+function storeAllItems(items: Record<string, Item>) {
+	if (data.items) {
+		Object.entries(items).forEach(([id, item]) => {
+			console.log(item.id);
+			data.items.set(id, item);
+		});
 		return true;
 	}
 	return false;
 }
 
-async function storeDump(dump: DataDump) {
-	if (db) {
-		await db.categories.clear();
-		await db.categories.bulkAdd(
-			dump.categories.map((cat) => {
-				cat.lastUpdatedBy = clientId;
-				return cat;
-			}),
-		);
-		await db.items.clear();
-		await db.items.bulkAdd(
-			Object.values(dump.items).map((item) => {
-				item.lastUpdatedBy = clientId;
-				return item;
-			}),
-		);
-		await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
+function deleteCategory(categoryId: string) {
+	if (data.categories) {
+		const index = data.categories
+			.toArray()
+			.findIndex((cat) => cat.id === categoryId);
+		if (index !== -1) {
+			data.categories.delete(index, 1);
+		}
+
+		return true;
+	}
+	return false;
+}
+
+function storeCategory(category: Category) {
+	if (data.categories) {
+
+		const index = data.categories
+			.toArray()
+			.findIndex((cat) => cat.id === category.id);
+
+		if (index !== -1) {
+			data.categories.insert(index, [category]);
+			data.categories.delete(index + 1, 1);
+		} else {
+			data.categories.insert(0, [category]);
+		}
+
+
+		return true;
+	}
+	return false;
+}
+
+function storeDump(dump: DataDump) {
+	if (data.doc) {
+		// data.categories.delete
+		// await db.categories.clear();
+		// await db.categories.bulkAdd(
+		// 	dump.categories.map((cat) => {
+		// 		cat.lastUpdatedBy = clientId;
+		// 		return cat;
+		// 	}),
+		// );
+		// await db.items.clear();
+		// await db.items.bulkAdd(
+		// 	Object.values(dump.items).map((item) => {
+		// 		item.lastUpdatedBy = clientId;
+		// 		return item;
+		// 	}),
+		// );
+		// await db.lastUpdatedBy.put({ id: 1, clientId: clientId });
 		return true;
 	}
 	return false;
@@ -180,6 +204,7 @@ function selectInput(id: string) {
 		}
 	});
 }
+
 TaskPort.register("initDb", initDb);
 TaskPort.register("storeDump", storeDump);
 TaskPort.register("queryAllCatsAndItems", queryAllCatsAndItems);
@@ -193,28 +218,25 @@ TaskPort.register("storeCategory", storeCategory);
 TaskPort.register("deleteCategory", deleteCategory);
 TaskPort.register("selectInput", selectInput);
 
-export const flags = () => ({
-	settings: {
-		theme: "auto",
-	},
-});
+export const flags = async () => {
+	await initDb({
+		name: "grocery-list-y",
+		version: 1,
+	});
+
+	return {
+		settings: {
+			theme: "auto",
+		},
+	};
+};
 
 export const onReady = ({ app }) => {
-	liveQuery(async () => ({
-		items: await db.items.toArray(),
-		categories: await db.categories.toArray(),
-	})).subscribe({
-		next: async (result) => {
-			const lastUpdatedBy = await db.lastUpdatedBy.get(1);
-			if (lastUpdatedBy.clientId === clientId) return;
-			app.ports.incoming.send({
-				categories: result.categories,
-				items: result.items.reduce((acc: Record<string, Item>, item: Item) => {
-					acc[item.id] = item;
-					return acc;
-				}, {}),
-			});
-		},
-		error: (error) => console.error(error),
+	data.doc.on("update", (_, origin) => {
+		if (origin == null) return;
+		app.ports.incoming.send({
+			categories: data.categories.toJSON(),
+			items: data.items.toJSON(),
+		});
 	});
 };
