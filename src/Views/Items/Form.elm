@@ -1,6 +1,6 @@
-module Components.Items.Form exposing (viewCheckbox, viewComment, viewName, viewQuantity)
+module Views.Items.Form exposing (viewCheckbox, viewComment, viewName, viewQuantity)
 
-import Db.Items as Items
+import Data.Items as Items
 import Html exposing (Html, b, div, input, span, text, textarea)
 import Html.Attributes
     exposing
@@ -20,7 +20,7 @@ import Html.Extra exposing (nothing)
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Svg.Attributes
-import Types exposing (CheckboxKind(..), FormState(..), ItemField(..))
+import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
 import Utils exposing (maybeKbd)
 
 

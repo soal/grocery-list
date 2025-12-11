@@ -1,4 +1,4 @@
-module Components.Items.Item exposing
+module Views.Items.Item exposing
     ( ItemListElement
     , asForm
     , new
@@ -9,14 +9,14 @@ module Components.Items.Item exposing
     , withLink
     )
 
-import Components.Items.Form
+import Views.Items.Form
     exposing
         ( viewCheckbox
         , viewComment
         , viewName
         , viewQuantity
         )
-import Db.Items as Items
+import Data.Items as Items
 import Html
     exposing
         ( Html
@@ -32,7 +32,7 @@ import Html.Events exposing (onClick)
 import Html.Extra exposing (viewIf)
 import LucideIcons as Icons
 import Route.Path
-import Types exposing (CheckboxKind(..), FormState(..), ItemField(..))
+import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
 
 
 type alias Handlers msg =

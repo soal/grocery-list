@@ -1,4 +1,4 @@
-module Components.Counter exposing (view)
+module Views.Counter exposing (view)
 
 import Dict exposing (Dict)
 import Html exposing (Html, span, text)

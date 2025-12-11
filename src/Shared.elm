@@ -12,12 +12,15 @@ module Shared exposing
 
 -}
 
-import Db.Settings as AppSettings
+import Data.Settings exposing (Sync(..), SyncState(..))
+import DataUpdate
 import Effect exposing (Effect)
-import Json.Decode exposing (field, map)
+import Json.Decode
 import Route exposing (Route)
-import Shared.Model exposing (DbConfig, DbStatus)
+import Route.Path
+import Shared.Model
 import Shared.Msg exposing (Msg(..))
+import TaskPort exposing (JSError(..))
 
 
 
@@ -25,13 +28,12 @@ import Shared.Msg exposing (Msg(..))
 
 
 type alias Flags =
-    { settings : AppSettings.AppSettings }
+    Data.Settings.AppSettings
 
 
 decoder : Json.Decode.Decoder Flags
 decoder =
-    map Flags
-        (field "settings" AppSettings.decoder)
+    Data.Settings.decoder
 
 
 
@@ -43,17 +45,21 @@ type alias Model =
 
 
 init : Result Json.Decode.Error Flags -> Route () -> ( Model, Effect Msg )
-init _ _ =
-    ( { settings = { theme = AppSettings.Dark }
-      , dbConfig =
-            { name = "grocery-list"
-            , version = 1
-            , status = Shared.Model.DbInitial
-            }
+init flags _ =
+    let
+        settings =
+            case flags of
+                Ok data ->
+                    data
+
+                Err _ ->
+                    Data.Settings.defaultSettings
+    in
+    ( { settings = settings
       , titlePrefix = "Покупки: "
       , error = Nothing
       }
-    , Effect.initDb Shared.Msg.DbInitialized
+    , Effect.none
     )
 
 
@@ -73,35 +79,6 @@ update _ msg model =
             , Effect.none
             )
 
-        Shared.Msg.DbInitialized result ->
-            let
-                res : DbStatus
-                res =
-                    case result of
-                        Ok _ ->
-                            Shared.Model.DbReady
-
-                        Err _ ->
-                            Shared.Model.DbError
-            in
-            ( { model | dbConfig = updateDbStatus model.dbConfig res }
-              -- , if res == Shared.Model.DbReady then
-              --     Effect.queryAll
-              --         (\loaded ->
-              --             case loaded of
-              --                 Ok data ->
-              --                     Shared.Msg.LoadInitial data
-              --                 Err _ ->
-              --                     -- err
-              --                     --     |> Json.Decode.errorToString
-              --                     --     |> Just
-              --                     --     |> Shared.Msg.Error
-              --                     Shared.Msg.Error Nothing
-              --         )
-              --   else
-            , Effect.none
-            )
-
         Shared.Msg.Error error ->
             ( { model | error = error }, Effect.none )
 
@@ -110,12 +87,81 @@ update _ msg model =
             , Effect.storeDump (\_ -> NoOp) imported
             )
 
+        Shared.Msg.GotInitSyncReq config ->
+            let
+                settings =
+                    model.settings
+            in
+            ( { model
+                | settings =
+                    { settings | syncState = Data.Settings.Syncing }
+              }
+            , Effect.initSync Shared.Msg.GotInitSyncRes config
+            )
 
-updateDbStatus : DbConfig -> DbStatus -> DbConfig
-updateDbStatus dbConfig status =
-    { dbConfig | status = status }
+        Shared.Msg.GotInitSyncRes res ->
+            let
+                settings =
+                    model.settings
+            in
+            case res of
+                Ok syncConfig ->
+                    let
+                        state =
+                            case syncConfig of
+                                SyncConfig _ ->
+                                    Syncing
+
+                                NotConfigured ->
+                                    SyncError "Cannot connect"
+                    in
+                    ( { model
+                        | settings =
+                            { settings
+                                | syncState = state
+                                , sync = syncConfig
+                            }
+                      }
+                    , Effect.pushRoutePath Route.Path.Home_
+                    )
+
+                Err err ->
+                    let
+                        error =
+                            Data.Settings.parseSyncErr err
+                    in
+                    ( { model
+                        | settings =
+                            { settings
+                                | syncState = Data.Settings.SyncError error
+                                , sync = Data.Settings.NotConfigured
+                            }
+                      }
+                    , Effect.none
+                    )
+
+        Shared.Msg.GotSyncStatus state ->
+            let
+                settings =
+                    model.settings
+            in
+            ( { model | settings = { settings | syncState = state } }
+            , Effect.none
+            )
+
+        Shared.Msg.GotRefreshSyncState ->
+            let
+                settings =
+                    model.settings
+            in
+            ( { model
+                | settings = { settings | syncState = Data.Settings.None }
+              }
+            , Effect.none
+            )
 
 
 subscriptions : Route () -> Model -> Sub Msg
 subscriptions _ _ =
-    Sub.none
+    DataUpdate.syncState
+        (DataUpdate.onSyncState Shared.Msg.Error Shared.Msg.GotSyncStatus)

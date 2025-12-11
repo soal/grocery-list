@@ -1,12 +1,15 @@
-port module DataUpdate exposing (incoming, on)
+port module DataUpdate exposing (incoming, onData, onSyncState, syncState)
 
-import Db.Categories as Cats
-import Db.Items as Items
-import Db.Settings exposing (CatsAndItems)
+import Data.Categories as Cats
+import Data.Items as Items
+import Data.Settings exposing (CatsAndItems)
 import Json.Decode as JD
 
 
 port incoming : (JD.Value -> msg) -> Sub msg
+
+
+port syncState : (JD.Value -> msg) -> Sub msg
 
 
 decodeDataUpdate : JD.Value -> Result JD.Error CatsAndItems
@@ -18,15 +21,29 @@ decodeDataUpdate =
         |> JD.decodeValue
 
 
-on :
+onData :
     (Maybe String -> msg)
     -> (CatsAndItems -> msg)
     -> JD.Value
     -> msg
-on onError msg message =
+onData onError msg message =
     case decodeDataUpdate message of
         Ok data ->
             msg data
+
+        Err err ->
+            onError (Just <| JD.errorToString err)
+
+
+onSyncState :
+    (Maybe String -> msg)
+    -> (Data.Settings.SyncState -> msg)
+    -> JD.Value
+    -> msg
+onSyncState onError msg state =
+    case JD.decodeValue Data.Settings.syncStateDecoder state of
+        Ok state_ ->
+            msg state_
 
         Err err ->
             onError (Just <| JD.errorToString err)

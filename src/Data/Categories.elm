@@ -1,4 +1,4 @@
-module Db.Categories exposing
+module Data.Categories exposing
     ( Category
     , CollapsedState(..)
     , Id
@@ -16,7 +16,7 @@ module Db.Categories exposing
     , store
     )
 
-import Db.Items as Items
+import Data.Items as Items
 import Dict exposing (Dict)
 import Json.Decode as JD
 import Json.Encode as JE

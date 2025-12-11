@@ -1,4 +1,4 @@
-module Components.Category.Header exposing
+module Views.Category.Header exposing
     ( CategoryHeader
     , new
     , view
@@ -6,9 +6,9 @@ module Components.Category.Header exposing
     , withDraft
     )
 
-import Components.Counter
-import Db.Categories as Cats
-import Db.Items as Items
+import Views.Counter
+import Data.Categories as Cats
+import Data.Items as Items
 import Dict exposing (Dict)
 import Html exposing (Html, h4, input, span, text)
 import Html.Attributes exposing (attribute, class, id, type_, value)
@@ -17,7 +17,7 @@ import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (viewIf)
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
-import Types exposing (Draft(..))
+import Common exposing (Draft(..))
 import Utils exposing (maybeKbd)
 
 
@@ -207,7 +207,7 @@ viewOptionalCounter :
     -> List String
     -> Html msg
 viewOptionalCounter items catItemIs =
-    Components.Counter.view
+    Views.Counter.view
         (Dict.map (\_ item -> item.state) items)
         catItemIs
         Items.InBasket

@@ -1,4 +1,4 @@
-module Db.Items exposing
+module Data.Items exposing
     ( Id
     , Item
     , Quantity(..)
