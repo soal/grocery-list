@@ -1,10 +1,8 @@
 {
 	"dependencies": {
 		"@hocuspocus/provider": "^3.4.1",
-		"dexie": "^4.2.1",
 		"elm-taskport": "^2.0.1",
 		"y-indexeddb": "^9.0.12",
-		"y-webrtc": "^10.3.0",
 		"yjs": "^13.6.27"
 	},
 	"scripts": {
@@ -12,6 +10,7 @@
 		"deploy": "gh-pages -d dist"
 	},
 	"devDependencies": {
-		"gh-pages": "^6.3.0"
+		"gh-pages": "^6.3.0",
+		"typescript": "^5.9.3"
 	}
 }

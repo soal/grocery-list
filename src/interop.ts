@@ -2,6 +2,7 @@ import * as TaskPort from "elm-taskport/dist/taskport.min.js";
 import { ClickOutside } from "./web-components/clickOutside.js";
 import * as Y from "yjs";
 import { IndexeddbPersistence } from "y-indexeddb";
+// @ts-ignore TS2305
 import { HocuspocusProvider } from "@hocuspocus/provider";
 
 type ElmApp = {
@@ -316,7 +317,7 @@ function getUuid() {
 function selectInput(id: string) {
 	window.requestAnimationFrame(() => {
 		const el = document.getElementById(id);
-		if (["INPUT", "TEXTAREA"].includes(el.tagName)) {
+		if (el && ["INPUT", "TEXTAREA"].includes(el.tagName)) {
 			(el as HTMLInputElement).select();
 		}
 	});

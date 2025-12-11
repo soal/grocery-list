@@ -1,8 +1,16 @@
 {
 	"files": ["src/interop.ts"],
 	"compilerOptions": {
+		"target": "es2019",
+		"module": "esnext",
 		"lib": ["esnext", "dom"],
 		"noEmit": true,
-		"strict": false
+		"strict": false,
+		"importHelpers": true,
+		"resolveJsonModule": true,
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"skipLibCheck": true
 	}
 }
