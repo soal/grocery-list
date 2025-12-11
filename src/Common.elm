@@ -1,7 +1,20 @@
-module Common exposing (CheckboxKind(..), DomId, Draft(..), FormState(..), ItemField(..), SyncSettingsField(..))
+module Common exposing
+    ( CheckboxKind(..)
+    , DomId
+    , Draft(..)
+    , FormState(..)
+    , ItemField(..)
+    , SyncSettingsField(..)
+    , VisibilityState(..)
+    )
 
 import Data.Categories as Cats
 import Data.Items as Items
+
+
+type VisibilityState
+    = Show
+    | Hidden
 
 
 type FormState

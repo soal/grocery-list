@@ -1,11 +1,12 @@
 module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
+import Data.Settings
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html, a, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on, onClick)
-import Html.Lazy exposing (lazy2)
+import Html.Lazy exposing (lazy, lazy3)
 import Json.Decode
 import Layout exposing (Layout)
 import LucideIcons as Icons
@@ -34,11 +35,11 @@ layout :
     -> Shared.Model
     -> Route ()
     -> Layout () Model Msg contentMsg
-layout props _ route =
+layout props shared route =
     Layout.new
         { init = init route
         , update = update props
-        , view = view props
+        , view = view props shared.settings.syncState
         , subscriptions = subscriptions
         }
         |> Layout.withOnUrlChanged UrlChanged
@@ -96,13 +97,14 @@ subscriptions _ =
 
 view :
     Props contentMsg
+    -> Data.Settings.SyncState
     ->
         { toContentMsg : Msg -> contentMsg
         , content : View contentMsg
         , model : Model
         }
     -> View contentMsg
-view props { model, content } =
+view props syncState { model, content } =
     { title = content.title
     , body =
         [ Html.node "on-click-outside"
@@ -111,15 +113,20 @@ view props { model, content } =
                     props.onClickOutside
             ]
             [ header [ class "nav-header app-container" ]
-                [ lazy2 viewNavBar model.currentRoute props.onAddClick ]
+                [ lazy3
+                    viewNavBar
+                    model.currentRoute
+                    syncState
+                    props.onAddClick
+                ]
             , main_ [ class "app-main app-container" ] content.body
             ]
         ]
     }
 
 
-viewNavBar : Route () -> msg -> Html msg
-viewNavBar currentRoute onAddClick =
+viewNavBar : Route () -> Data.Settings.SyncState -> msg -> Html msg
+viewNavBar currentRoute syncState onAddClick =
     let
         links : List (NavLink msg)
         links =
@@ -139,6 +146,8 @@ viewNavBar currentRoute onAddClick =
                 [ span [ class "link" ]
                     [ span [ class "icon-wrapper button", onClick onAddClick ]
                         [ Icons.plusIcon [] ]
+                    , span [ class "icon-wrapper button" ]
+                        [ lazy viewSyncIcon syncState ]
                     ]
                 ]
             ]
@@ -153,6 +162,30 @@ viewNavBar currentRoute onAddClick =
                 (NavLink Route.Path.Settings "" Icons.settingsIcon)
             ]
         ]
+
+
+viewSyncIcon : Data.Settings.SyncState -> Html msg
+viewSyncIcon syncState =
+    case syncState of
+        Data.Settings.None ->
+            span [ class "icon-wrapper button" ]
+                [ Icons.cloudIcon [] ]
+
+        Data.Settings.SyncOffline ->
+            span [ class "icon-wrapper button" ]
+                [ Icons.cloudOffIcon [] ]
+
+        Data.Settings.Syncing ->
+            span [ class "icon-wrapper button" ]
+                [ Icons.cloudDownloadIcon [] ]
+
+        Data.Settings.Synced ->
+            span [ class "icon-wrapper button" ]
+                [ Icons.cloudCheckIcon [] ]
+
+        Data.Settings.SyncError _ ->
+            span [ class "icon-wrapper button" ]
+                [ Icons.cloudAlertIcon [] ]
 
 
 viewNavLink : Route () -> NavLink msg -> Html msg

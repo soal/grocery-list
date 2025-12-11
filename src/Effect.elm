@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , deleteCategory, deleteItem, getTime, importData, initSync, maybe, queryAll, reqInitSync, requestUuid, selectInput, storeAllItems, storeCategory, storeDump, storeItem
+    , deleteCategory, deleteItem, getTime, importData, initSync, maybe, queryAll, refreshSyncState, reqInitSync, requestUuid, selectInput, storeAllItems, storeCategory, storeDump, storeItem
     )
 
 {-|
@@ -111,6 +111,11 @@ initSync :
     -> Effect msg
 initSync onResult settings =
     InitSync onResult settings
+
+
+refreshSyncState : Effect msg
+refreshSyncState =
+    SendSharedMsg Shared.Msg.GotRefreshSyncState
 
 
 queryAll :

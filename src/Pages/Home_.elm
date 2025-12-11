@@ -1,7 +1,14 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
 import Browser.Dom
-import Common exposing (Draft(..), FormState(..), ItemField(..), SyncSettingsField(..))
+import Common
+    exposing
+        ( Draft(..)
+        , FormState(..)
+        , ItemField(..)
+        , SyncSettingsField(..)
+        , VisibilityState(..)
+        )
 import Data.Categories as Cats
 import Data.Items as Items
 import Data.Settings exposing (CatsAndItems)
@@ -54,6 +61,7 @@ toLayout _ =
 type alias SyncSettingsForm =
     { room : String
     , url : String
+    , state : VisibilityState
     }
 
 
@@ -65,7 +73,7 @@ type alias Model =
     , categories : List Cats.Category
     , titlePrefix : String
     , error : Maybe String
-    , syncSettingsForm : SyncSettingsForm
+    , syncSettingsForm : Views.SyncSettings.Model
     }
 
 
@@ -78,7 +86,7 @@ init () =
       , titlePrefix = "Покупки: "
       , error = Nothing
       , draft = Empty
-      , syncSettingsForm = SyncSettingsForm "" ""
+      , syncSettingsForm = Views.SyncSettings.init
       }
     , Effect.batch
         [ Effect.queryAll
@@ -122,10 +130,15 @@ type Msg
     | GotEnterKey
     | GotEscKey
       -- SYNC SETTINGS
-    | GotSyncSettingsInput SyncSettingsField String
-    | GotNewRoomReq
-    | GotRoomUuid (TaskPort.Result String)
-    | GotInitSyncReq
+    | GotSyncSettingsMsg (Views.SyncSettings.Msg Msg)
+
+
+
+-- | GotSyncSettingsInput SyncSettingsField String
+-- | GotNewRoomReq
+-- | GotRoomUuid (TaskPort.Result String)
+-- | GotInitSyncReq
+-- | GotToggleSyncForm
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -169,9 +182,7 @@ update msg model =
             )
 
         GotCatAddClick ->
-            ( model
-            , Effect.requestUuid GotCatUuid
-            )
+            ( model, Effect.requestUuid GotCatUuid )
 
         GotItemAddClick ->
             ( { model | catWithDraft = Nothing }
@@ -265,50 +276,75 @@ update msg model =
                 ]
             )
 
-        GotSyncSettingsInput field content ->
-            let
-                syncForm =
-                    model.syncSettingsForm
-            in
-            case field of
-                SyncUrl ->
-                    ( { model | syncSettingsForm = { syncForm | url = content } }
-                    , Effect.none
-                    )
+        GotSyncSettingsMsg msg_ ->
+            Views.SyncSettings.update
+                { msg = msg_
+                , model = model.syncSettingsForm
+                , toModel = \m -> { model | syncSettingsForm = m }
+                , toMsg = GotSyncSettingsMsg
+                }
 
-                Room ->
-                    ( { model | syncSettingsForm = { syncForm | room = content } }
-                    , Effect.none
-                    )
 
-        GotRoomUuid uuid_ ->
-            case uuid_ of
-                Ok uuid ->
-                    let
-                        syncSettings =
-                            model.syncSettingsForm
-                    in
-                    ( { model
-                        | syncSettingsForm = { syncSettings | room = uuid }
-                      }
-                    , Effect.none
-                    )
 
-                Err _ ->
-                    ( model, Effect.none )
-
-        GotNewRoomReq ->
-            ( model, Effect.requestUuid GotRoomUuid )
-
-        GotInitSyncReq ->
-            ( model
-            , Effect.reqInitSync
-                (Data.Settings.SyncConfig
-                    { room = model.syncSettingsForm.room
-                    , url = model.syncSettingsForm.url
-                    }
-                )
-            )
+-- msg_
+-- model.syncSettingsForm
+-- }
+-- , Effect.none
+-- )
+-- GotRoomUuid uuid_ ->
+--     case uuid_ of
+--         Ok uuid ->
+--             let
+--                 syncSettings =
+--                     model.syncSettingsForm
+--             in
+--             ( { model
+--                 | syncSettingsForm = { syncSettings | room = uuid }
+--               }
+--             , Effect.none
+--             )
+--         Err _ ->
+--             ( model, Effect.none )
+-- GotInitSyncReq ->
+--     let
+--         syncUrl : String
+--         syncUrl =
+--             if
+--                 String.startsWith
+--                     "ws://"
+--                     model.syncSettingsForm.url
+--                     || String.startsWith
+--                         "wss://"
+--                         model.syncSettingsForm.url
+--             then
+--                 model.syncSettingsForm.url
+--             else
+--                 "ws://" ++ model.syncSettingsForm.url
+--     in
+--     ( model
+--     , Effect.reqInitSync
+--         (Data.Settings.SyncConfig
+--             { room = model.syncSettingsForm.room
+--             , url = syncUrl
+--             }
+--         )
+--     )
+-- GotToggleSyncForm ->
+--     let
+--         syncForm =
+--             model.syncSettingsForm
+--         newState =
+--             case model.syncSettingsForm.state of
+--                 Hidden ->
+--                     Show
+--                 Show ->
+--                     Hidden
+--                 PermanentlyHidden ->
+--                     PermanentlyHidden
+--     in
+--     ( { model | syncSettingsForm = { syncForm | state = newState } }
+--     , Effect.none
+--     )
 
 
 onListMsg : Model -> Views.Items.List.Msg -> ( Model, Effect Msg )
@@ -500,7 +536,7 @@ endEditAndSave model addNew =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    DataUpdate.incoming (DataUpdate.on Error GotCatsAndItems)
+    DataUpdate.incoming (DataUpdate.onData Error GotCatsAndItems)
 
 
 
@@ -511,31 +547,17 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     { title = shared.titlePrefix ++ "Список"
     , body =
-        --     if Dict.size model.items == 0 && List.length model.categories == 0 then
-        --         [ button [ onClick GotItemAddClick ] [ text "Добавить" ]
-        --         , button [] [ text "Добавить категорию" ]
-        --         , if shared.settings.sync == Data.Settings.NotConfigured then
-        --             Views.SyncSettings.view
-        --                 model.syncSettingsForm
-        --                 { fieldInput = GotSyncSettingsInput
-        --                 , newRoomClick = GotNewRoomReq
-        --                 , submit = GotInitSyncReq
-        --                 }
-        --           else
-        --             nothing
-        --         ]
-        --     else
         [ if Dict.size model.items == 0 && List.length model.categories == 0 then
             div []
                 [ button [ onClick GotItemAddClick ] [ text "Добавить" ]
                 , button [] [ text "Добавить категорию" ]
                 , if shared.settings.sync == Data.Settings.NotConfigured then
-                    Views.SyncSettings.view
-                        model.syncSettingsForm
-                        { fieldInput = GotSyncSettingsInput
-                        , newRoomClick = GotNewRoomReq
-                        , submit = GotInitSyncReq
+                    Views.SyncSettings.new
+                        { model = model.syncSettingsForm
+                        , toMsg = GotSyncSettingsMsg
+                        , state = shared.settings.syncState
                         }
+                        |> Views.SyncSettings.view
 
                   else
                     nothing

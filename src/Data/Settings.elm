@@ -9,6 +9,8 @@ module Data.Settings exposing
     , dumpDecoder
     , encodeDump
     , initSync
+    , parseSyncErr
+    , syncStateDecoder
     )
 
 import Data.Categories as Cats
@@ -81,20 +83,20 @@ getSyncData settings =
 
 type SyncState
     = None
-    | SyncReady
     | Syncing
     | Synced
-    | SyncError
+    | SyncOffline
+    | SyncError String
 
 
-stringToSyncState : String -> SyncState
-stringToSyncState stateStr =
+stringToSyncState : Maybe String -> String -> SyncState
+stringToSyncState maybeError stateStr =
     case stateStr of
         "none" ->
             None
 
-        "syncReady" ->
-            SyncReady
+        "offline" ->
+            SyncOffline
 
         "syncing" ->
             Syncing
@@ -103,10 +105,21 @@ stringToSyncState stateStr =
             Synced
 
         "error" ->
-            SyncError
+            SyncError <| Maybe.withDefault "" maybeError
 
         _ ->
             None
+
+
+syncStateDecoder : JD.Decoder SyncState
+syncStateDecoder =
+    JD.oneOf
+        [ JD.map (stringToSyncState Nothing) JD.string
+        , JD.null None
+        , JD.map
+            SyncError
+            (JD.field "error" <| JD.string)
+        ]
 
 
 type alias AppSettings =
@@ -131,11 +144,8 @@ decoder =
     JD.map4
         AppSettings
         (JD.field "theme" <| JD.map stringToTheme JD.string)
-        (JD.field "sync" <| syncSettingsDecoder)
-        (JD.field "syncState" <|
-            JD.oneOf
-                [ JD.map stringToSyncState JD.string, JD.null None ]
-        )
+        (JD.field "sync" syncSettingsDecoder)
+        (JD.field "syncState" syncStateDecoder)
         (JD.field "version" JD.int)
 
 
@@ -185,3 +195,16 @@ initSync onResult settings =
                 }
     in
     Task.attempt onResult <| call settings
+
+
+parseSyncErr : TaskPort.Error -> String
+parseSyncErr err =
+    case err of
+        TaskPort.InteropError error ->
+            TaskPort.interopErrorToString error
+
+        TaskPort.JSError (TaskPort.ErrorObject "Error" { message }) ->
+            message
+
+        TaskPort.JSError _ ->
+            "General connection error"

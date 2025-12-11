@@ -4,11 +4,34 @@ import * as Y from "yjs";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 
-window.customElements.define("on-click-outside", ClickOutside);
+// type Elm = {
+// 	Main: {
+// 		init: (arg0: {
+// 			node: HTMLElement | null;
+// 			flags: {
+// 				storageState: string;
+// 				isInstalled: boolean;
+// 				notifications: string;
+// 			};
+// 		}) => ElmApp;
+// 	};
+// };
 
-TaskPort.install({ logCallErrors: true, logInteropErrors: true });
+type ElmApp = {
+	ports: {
+		incoming: {
+			send: (message: unknown) => Promise<void>;
+		};
+		syncState: {
+			send: (message: SyncState) => Promise<void>;
+		};
+		outgoing: {
+			subscribe: (callback: (data: unknown) => Promise<void>) => void;
+		};
+	};
+};
 
-type SyncState = "none" | "syncReady" | "syncing" | "synced" | "error";
+type SyncState = "none" | "offline" | "syncing" | "synced" | { error: string };
 
 type AppSettings = {
 	theme: "auto" | "light" | "dark";
@@ -51,16 +74,21 @@ type DataDump = {
 	categories: Category[];
 };
 
-type Data = {
+type GlobalState = {
 	room?: string;
 	doc?: Y.Doc;
 	items?: Y.Map<Item>;
 	categories?: Y.Array<Category>;
 	provider?: HocuspocusProvider;
 	db?: IndexeddbPersistence;
+	app?: ElmApp;
 };
 
-const data: Data = {};
+window.customElements.define("on-click-outside", ClickOutside);
+
+TaskPort.install({ logCallErrors: true, logInteropErrors: true });
+
+const globalState: GlobalState = {};
 
 async function initDb({
 	name,
@@ -71,31 +99,27 @@ async function initDb({
 }): Promise<AppSettings | Error> {
 	return new Promise((resolve, reject) => {
 		try {
-			data.doc = new Y.Doc();
+			globalState.doc = new Y.Doc();
 
-			data.categories = data.doc.getArray("categories");
-			data.items = data.doc.getMap("items");
+			globalState.categories = globalState.doc.getArray("categories");
+			globalState.items = globalState.doc.getMap("items");
 
-			data.db = new IndexeddbPersistence(name, data.doc);
-			data.db.set("version", version);
-			// const data.db.get("room")
+			globalState.db = new IndexeddbPersistence(name, globalState.doc);
+			globalState.db.set("version", version);
 
-			data.db.once("synced", async () => {
-				console.log(data.db);
-				const appSettings = await getSettings(data.db);
+			globalState.db.once("synced", async () => {
+				const appSettings = await getSettings(globalState.db);
 				if (appSettings.sync?.room && appSettings.sync?.url) {
-					startSync(appSettings.sync.room, appSettings.sync.url, data.doc);
-					appSettings.syncState = "syncReady";
+					startSync(
+						appSettings.sync.room,
+						appSettings.sync.url,
+						globalState.doc,
+					);
+					appSettings.syncState = "syncing";
 				}
 
 				resolve(appSettings);
 			});
-
-			// data.provider = new HocuspocusProvider({
-			// 	url: "ws://127.0.0.1:4444",
-			// 	name: name,
-			// 	document: data.doc,
-			// });
 		} catch (error) {
 			reject(error);
 		}
@@ -103,10 +127,36 @@ async function initDb({
 }
 
 function startSync(name: string, url: string, ydoc: Y.Doc) {
-	data.provider = new HocuspocusProvider({
-		url: url,
-		name: name,
-		document: ydoc,
+	return new Promise((resolve, reject) => {
+		globalState.provider = new HocuspocusProvider({
+			url: url,
+			name: name,
+			document: ydoc,
+			onConnect() {
+				if (globalState.app) {
+					globalState.app.ports.syncState.send("syncing");
+				}
+				resolve({ url, room: name });
+			},
+			onSynced() {
+				if (globalState.app) {
+					globalState.app.ports.syncState.send("synced");
+				}
+			},
+			onDisconnect(data) {
+				if (data.event.code === 1000) {
+					if (globalState.app) {
+						globalState.app.ports.syncState.send("offline");
+					}
+				} else {
+					globalState.app.ports.syncState.send({
+						error: `Connection failed.
+									 Code: ${data.event.code}, reason: ${data.event.reason}`,
+					});
+					reject("Connection failed");
+				}
+			},
+		});
 	});
 }
 
@@ -115,16 +165,19 @@ async function storeSyncSettings(
 	url: string,
 	dbHandler: IndexeddbPersistence,
 ) {
-	data.room = room;
+	globalState.room = room;
 	await dbHandler.set("room", room);
 	await dbHandler.set("url", url);
 }
 
 async function initSync({ room, url }: { room: string; url: string }) {
-	if (data.db) {
-		storeSyncSettings(room, url, data.db);
-		startSync(room, url, data.doc);
-		console.log("HEY!", room, url, data);
+	if (globalState.db) {
+		try {
+			await startSync(room, url, globalState.doc);
+			storeSyncSettings(room, url, globalState.db);
+		} catch (err) {
+			throw new Error(err);
+		}
 		return {
 			room,
 			url,
@@ -148,7 +201,7 @@ async function getSettings(
 		return {
 			theme: theme ?? "auto",
 			sync: room && url ? { room, url } : null,
-			syncState: room && url ? "syncReady" : "none",
+			syncState: room && url ? "syncing" : "none",
 			version: version ?? 1,
 		};
 	} catch (_) {
@@ -166,34 +219,34 @@ function queryAllCatsAndItems() {
 		categories: [],
 		items: {},
 	};
-	if (data.doc) {
-		result.categories = data.categories.toJSON();
-		result.items = data.items.toJSON();
+	if (globalState.doc) {
+		result.categories = globalState.categories.toJSON();
+		result.items = globalState.items.toJSON();
 	}
 	return result;
 }
 
 function storeItem(item: Item) {
-	if (data.items) {
-		data.items.set(item.id, item);
+	if (globalState.items) {
+		globalState.items.set(item.id, item);
 		return true;
 	}
 	return false;
 }
 
 function deleteItem(itemId: string) {
-	if (data.items) {
-		data.items.delete(itemId);
+	if (globalState.items) {
+		globalState.items.delete(itemId);
 		return true;
 	}
 	return false;
 }
 
 function storeAllItems(items: Record<string, Item>) {
-	if (data.items) {
+	if (globalState.items) {
 		Object.entries(items).forEach(([id, item]) => {
 			console.log(item.id);
-			data.items.set(id, item);
+			globalState.items.set(id, item);
 		});
 		return true;
 	}
@@ -201,12 +254,12 @@ function storeAllItems(items: Record<string, Item>) {
 }
 
 function deleteCategory(categoryId: string) {
-	if (data.categories) {
-		const index = data.categories
+	if (globalState.categories) {
+		const index = globalState.categories
 			.toArray()
 			.findIndex((cat) => cat.id === categoryId);
 		if (index !== -1) {
-			data.categories.delete(index, 1);
+			globalState.categories.delete(index, 1);
 		}
 
 		return true;
@@ -215,16 +268,16 @@ function deleteCategory(categoryId: string) {
 }
 
 function storeCategory(category: Category) {
-	if (data.categories) {
-		const index = data.categories
+	if (globalState.categories) {
+		const index = globalState.categories
 			.toArray()
 			.findIndex((cat) => cat.id === category.id);
 
 		if (index !== -1) {
-			data.categories.insert(index, [category]);
-			data.categories.delete(index + 1, 1);
+			globalState.categories.insert(index, [category]);
+			globalState.categories.delete(index + 1, 1);
 		} else {
-			data.categories.insert(0, [category]);
+			globalState.categories.insert(0, [category]);
 		}
 
 		return true;
@@ -233,7 +286,7 @@ function storeCategory(category: Category) {
 }
 
 function storeDump(dump: DataDump) {
-	if (data.doc) {
+	if (globalState.doc) {
 		// data.categories.delete
 		// await db.categories.clear();
 		// await db.categories.bulkAdd(
@@ -291,12 +344,25 @@ export const flags = async () => {
 	return settings;
 };
 
-export const onReady = ({ app }) => {
-	data.doc.on("update", (_, origin) => {
+export const onReady = ({ app }: { app: ElmApp }) => {
+	globalState.app = app;
+	// if (globalState.provider) {
+	// 	globalState.provider.on("connect", () => {
+	// 		app.ports.syncState.send("syncing");
+	// 	});
+	// 	globalState.provider.on("synced", () => {
+	// 		app.ports.syncState.send("synced");
+	// 	});
+	// 	globalState.provider.on("disconnect", () => {
+	// 		app.ports.syncState.send("offline");
+	// 	});
+	// }
+
+	globalState.doc.on("update", (_, origin) => {
 		if (origin == null) return;
 		app.ports.incoming.send({
-			categories: data.categories.toJSON(),
-			items: data.items.toJSON(),
+			categories: globalState.categories.toJSON(),
+			items: globalState.items.toJSON(),
 		});
 	});
 };

@@ -194,7 +194,7 @@ onTaskPortResult res =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    DataUpdate.incoming (DataUpdate.on Error GotCatsAndItems)
+    DataUpdate.incoming (DataUpdate.onData Error GotCatsAndItems)
 
 
 
