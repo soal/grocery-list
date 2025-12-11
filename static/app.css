@@ -68,6 +68,10 @@ button {
       margin-block: -0.125em;
     }
 
+    &:hover {
+      color: var(--pico-primary);
+    }
+
     &.active {
       color: white;
       background-color: var(--pico-primary-background);
@@ -584,4 +588,16 @@ h1 {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.success {
+  color: var(--pico-form-element-valid-focus-color);
+}
+
+.working {
+  color: rgb(216, 161, 0);
+}
+
+.error {
+  color: var(--pico-form-element-invalid-focus-color);
 }

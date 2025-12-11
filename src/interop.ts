@@ -4,19 +4,6 @@ import * as Y from "yjs";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 
-// type Elm = {
-// 	Main: {
-// 		init: (arg0: {
-// 			node: HTMLElement | null;
-// 			flags: {
-// 				storageState: string;
-// 				isInstalled: boolean;
-// 				notifications: string;
-// 			};
-// 		}) => ElmApp;
-// 	};
-// };
-
 type ElmApp = {
 	ports: {
 		incoming: {
@@ -114,6 +101,11 @@ async function initDb({
 						appSettings.sync.room,
 						appSettings.sync.url,
 						globalState.doc,
+						() => {
+							if (globalState.app) {
+								globalState.app.ports.syncState.send("syncing");
+							}
+						},
 					);
 					appSettings.syncState = "syncing";
 				}
@@ -126,37 +118,42 @@ async function initDb({
 	});
 }
 
-function startSync(name: string, url: string, ydoc: Y.Doc) {
-	return new Promise((resolve, reject) => {
-		globalState.provider = new HocuspocusProvider({
-			url: url,
-			name: name,
-			document: ydoc,
-			onConnect() {
+async function startSync(
+	name: string,
+	url: string,
+	ydoc: Y.Doc,
+	onConnect: () => void,
+) {
+	globalState.provider = new HocuspocusProvider({
+		url: url,
+		name: name,
+		document: ydoc,
+		onConnect,
+		onSynced() {
+			if (globalState.app) {
+				globalState.app.ports.syncState.send("synced");
+			}
+		},
+		onStatus(data) {
+			if (data.status === "connecting") {
 				if (globalState.app) {
 					globalState.app.ports.syncState.send("syncing");
 				}
-				resolve({ url, room: name });
-			},
-			onSynced() {
+			}
+		},
+		onDisconnect(data) {
+			if (data.event.code === 1000) {
 				if (globalState.app) {
-					globalState.app.ports.syncState.send("synced");
+					globalState.app.ports.syncState.send("offline");
 				}
-			},
-			onDisconnect(data) {
-				if (data.event.code === 1000) {
-					if (globalState.app) {
-						globalState.app.ports.syncState.send("offline");
-					}
-				} else {
-					globalState.app.ports.syncState.send({
-						error: `Connection failed.
+			} else {
+				globalState.app.ports.syncState.send({
+					error: `Connection failed.
 									 Code: ${data.event.code}, reason: ${data.event.reason}`,
-					});
-					reject("Connection failed");
-				}
-			},
-		});
+				});
+				// resolve("Connection failed");
+			}
+		},
 	});
 }
 
@@ -173,8 +170,12 @@ async function storeSyncSettings(
 async function initSync({ room, url }: { room: string; url: string }) {
 	if (globalState.db) {
 		try {
-			await startSync(room, url, globalState.doc);
-			storeSyncSettings(room, url, globalState.db);
+			startSync(room, url, globalState.doc, () => {
+				storeSyncSettings(room, url, globalState.db);
+				if (globalState.app) {
+					globalState.app.ports.syncState.send("syncing");
+				}
+			});
 		} catch (err) {
 			throw new Error(err);
 		}

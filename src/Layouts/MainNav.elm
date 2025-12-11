@@ -6,6 +6,7 @@ import Effect exposing (Effect)
 import Html exposing (Html, a, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on, onClick)
+import Html.Extra exposing (nothing)
 import Html.Lazy exposing (lazy, lazy3)
 import Json.Decode
 import Layout exposing (Layout)
@@ -168,23 +169,23 @@ viewSyncIcon : Data.Settings.SyncState -> Html msg
 viewSyncIcon syncState =
     case syncState of
         Data.Settings.None ->
-            span [ class "icon-wrapper button" ]
-                [ Icons.cloudIcon [] ]
+            span [ class "icon-wrapper" ]
+                [ nothing ]
 
         Data.Settings.SyncOffline ->
-            span [ class "icon-wrapper button" ]
+            span [ class "icon-wrapper" ]
                 [ Icons.cloudOffIcon [] ]
 
         Data.Settings.Syncing ->
-            span [ class "icon-wrapper button" ]
+            span [ class "icon-wrapper working" ]
                 [ Icons.cloudDownloadIcon [] ]
 
         Data.Settings.Synced ->
-            span [ class "icon-wrapper button" ]
+            span [ class "icon-wrapper success" ]
                 [ Icons.cloudCheckIcon [] ]
 
         Data.Settings.SyncError _ ->
-            span [ class "icon-wrapper button" ]
+            span [ class "icon-wrapper error" ]
                 [ Icons.cloudAlertIcon [] ]
 
 
