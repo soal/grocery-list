@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , deleteCategory, deleteItem, getTime, importData, initDb, maybe, queryAll, requestUuid, selectInput, storeAllItems, storeCategory, storeDump, storeItem
+    , deleteCategory, deleteItem, getTime, importData, initSync, maybe, queryAll, reqInitSync, requestUuid, selectInput, storeAllItems, storeCategory, storeDump, storeItem
     )
 
 {-|
@@ -25,6 +25,7 @@ module Effect exposing
 
 -}
 
+import Browser.Events exposing (onResize)
 import Browser.Navigation
 import Data.Categories as Cats
 import Data.Items as Items
@@ -56,7 +57,7 @@ type Effect msg
     | SendSharedMsg Shared.Msg.Msg
       -- CUSTOM
     | GetTime (Time.Posix -> msg)
-    | InitDb (TaskPort.Result Bool -> msg)
+    | InitSync (TaskPort.Result Data.Settings.Sync -> msg) Data.Settings.Sync
     | QueryAllCatsAndItems (TaskPort.Result CatsAndItems -> msg)
     | RequestUuid (TaskPort.Result String -> msg)
     | StoreItem (TaskPort.Result Bool -> msg) Items.Item
@@ -96,46 +97,20 @@ selectInputEffect onResult id =
 
 
 
--- INIT DB
+-- INIT SYNC
 
 
-initDb : (TaskPort.Result Bool -> msg) -> Effect msg
-initDb onResult =
-    InitDb onResult
+reqInitSync : Data.Settings.Sync -> Effect msg
+reqInitSync settings =
+    SendSharedMsg <| Shared.Msg.GotInitSyncReq settings
 
 
-initDbEffect :
-    Shared.Model.Model
-    -> (Result TaskPort.Error Bool -> msg)
-    -> Cmd msg
-initDbEffect shared onResult =
-    let
-        params : { name : String, version : Int }
-        params =
-            { name = shared.dbConfig.name
-            , version = shared.dbConfig.version
-            }
-
-        encoder : { name : String, version : Int } -> JE.Value
-        encoder args =
-            JE.object
-                [ ( "name", JE.string args.name )
-                , ( "version", JE.int args.version )
-                ]
-
-        call : { name : String, version : Int } -> TaskPort.Task Bool
-        call =
-            TaskPort.call
-                { function = "initDb"
-                , valueDecoder = JD.bool
-                , argsEncoder = encoder
-                }
-    in
-    Task.attempt onResult <| call params
-
-
-
--- QUERY ALL CATS AND ITEMS
+initSync :
+    (TaskPort.Result Data.Settings.Sync -> msg)
+    -> Data.Settings.Sync
+    -> Effect msg
+initSync onResult settings =
+    InitSync onResult settings
 
 
 queryAll :
@@ -391,8 +366,8 @@ map fn effect =
         GetTime onResult ->
             GetTime (onResult >> fn)
 
-        InitDb onResult ->
-            InitDb (onResult >> fn)
+        InitSync onResult settings ->
+            InitSync (onResult >> fn) settings
 
         QueryAllCatsAndItems onResult ->
             QueryAllCatsAndItems (onResult >> fn)
@@ -468,8 +443,8 @@ toCmd options effect =
         GetTime onResult ->
             Task.perform onResult Time.now
 
-        InitDb onResult ->
-            initDbEffect options.shared onResult
+        InitSync onResult settings ->
+            Data.Settings.initSync onResult settings
 
         QueryAllCatsAndItems onResult ->
             queryAllEffect onResult

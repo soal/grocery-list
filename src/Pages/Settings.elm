@@ -99,7 +99,7 @@ update shared msg model =
                     ( model
                     , Effect.sendCmd <|
                         (JE.object
-                            [ ( "version", JE.int shared.dbConfig.version )
+                            [ ( "version", JE.int shared.settings.version )
                             , ( "categories", JE.list Cats.encode data.categories )
                             , ( "items", JE.dict identity Items.encode data.items )
                             ]

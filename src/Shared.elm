@@ -12,11 +12,11 @@ module Shared exposing
 
 -}
 
-import Data.Settings as AppSettings
+import Data.Settings exposing (Sync(..), SyncState(..))
 import Effect exposing (Effect)
-import Json.Decode exposing (field, map)
+import Json.Decode
 import Route exposing (Route)
-import Shared.Model exposing (DbConfig, DbStatus)
+import Shared.Model
 import Shared.Msg exposing (Msg(..))
 
 
@@ -25,13 +25,12 @@ import Shared.Msg exposing (Msg(..))
 
 
 type alias Flags =
-    { settings : AppSettings.AppSettings }
+    Data.Settings.AppSettings
 
 
 decoder : Json.Decode.Decoder Flags
 decoder =
-    map Flags
-        (field "settings" AppSettings.decoder)
+    Data.Settings.decoder
 
 
 
@@ -43,13 +42,17 @@ type alias Model =
 
 
 init : Result Json.Decode.Error Flags -> Route () -> ( Model, Effect Msg )
-init _ _ =
-    ( { settings = { theme = AppSettings.Dark }
-      , dbConfig =
-            { name = "grocery-list"
-            , version = 1
-            , status = Shared.Model.DbInitial
-            }
+init flags _ =
+    let
+        settings =
+            case flags of
+                Ok data ->
+                    data
+
+                Err _ ->
+                    Data.Settings.defaultSettings
+    in
+    ( { settings = settings
       , titlePrefix = "Покупки: "
       , error = Nothing
       }
@@ -74,35 +77,6 @@ update _ msg model =
             , Effect.none
             )
 
-        Shared.Msg.DbInitialized result ->
-            let
-                res : DbStatus
-                res =
-                    case result of
-                        Ok _ ->
-                            Shared.Model.DbReady
-
-                        Err _ ->
-                            Shared.Model.DbError
-            in
-            ( { model | dbConfig = updateDbStatus model.dbConfig res }
-              -- , if res == Shared.Model.DbReady then
-              --     Effect.queryAll
-              --         (\loaded ->
-              --             case loaded of
-              --                 Ok data ->
-              --                     Shared.Msg.LoadInitial data
-              --                 Err _ ->
-              --                     -- err
-              --                     --     |> Json.Decode.errorToString
-              --                     --     |> Just
-              --                     --     |> Shared.Msg.Error
-              --                     Shared.Msg.Error Nothing
-              --         )
-              --   else
-            , Effect.none
-            )
-
         Shared.Msg.Error error ->
             ( { model | error = error }, Effect.none )
 
@@ -111,10 +85,45 @@ update _ msg model =
             , Effect.storeDump (\_ -> NoOp) imported
             )
 
+        Shared.Msg.GotInitSyncReq settings ->
+            ( model, Effect.initSync Shared.Msg.GotInitSyncRes settings )
 
-updateDbStatus : DbConfig -> DbStatus -> DbConfig
-updateDbStatus dbConfig status =
-    { dbConfig | status = status }
+        Shared.Msg.GotInitSyncRes res ->
+            let
+                settings =
+                    model.settings
+            in
+            case res of
+                Ok syncConfig ->
+                    let
+                        state =
+                            case syncConfig of
+                                SyncConfig _ ->
+                                    SyncReady
+
+                                NotConfigured ->
+                                    SyncError
+                    in
+                    ( { model
+                        | settings =
+                            { settings
+                                | syncState = state
+                                , sync = syncConfig
+                            }
+                      }
+                    , Effect.none
+                    )
+
+                Err _ ->
+                    ( { model
+                        | settings =
+                            { settings
+                                | syncState = Data.Settings.SyncError
+                                , sync = Data.Settings.NotConfigured
+                            }
+                      }
+                    , Effect.none
+                    )
 
 
 subscriptions : Route () -> Model -> Sub Msg

@@ -1,4 +1,4 @@
-module Common exposing (CheckboxKind(..), DomId, Draft(..), FormState(..), ItemField(..))
+module Common exposing (CheckboxKind(..), DomId, Draft(..), FormState(..), ItemField(..), SyncSettingsField(..))
 
 import Data.Categories as Cats
 import Data.Items as Items
@@ -31,3 +31,8 @@ type ItemField
     | QCount
     | QUnit
     | Comment
+
+
+type SyncSettingsField
+    = Room
+    | SyncUrl

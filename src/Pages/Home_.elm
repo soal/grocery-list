@@ -1,14 +1,14 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
 import Browser.Dom
-import Common exposing (Draft(..), FormState(..), ItemField(..))
+import Common exposing (Draft(..), FormState(..), ItemField(..), SyncSettingsField(..))
 import Data.Categories as Cats
 import Data.Items as Items
 import Data.Settings exposing (CatsAndItems)
 import DataUpdate
 import Dict exposing (Dict)
 import Effect exposing (Effect)
-import Html exposing (button)
+import Html exposing (button, div, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (nothing)
@@ -25,6 +25,7 @@ import Utils exposing (slugify)
 import View exposing (View)
 import Views.Items.Item
 import Views.Items.List
+import Views.SyncSettings
 
 
 page : Shared.Model -> Route () -> Page Model Msg
@@ -50,6 +51,12 @@ toLayout _ =
 -- INIT
 
 
+type alias SyncSettingsForm =
+    { room : String
+    , url : String
+    }
+
+
 type alias Model =
     { draft : Draft
     , collapsedCats : Set Cats.Id
@@ -58,6 +65,7 @@ type alias Model =
     , categories : List Cats.Category
     , titlePrefix : String
     , error : Maybe String
+    , syncSettingsForm : SyncSettingsForm
     }
 
 
@@ -70,6 +78,7 @@ init () =
       , titlePrefix = "Покупки: "
       , error = Nothing
       , draft = Empty
+      , syncSettingsForm = SyncSettingsForm "" ""
       }
     , Effect.batch
         [ Effect.queryAll
@@ -100,17 +109,23 @@ type Msg
     | GotCatsAndItems CatsAndItems
     | GotClickOutside
     | GotItemUuid (TaskPort.Result String)
-    | GotCatUuid (TaskPort.Result String)
     | GotItemListMsg Views.Items.List.Msg
     | GotDraftUpdateTime Draft Time.Posix
-    | GotItemStateUpdateTime Items.Item Time.Posix
+      -- CATEGORIES
     | GotCatAddClick
+    | GotCatUuid (TaskPort.Result String)
       -- ITEM WITHOUT CATEGORY
     | GotItemAddClick
     | GotInput ItemField String
     | GotItemDeleteClick Items.Id
+    | GotItemStateUpdateTime Items.Item Time.Posix
     | GotEnterKey
     | GotEscKey
+      -- SYNC SETTINGS
+    | GotSyncSettingsInput SyncSettingsField String
+    | GotNewRoomReq
+    | GotRoomUuid (TaskPort.Result String)
+    | GotInitSyncReq
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -248,6 +263,51 @@ update msg model =
                 [ Effect.deleteItem onTaskPortResult itemId
                 , Effect.maybe (Effect.storeCategory onTaskPortResult) category
                 ]
+            )
+
+        GotSyncSettingsInput field content ->
+            let
+                syncForm =
+                    model.syncSettingsForm
+            in
+            case field of
+                SyncUrl ->
+                    ( { model | syncSettingsForm = { syncForm | url = content } }
+                    , Effect.none
+                    )
+
+                Room ->
+                    ( { model | syncSettingsForm = { syncForm | room = content } }
+                    , Effect.none
+                    )
+
+        GotRoomUuid uuid_ ->
+            case uuid_ of
+                Ok uuid ->
+                    let
+                        syncSettings =
+                            model.syncSettingsForm
+                    in
+                    ( { model
+                        | syncSettingsForm = { syncSettings | room = uuid }
+                      }
+                    , Effect.none
+                    )
+
+                Err _ ->
+                    ( model, Effect.none )
+
+        GotNewRoomReq ->
+            ( model, Effect.requestUuid GotRoomUuid )
+
+        GotInitSyncReq ->
+            ( model
+            , Effect.reqInitSync
+                (Data.Settings.SyncConfig
+                    { room = model.syncSettingsForm.room
+                    , url = model.syncSettingsForm.url
+                    }
+                )
             )
 
 
@@ -451,19 +511,50 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     { title = shared.titlePrefix ++ "Список"
     , body =
-        [ Views.Items.List.new
-            { items = model.items
-            , categories = model.categories
-            , checkedSates = [ Items.Required, Items.InBasket ]
-            , collapsedCatIds = model.collapsedCats
-            }
-            -- |> Views.Items.List.withLink
-            |> Views.Items.List.withCheck
-            |> Views.Items.List.withDraft
-                model.catWithDraft
-                model.draft
-            |> Views.Items.List.view
-            |> Html.map GotItemListMsg
+        --     if Dict.size model.items == 0 && List.length model.categories == 0 then
+        --         [ button [ onClick GotItemAddClick ] [ text "Добавить" ]
+        --         , button [] [ text "Добавить категорию" ]
+        --         , if shared.settings.sync == Data.Settings.NotConfigured then
+        --             Views.SyncSettings.view
+        --                 model.syncSettingsForm
+        --                 { fieldInput = GotSyncSettingsInput
+        --                 , newRoomClick = GotNewRoomReq
+        --                 , submit = GotInitSyncReq
+        --                 }
+        --           else
+        --             nothing
+        --         ]
+        --     else
+        [ if Dict.size model.items == 0 && List.length model.categories == 0 then
+            div []
+                [ button [ onClick GotItemAddClick ] [ text "Добавить" ]
+                , button [] [ text "Добавить категорию" ]
+                , if shared.settings.sync == Data.Settings.NotConfigured then
+                    Views.SyncSettings.view
+                        model.syncSettingsForm
+                        { fieldInput = GotSyncSettingsInput
+                        , newRoomClick = GotNewRoomReq
+                        , submit = GotInitSyncReq
+                        }
+
+                  else
+                    nothing
+                ]
+
+          else
+            Views.Items.List.new
+                { items = model.items
+                , categories = model.categories
+                , checkedSates = [ Items.Required, Items.InBasket ]
+                , collapsedCatIds = model.collapsedCats
+                }
+                -- |> Views.Items.List.withLink
+                |> Views.Items.List.withCheck
+                |> Views.Items.List.withDraft
+                    model.catWithDraft
+                    model.draft
+                |> Views.Items.List.view
+                |> Html.map GotItemListMsg
         , case ( model.draft, model.catWithDraft ) of
             ( New item, Nothing ) ->
                 Views.Items.Item.new
@@ -482,8 +573,7 @@ view shared model =
             _ ->
                 nothing
         , button [ class "main-action", onClick GotItemAddClick ]
-            [ Icons.plusIcon []
-            ]
+            [ Icons.plusIcon [] ]
         ]
     }
 

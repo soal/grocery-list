@@ -1,20 +1,22 @@
-import Dexie, { type EntityTable, liveQuery } from "dexie";
 import * as TaskPort from "elm-taskport/dist/taskport.min.js";
 import { ClickOutside } from "./web-components/clickOutside.js";
 import * as Y from "yjs";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 
-// import { WebrtcProvider } from "y-webrtc";
-
 window.customElements.define("on-click-outside", ClickOutside);
 
 TaskPort.install({ logCallErrors: true, logInteropErrors: true });
 
+type SyncState = "none" | "syncReady" | "syncing" | "synced" | "error";
+
 type AppSettings = {
-	id: number;
 	theme: "auto" | "light" | "dark";
+	sync: { room: string; url: string } | null;
+	syncState: SyncState;
+	version: number;
 };
+
 type ItemState = "stuffed" | "required";
 
 type Item = {
@@ -30,7 +32,6 @@ type Item = {
 	state: ItemState;
 	created: number;
 	updated: number;
-	lastUpdatedBy?: typeof clientId;
 };
 
 type CollapsedState = "open" | "collapsed";
@@ -42,7 +43,6 @@ type Category = {
 	state: CollapsedState;
 	created: number;
 	updated: number;
-	lastUpdatedBy?: typeof clientId;
 };
 
 type DataDump = {
@@ -51,14 +51,13 @@ type DataDump = {
 	categories: Category[];
 };
 
-let clientId: number | null = null;
-
 type Data = {
 	room?: string;
 	doc?: Y.Doc;
 	items?: Y.Map<Item>;
 	categories?: Y.Array<Category>;
 	provider?: HocuspocusProvider;
+	db?: IndexeddbPersistence;
 };
 
 const data: Data = {};
@@ -69,31 +68,97 @@ async function initDb({
 }: {
 	name: string;
 	version: number;
-}): Promise<boolean | Error> {
+}): Promise<AppSettings | Error> {
 	return new Promise((resolve, reject) => {
 		try {
-			data.room = name;
 			data.doc = new Y.Doc();
-			clientId = data.doc.clientID;
 
 			data.categories = data.doc.getArray("categories");
 			data.items = data.doc.getMap("items");
 
-			const persistence = new IndexeddbPersistence(name, data.doc);
-			persistence.once("synced", () => {
-				console.log("INITIAL CONTENT LOADED");
-				resolve(true);
+			data.db = new IndexeddbPersistence(name, data.doc);
+			data.db.set("version", version);
+			// const data.db.get("room")
+
+			data.db.once("synced", async () => {
+				console.log(data.db);
+				const appSettings = await getSettings(data.db);
+				if (appSettings.sync?.room && appSettings.sync?.url) {
+					startSync(appSettings.sync.room, appSettings.sync.url, data.doc);
+					appSettings.syncState = "syncReady";
+				}
+
+				resolve(appSettings);
 			});
 
-			data.provider = new HocuspocusProvider({
-				url: "ws://127.0.0.1:4444",
-				name: name,
-				document: data.doc,
-			});
+			// data.provider = new HocuspocusProvider({
+			// 	url: "ws://127.0.0.1:4444",
+			// 	name: name,
+			// 	document: data.doc,
+			// });
 		} catch (error) {
 			reject(error);
 		}
 	});
+}
+
+function startSync(name: string, url: string, ydoc: Y.Doc) {
+	data.provider = new HocuspocusProvider({
+		url: url,
+		name: name,
+		document: ydoc,
+	});
+}
+
+async function storeSyncSettings(
+	room: string,
+	url: string,
+	dbHandler: IndexeddbPersistence,
+) {
+	data.room = room;
+	await dbHandler.set("room", room);
+	await dbHandler.set("url", url);
+}
+
+async function initSync({ room, url }: { room: string; url: string }) {
+	if (data.db) {
+		storeSyncSettings(room, url, data.db);
+		startSync(room, url, data.doc);
+		console.log("HEY!", room, url, data);
+		return {
+			room,
+			url,
+		};
+	}
+	return {
+		room: "",
+		url: "",
+	};
+}
+
+async function getSettings(
+	dbHandler: IndexeddbPersistence,
+): Promise<AppSettings> {
+	try {
+		const theme = await dbHandler.get("theme");
+		const room = await dbHandler.get("room");
+		const url = await dbHandler.get("url");
+		const version = await dbHandler.get("version");
+
+		return {
+			theme: theme ?? "auto",
+			sync: room && url ? { room, url } : null,
+			syncState: room && url ? "syncReady" : "none",
+			version: version ?? 1,
+		};
+	} catch (_) {
+		return {
+			theme: "auto",
+			syncState: "none",
+			sync: null,
+			version: 1,
+		};
+	}
 }
 
 function queryAllCatsAndItems() {
@@ -151,7 +216,6 @@ function deleteCategory(categoryId: string) {
 
 function storeCategory(category: Category) {
 	if (data.categories) {
-
 		const index = data.categories
 			.toArray()
 			.findIndex((cat) => cat.id === category.id);
@@ -162,7 +226,6 @@ function storeCategory(category: Category) {
 		} else {
 			data.categories.insert(0, [category]);
 		}
-
 
 		return true;
 	}
@@ -217,18 +280,15 @@ TaskPort.register("deleteItem", deleteItem);
 TaskPort.register("storeCategory", storeCategory);
 TaskPort.register("deleteCategory", deleteCategory);
 TaskPort.register("selectInput", selectInput);
+TaskPort.register("initSync", initSync);
 
 export const flags = async () => {
-	await initDb({
-		name: "grocery-list-y",
+	const settings = await initDb({
+		name: "grocery",
 		version: 1,
 	});
 
-	return {
-		settings: {
-			theme: "auto",
-		},
-	};
+	return settings;
 };
 
 export const onReady = ({ app }) => {
