@@ -1,13 +1,13 @@
-module Views.SyncSettings exposing (Model, Msg, init, new, update, view)
+module Views.SyncSettings exposing (Model, Msg, init, new, update, view, withOpen)
 
 import Common exposing (SyncSettingsField(..), VisibilityState(..))
 import Data.Settings
 import Effect exposing (Effect)
-import Html exposing (Html, button, div, form, h2, input, label, span, text)
+import Html exposing (Html, button, div, form, h2, h3, input, label, span, text)
 import Html.Attributes exposing (class, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
-import Html.Extra exposing (nothing)
 import LucideIcons as Icons
+import TaskPort
 
 
 type SyncSettingsForm msg
@@ -15,13 +15,8 @@ type SyncSettingsForm msg
         { model : Model
         , toMsg : Msg msg -> msg
         , state : Data.Settings.SyncState
+        , sync : Data.Settings.Sync
         }
-
-
-
--- type alias Props =
---     { syncState : Data.Settings.SyncState
---     }
 
 
 type Model
@@ -36,6 +31,7 @@ new :
     { model : Model
     , toMsg : Msg msg -> msg
     , state : Data.Settings.SyncState
+    , sync : Data.Settings.Sync
     }
     -> SyncSettingsForm msg
 new props =
@@ -43,16 +39,35 @@ new props =
         { model = props.model
         , toMsg = props.toMsg
         , state = props.state
+        , sync = props.sync
         }
 
 
-init : Model
-init =
-    Model
-        { room = ""
-        , url = ""
-        , formState = Hidden
-        }
+init : Data.Settings.Sync -> VisibilityState -> Model
+init sync visibility =
+    case sync of
+        Data.Settings.NotConfigured ->
+            Model
+                { room = ""
+                , url = ""
+                , formState = visibility
+                }
+
+        Data.Settings.SyncConfig { room, url } ->
+            Model
+                { room = room
+                , url = url
+                , formState = visibility
+                }
+
+
+withOpen : SyncSettingsForm msg -> SyncSettingsForm msg
+withOpen (Settings settings) =
+    let
+        (Model model) =
+            settings.model
+    in
+    Settings { settings | model = Model { model | formState = Show } }
 
 
 type Msg msg
@@ -61,6 +76,7 @@ type Msg msg
     | GotRoomInput String
     | GotNewRoomClick
     | GotSubmit
+    | GotRoomUuid (TaskPort.Result String)
 
 
 update :
@@ -85,15 +101,15 @@ update props =
         case props.msg of
             GotToggleClick ->
                 let
-                    ( newState, room, url ) =
+                    newState =
                         if model.formState == Hidden then
-                            ( Show, model.room, model.url )
+                            Show
 
                         else
-                            ( Hidden, "", "" )
+                            Hidden
                 in
-                ( Model { model | formState = newState, room = room, url = url }
-                , Effect.refreshSyncState
+                ( Model { model | formState = newState }
+                , Effect.none
                 )
 
             GotUrlInput content ->
@@ -124,10 +140,18 @@ update props =
                     )
                 )
 
-            _ ->
-                ( Model model
-                , Effect.none
-                )
+            GotNewRoomClick ->
+                ( Model model, Effect.requestUuid (GotRoomUuid >> props.toMsg) )
+
+            GotRoomUuid uuid_ ->
+                case uuid_ of
+                    Ok uuid ->
+                        ( Model { model | room = uuid }
+                        , Effect.none
+                        )
+
+                    Err _ ->
+                        ( Model model, Effect.none )
 
 
 view : SyncSettingsForm msg -> Html msg
@@ -142,6 +166,9 @@ view (Settings settings) =
                 , url = model.url
                 , toMsg = settings.toMsg
                 }
+
+        viewButton_ =
+            viewButton settings.sync settings.toMsg
     in
     case settings.state of
         Data.Settings.None ->
@@ -149,7 +176,7 @@ view (Settings settings) =
                 viewForm_
 
             else
-                viewButton settings.toMsg
+                viewButton_
 
         Data.Settings.Syncing ->
             viewConnecting
@@ -162,20 +189,29 @@ view (Settings settings) =
                     ]
 
             else
-                viewButton settings.toMsg
+                viewButton_
 
         _ ->
-            nothing
+            viewButton_
 
 
+viewConnecting : Html msg
 viewConnecting =
     div [] [ text "Подключаемся к серверу..." ]
 
 
-viewButton : (Msg msg -> msg) -> Html msg
-viewButton toMsg =
-    button [ onClick (GotToggleClick |> toMsg) ]
-        [ text "Настроить синхронизацию" ]
+viewButton : Data.Settings.Sync -> (Msg msg -> msg) -> Html msg
+viewButton sync toMsg =
+    if sync == Data.Settings.NotConfigured then
+        button [ onClick (GotToggleClick |> toMsg) ]
+            [ text "Настроить синхронизацию" ]
+
+    else
+        div []
+            [ h3 [] [ text "Синхронизация включена" ]
+            , button [ onClick (GotToggleClick |> toMsg) ]
+                [ text "Изменить настройки" ]
+            ]
 
 
 viewForm :

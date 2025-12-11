@@ -17,6 +17,7 @@ import DataUpdate
 import Effect exposing (Effect)
 import Json.Decode
 import Route exposing (Route)
+import Route.Path
 import Shared.Model
 import Shared.Msg exposing (Msg(..))
 import TaskPort exposing (JSError(..))
@@ -121,7 +122,7 @@ update _ msg model =
                                 , sync = syncConfig
                             }
                       }
-                    , Effect.none
+                    , Effect.pushRoutePath Route.Path.Home_
                     )
 
                 Err err ->

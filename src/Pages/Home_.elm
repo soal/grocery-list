@@ -15,14 +15,16 @@ import Data.Settings exposing (CatsAndItems)
 import DataUpdate
 import Dict exposing (Dict)
 import Effect exposing (Effect)
-import Html exposing (button, div, text)
+import Html exposing (a, button, div, text)
 import Html.Attributes exposing (class)
+import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (nothing)
 import Layouts
 import LucideIcons as Icons
 import Page exposing (Page)
 import Route exposing (Route)
+import Route.Path
 import Set exposing (Set)
 import Shared
 import Task
@@ -32,7 +34,6 @@ import Utils exposing (slugify)
 import View exposing (View)
 import Views.Items.Item
 import Views.Items.List
-import Views.SyncSettings
 
 
 page : Shared.Model -> Route () -> Page Model Msg
@@ -58,13 +59,6 @@ toLayout _ =
 -- INIT
 
 
-type alias SyncSettingsForm =
-    { room : String
-    , url : String
-    , state : VisibilityState
-    }
-
-
 type alias Model =
     { draft : Draft
     , collapsedCats : Set Cats.Id
@@ -73,7 +67,6 @@ type alias Model =
     , categories : List Cats.Category
     , titlePrefix : String
     , error : Maybe String
-    , syncSettingsForm : Views.SyncSettings.Model
     }
 
 
@@ -86,7 +79,6 @@ init () =
       , titlePrefix = "Покупки: "
       , error = Nothing
       , draft = Empty
-      , syncSettingsForm = Views.SyncSettings.init
       }
     , Effect.batch
         [ Effect.queryAll
@@ -129,16 +121,6 @@ type Msg
     | GotItemStateUpdateTime Items.Item Time.Posix
     | GotEnterKey
     | GotEscKey
-      -- SYNC SETTINGS
-    | GotSyncSettingsMsg (Views.SyncSettings.Msg Msg)
-
-
-
--- | GotSyncSettingsInput SyncSettingsField String
--- | GotNewRoomReq
--- | GotRoomUuid (TaskPort.Result String)
--- | GotInitSyncReq
--- | GotToggleSyncForm
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -275,76 +257,6 @@ update msg model =
                 , Effect.maybe (Effect.storeCategory onTaskPortResult) category
                 ]
             )
-
-        GotSyncSettingsMsg msg_ ->
-            Views.SyncSettings.update
-                { msg = msg_
-                , model = model.syncSettingsForm
-                , toModel = \m -> { model | syncSettingsForm = m }
-                , toMsg = GotSyncSettingsMsg
-                }
-
-
-
--- msg_
--- model.syncSettingsForm
--- }
--- , Effect.none
--- )
--- GotRoomUuid uuid_ ->
---     case uuid_ of
---         Ok uuid ->
---             let
---                 syncSettings =
---                     model.syncSettingsForm
---             in
---             ( { model
---                 | syncSettingsForm = { syncSettings | room = uuid }
---               }
---             , Effect.none
---             )
---         Err _ ->
---             ( model, Effect.none )
--- GotInitSyncReq ->
---     let
---         syncUrl : String
---         syncUrl =
---             if
---                 String.startsWith
---                     "ws://"
---                     model.syncSettingsForm.url
---                     || String.startsWith
---                         "wss://"
---                         model.syncSettingsForm.url
---             then
---                 model.syncSettingsForm.url
---             else
---                 "ws://" ++ model.syncSettingsForm.url
---     in
---     ( model
---     , Effect.reqInitSync
---         (Data.Settings.SyncConfig
---             { room = model.syncSettingsForm.room
---             , url = syncUrl
---             }
---         )
---     )
--- GotToggleSyncForm ->
---     let
---         syncForm =
---             model.syncSettingsForm
---         newState =
---             case model.syncSettingsForm.state of
---                 Hidden ->
---                     Show
---                 Show ->
---                     Hidden
---                 PermanentlyHidden ->
---                     PermanentlyHidden
---     in
---     ( { model | syncSettingsForm = { syncForm | state = newState } }
---     , Effect.none
---     )
 
 
 onListMsg : Model -> Views.Items.List.Msg -> ( Model, Effect Msg )
@@ -552,12 +464,15 @@ view shared model =
                 [ button [ onClick GotItemAddClick ] [ text "Добавить" ]
                 , button [] [ text "Добавить категорию" ]
                 , if shared.settings.sync == Data.Settings.NotConfigured then
-                    Views.SyncSettings.new
-                        { model = model.syncSettingsForm
-                        , toMsg = GotSyncSettingsMsg
-                        , state = shared.settings.syncState
-                        }
-                        |> Views.SyncSettings.view
+                    a
+                        [ Route.href
+                            { path = Route.Path.Settings
+                            , query = Dict.empty
+                            , hash = Just "settings-sync-section"
+                            }
+                        , role "button"
+                        ]
+                        [ text "Настроить синхронизацию" ]
 
                   else
                     nothing
