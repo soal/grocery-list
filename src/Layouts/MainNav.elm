@@ -146,7 +146,10 @@ viewNavBar currentRoute syncState onAddClick =
         [ ul []
             [ li []
                 [ span [ class "link" ]
-                    [ span [ class "icon-wrapper button", onClick onAddClick ]
+                    [ span
+                        [ class "icon-wrapper button add-button"
+                        , onClick onAddClick
+                        ]
                         [ Icons.plusIcon [] ]
                     , span [ class "icon-wrapper button" ]
                         [ lazy viewSyncIcon syncState ]

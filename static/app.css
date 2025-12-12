@@ -83,6 +83,17 @@ button {
         text-decoration: none;
       }
     }
+
+    .add-button {
+      @media screen and (width < 451px) {
+        display: none;
+      }
+
+      @media screen and (width > 450px) {
+        display: block;
+      }
+
+    }
   }
 }
 
@@ -91,11 +102,16 @@ button {
   position: relative;
   z-index: 1;
 
+  &:last-of-type {
+    border-bottom: 2px solid var(--pico-muted-border-color);
+    padding-bottom: var(--pico-form-element-spacing-horizontal);
+  }
+
   & h4 {
     display: flex;
     column-gap: calc(var(--pico-block-spacing-horizontal) / 3);
     align-items: baseline;
-    padding-inline: var(--pico-block-spacing-horizontal);
+    /* padding-inline: var(--pico-block-spacing-horizontal); */
 
     .counter {
       font-size: 0.65em;
@@ -585,9 +601,16 @@ h1 {
   height: 3rem;
   width: 3rem;
   z-index: 2;
-  display: flex;
   justify-content: center;
   align-items: center;
+
+  @media screen and (width < 451px) {
+    display: flex;
+  }
+
+  @media screen and (width > 450px) {
+    display: none;
+  }
 }
 
 .success {
