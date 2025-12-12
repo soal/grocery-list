@@ -30,6 +30,7 @@ import Browser.Navigation
 import Data.Categories as Cats
 import Data.Items as Items
 import Data.Settings exposing (CatsAndItems, DataDump, dumpDecoder, encodeDump)
+import Data.Sync as Sync
 import Dict exposing (Dict)
 import Json.Decode as JD
 import Json.Encode as JE
@@ -57,7 +58,7 @@ type Effect msg
     | SendSharedMsg Shared.Msg.Msg
       -- CUSTOM
     | GetTime (Time.Posix -> msg)
-    | InitSync (TaskPort.Result Data.Settings.Sync -> msg) Data.Settings.Sync
+    | InitSync (TaskPort.Result Sync.Config -> msg) Sync.Config
     | QueryAllCatsAndItems (TaskPort.Result CatsAndItems -> msg)
     | RequestUuid (TaskPort.Result String -> msg)
     | StoreItem (TaskPort.Result Bool -> msg) Items.Item
@@ -100,14 +101,14 @@ selectInputEffect onResult id =
 -- INIT SYNC
 
 
-reqInitSync : Data.Settings.Sync -> Effect msg
+reqInitSync : Sync.Config -> Effect msg
 reqInitSync settings =
     SendSharedMsg <| Shared.Msg.GotInitSyncReq settings
 
 
 initSync :
-    (TaskPort.Result Data.Settings.Sync -> msg)
-    -> Data.Settings.Sync
+    (TaskPort.Result Sync.Config -> msg)
+    -> Sync.Config
     -> Effect msg
 initSync onResult settings =
     InitSync onResult settings

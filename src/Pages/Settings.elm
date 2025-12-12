@@ -45,16 +45,16 @@ toLayout _ =
 
 type alias Model =
     { imported : Maybe String
-    , syncSettingsForm : Views.SyncSettings.Model
+    , syncForm : Views.SyncSettings.Model
     }
 
 
 init : Shared.Model -> Route () -> () -> ( Model, Effect Msg )
 init shared route () =
     ( { imported = Nothing
-      , syncSettingsForm =
+      , syncForm =
             Views.SyncSettings.init
-                shared.settings.sync
+                shared.settings.sync.config
                 (case route.hash of
                     Just "settings-sync-section" ->
                         Show
@@ -133,8 +133,8 @@ update shared msg model =
         GotSyncSettingsMsg msg_ ->
             Views.SyncSettings.update
                 { msg = msg_
-                , model = model.syncSettingsForm
-                , toModel = \m -> { model | syncSettingsForm = m }
+                , model = model.syncForm
+                , toModel = \m -> { model | syncForm = m }
                 , toMsg = GotSyncSettingsMsg
                 }
 
@@ -173,10 +173,10 @@ view shared model =
         , p [ id "settings-sync-section" ]
             [ h2 [] [ text "Синхронизация" ]
             , Views.SyncSettings.new
-                { model = model.syncSettingsForm
+                { model = model.syncForm
                 , toMsg = GotSyncSettingsMsg
-                , state = shared.settings.syncState
-                , sync = shared.settings.sync
+                , state = shared.settings.sync.state
+                , config = shared.settings.sync.config
                 }
                 |> Views.SyncSettings.view
             ]

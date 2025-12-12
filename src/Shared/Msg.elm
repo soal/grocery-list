@@ -1,6 +1,7 @@
 module Shared.Msg exposing (Msg(..))
 
 import Data.Settings exposing (DataDump)
+import Data.Sync as Sync
 import TaskPort
 
 
@@ -8,7 +9,7 @@ type Msg
     = NoOp
     | ImportData DataDump
     | Error (Maybe String)
-    | GotInitSyncReq Data.Settings.Sync
-    | GotInitSyncRes (TaskPort.Result Data.Settings.Sync)
-    | GotSyncStatus Data.Settings.SyncState
+    | GotInitSyncReq Sync.Config
+    | GotInitSyncRes (TaskPort.Result Sync.Config)
+    | GotSyncStatus Sync.State
     | GotRefreshSyncState

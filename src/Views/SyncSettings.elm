@@ -1,7 +1,7 @@
 module Views.SyncSettings exposing (Model, Msg, init, new, update, view, withOpen)
 
 import Common exposing (SyncSettingsField(..), VisibilityState(..))
-import Data.Settings
+import Data.Sync as Sync
 import Effect exposing (Effect)
 import Html exposing (Html, button, div, form, h2, h3, input, label, span, text)
 import Html.Attributes exposing (class, value)
@@ -10,12 +10,12 @@ import LucideIcons as Icons
 import TaskPort
 
 
-type SyncSettingsForm msg
+type SyncForm msg
     = Settings
         { model : Model
         , toMsg : Msg msg -> msg
-        , state : Data.Settings.SyncState
-        , sync : Data.Settings.Sync
+        , state : Sync.State
+        , config : Sync.Config
         }
 
 
@@ -30,30 +30,30 @@ type Model
 new :
     { model : Model
     , toMsg : Msg msg -> msg
-    , state : Data.Settings.SyncState
-    , sync : Data.Settings.Sync
+    , state : Sync.State
+    , config : Sync.Config
     }
-    -> SyncSettingsForm msg
+    -> SyncForm msg
 new props =
     Settings
         { model = props.model
         , toMsg = props.toMsg
         , state = props.state
-        , sync = props.sync
+        , config = props.config
         }
 
 
-init : Data.Settings.Sync -> VisibilityState -> Model
-init sync visibility =
-    case sync of
-        Data.Settings.NotConfigured ->
+init : Sync.Config -> VisibilityState -> Model
+init syncConfig visibility =
+    case syncConfig of
+        Sync.NotConfigured ->
             Model
                 { room = ""
                 , url = ""
                 , formState = visibility
                 }
 
-        Data.Settings.SyncConfig { room, url } ->
+        Sync.Options { room, url } ->
             Model
                 { room = room
                 , url = url
@@ -61,7 +61,7 @@ init sync visibility =
                 }
 
 
-withOpen : SyncSettingsForm msg -> SyncSettingsForm msg
+withOpen : SyncForm msg -> SyncForm msg
 withOpen (Settings settings) =
     let
         (Model model) =
@@ -133,7 +133,7 @@ update props =
                 in
                 ( Model model
                 , Effect.reqInitSync
-                    (Data.Settings.SyncConfig
+                    (Sync.Options
                         { room = model.room
                         , url = syncUrl
                         }
@@ -154,7 +154,7 @@ update props =
                         ( Model model, Effect.none )
 
 
-view : SyncSettingsForm msg -> Html msg
+view : SyncForm msg -> Html msg
 view (Settings settings) =
     let
         (Model model) =
@@ -168,31 +168,21 @@ view (Settings settings) =
                 }
 
         viewButton_ =
-            viewButton settings.sync settings.toMsg
+            viewButton settings.config settings.toMsg
     in
-    case settings.state of
-        Data.Settings.None ->
-            if model.formState == Show then
+    if model.formState == Show then
+        case settings.state of
+            Sync.Syncing ->
+                viewConnecting
+
+            Sync.SyncError err ->
+                div [] [ text <| "Ошибка: " ++ err, viewForm_ ]
+
+            _ ->
                 viewForm_
 
-            else
-                viewButton_
-
-        Data.Settings.Syncing ->
-            viewConnecting
-
-        Data.Settings.SyncError err ->
-            if model.formState == Show then
-                div []
-                    [ text <| "Ошибка: " ++ err
-                    , viewForm_
-                    ]
-
-            else
-                viewButton_
-
-        _ ->
-            viewButton_
+    else
+        viewButton_
 
 
 viewConnecting : Html msg
@@ -200,9 +190,9 @@ viewConnecting =
     div [] [ text "Подключаемся к серверу..." ]
 
 
-viewButton : Data.Settings.Sync -> (Msg msg -> msg) -> Html msg
+viewButton : Sync.Config -> (Msg msg -> msg) -> Html msg
 viewButton sync toMsg =
-    if sync == Data.Settings.NotConfigured then
+    if sync == Sync.NotConfigured then
         button [ onClick (GotToggleClick |> toMsg) ]
             [ text "Настроить синхронизацию" ]
 

@@ -12,6 +12,7 @@ import Common
 import Data.Categories as Cats
 import Data.Items as Items
 import Data.Settings exposing (CatsAndItems)
+import Data.Sync as Sync
 import DataUpdate
 import Dict exposing (Dict)
 import Effect exposing (Effect)
@@ -463,7 +464,7 @@ view shared model =
             div []
                 [ button [ onClick GotItemAddClick ] [ text "Добавить" ]
                 , button [] [ text "Добавить категорию" ]
-                , if shared.settings.sync == Data.Settings.NotConfigured then
+                , if shared.settings.sync.config == Sync.NotConfigured then
                     a
                         [ Route.href
                             { path = Route.Path.Settings

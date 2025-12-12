@@ -12,7 +12,8 @@ module Shared exposing
 
 -}
 
-import Data.Settings exposing (Sync(..), SyncState(..))
+import Data.Settings
+import Data.Sync as Sync
 import DataUpdate
 import Effect exposing (Effect)
 import Json.Decode
@@ -94,7 +95,9 @@ update _ msg model =
             in
             ( { model
                 | settings =
-                    { settings | syncState = Data.Settings.Syncing }
+                    { settings
+                        | sync = Sync.setState Sync.Syncing model.settings.sync
+                    }
               }
             , Effect.initSync Shared.Msg.GotInitSyncRes config
             )
@@ -109,17 +112,16 @@ update _ msg model =
                     let
                         state =
                             case syncConfig of
-                                SyncConfig _ ->
-                                    Syncing
+                                Sync.Options _ ->
+                                    Sync.Syncing
 
-                                NotConfigured ->
-                                    SyncError "Cannot connect"
+                                Sync.NotConfigured ->
+                                    Sync.SyncError "Cannot connect"
                     in
                     ( { model
                         | settings =
                             { settings
-                                | syncState = state
-                                , sync = syncConfig
+                                | sync = { config = syncConfig, state = state }
                             }
                       }
                     , Effect.pushRoutePath Route.Path.Home_
@@ -133,8 +135,10 @@ update _ msg model =
                     ( { model
                         | settings =
                             { settings
-                                | syncState = Data.Settings.SyncError error
-                                , sync = Data.Settings.NotConfigured
+                                | sync =
+                                    { state = Sync.SyncError error
+                                    , config = Sync.NotConfigured
+                                    }
                             }
                       }
                     , Effect.none
@@ -145,7 +149,12 @@ update _ msg model =
                 settings =
                     model.settings
             in
-            ( { model | settings = { settings | syncState = state } }
+            ( { model
+                | settings =
+                    { settings
+                        | sync = Sync.setState state model.settings.sync
+                    }
+              }
             , Effect.none
             )
 
@@ -155,7 +164,10 @@ update _ msg model =
                     model.settings
             in
             ( { model
-                | settings = { settings | syncState = Data.Settings.None }
+                | settings =
+                    { settings
+                        | sync = Sync.setState Sync.None model.settings.sync
+                    }
               }
             , Effect.none
             )

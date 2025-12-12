@@ -3,6 +3,7 @@ port module DataUpdate exposing (incoming, onData, onSyncState, syncState)
 import Data.Categories as Cats
 import Data.Items as Items
 import Data.Settings exposing (CatsAndItems)
+import Data.Sync as Sync
 import Json.Decode as JD
 
 
@@ -37,11 +38,11 @@ onData onError msg message =
 
 onSyncState :
     (Maybe String -> msg)
-    -> (Data.Settings.SyncState -> msg)
+    -> (Sync.State -> msg)
     -> JD.Value
     -> msg
 onSyncState onError msg state =
-    case JD.decodeValue Data.Settings.syncStateDecoder state of
+    case JD.decodeValue Sync.stateDecoder state of
         Ok state_ ->
             msg state_
 

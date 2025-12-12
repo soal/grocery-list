@@ -2,19 +2,17 @@ module Data.Settings exposing
     ( AppSettings
     , CatsAndItems
     , DataDump
-    , Sync(..)
-    , SyncState(..)
     , decoder
     , defaultSettings
     , dumpDecoder
     , encodeDump
     , initSync
     , parseSyncErr
-    , syncStateDecoder
     )
 
 import Data.Categories as Cats
 import Data.Items as Items
+import Data.Sync as Sync
 import Dict exposing (Dict)
 import Json.Decode as JD
 import Json.Encode as JE
@@ -41,91 +39,9 @@ type AppTheme
     | Dark
 
 
-type Sync
-    = NotConfigured
-    | SyncConfig
-        { room : String
-        , url : String
-        }
-
-
-syncSettingsDecoder : JD.Decoder Sync
-syncSettingsDecoder =
-    JD.oneOf
-        [ JD.map
-            SyncConfig
-          <|
-            JD.map2
-                (\room url -> { room = room, url = url })
-                (JD.field "room" JD.string)
-                (JD.field "url" JD.string)
-        , JD.null NotConfigured
-        ]
-
-
-encodeSyncSetting : Sync -> JE.Value
-encodeSyncSetting settings =
-    JE.object
-        [ ( "room", JE.string <| .room <| getSyncData settings )
-        , ( "url", JE.string <| .url <| getSyncData settings )
-        ]
-
-
-getSyncData : Sync -> { room : String, url : String }
-getSyncData settings =
-    case settings of
-        SyncConfig { room, url } ->
-            { room = room, url = url }
-
-        NotConfigured ->
-            { room = "", url = "" }
-
-
-type SyncState
-    = None
-    | Syncing
-    | Synced
-    | SyncOffline
-    | SyncError String
-
-
-stringToSyncState : Maybe String -> String -> SyncState
-stringToSyncState maybeError stateStr =
-    case stateStr of
-        "none" ->
-            None
-
-        "offline" ->
-            SyncOffline
-
-        "syncing" ->
-            Syncing
-
-        "synced" ->
-            Synced
-
-        "error" ->
-            SyncError <| Maybe.withDefault "" maybeError
-
-        _ ->
-            None
-
-
-syncStateDecoder : JD.Decoder SyncState
-syncStateDecoder =
-    JD.oneOf
-        [ JD.map (stringToSyncState Nothing) JD.string
-        , JD.null None
-        , JD.map
-            SyncError
-            (JD.field "error" <| JD.string)
-        ]
-
-
 type alias AppSettings =
     { theme : AppTheme
-    , sync : Sync
-    , syncState : SyncState
+    , sync : Sync.Sync
     , version : Int
     }
 
@@ -134,18 +50,16 @@ defaultSettings : AppSettings
 defaultSettings =
     AppSettings
         Auto
-        NotConfigured
-        None
+        (Sync.Sync Sync.NotConfigured Sync.None)
         1
 
 
 decoder : JD.Decoder AppSettings
 decoder =
-    JD.map4
+    JD.map3
         AppSettings
         (JD.field "theme" <| JD.map stringToTheme JD.string)
-        (JD.field "sync" syncSettingsDecoder)
-        (JD.field "syncState" syncStateDecoder)
+        (JD.field "sync" Sync.decoder)
         (JD.field "version" JD.int)
 
 
@@ -183,15 +97,15 @@ dumpDecoder =
         (JD.field "categories" <| JD.list Cats.decoder)
 
 
-initSync : (Result TaskPort.Error Sync -> msg) -> Sync -> Cmd msg
+initSync : (Result TaskPort.Error Sync.Config -> msg) -> Sync.Config -> Cmd msg
 initSync onResult settings =
     let
-        call : Sync -> TaskPort.Task Sync
+        call : Sync.Config -> TaskPort.Task Sync.Config
         call =
             TaskPort.call
                 { function = "initSync"
-                , valueDecoder = syncSettingsDecoder
-                , argsEncoder = encodeSyncSetting
+                , valueDecoder = Sync.configDecoder
+                , argsEncoder = Sync.encodeConfig
                 }
     in
     Task.attempt onResult <| call settings

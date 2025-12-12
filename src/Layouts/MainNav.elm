@@ -1,6 +1,7 @@
 module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
 import Data.Settings
+import Data.Sync as Sync
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html, a, header, li, main_, nav, span, text, ul)
@@ -40,7 +41,7 @@ layout props shared route =
     Layout.new
         { init = init route
         , update = update props
-        , view = view props shared.settings.syncState
+        , view = view props shared.settings.sync.state
         , subscriptions = subscriptions
         }
         |> Layout.withOnUrlChanged UrlChanged
@@ -98,7 +99,7 @@ subscriptions _ =
 
 view :
     Props contentMsg
-    -> Data.Settings.SyncState
+    -> Sync.State
     ->
         { toContentMsg : Msg -> contentMsg
         , content : View contentMsg
@@ -126,7 +127,7 @@ view props syncState { model, content } =
     }
 
 
-viewNavBar : Route () -> Data.Settings.SyncState -> msg -> Html msg
+viewNavBar : Route () -> Sync.State -> msg -> Html msg
 viewNavBar currentRoute syncState onAddClick =
     let
         links : List (NavLink msg)
@@ -165,26 +166,26 @@ viewNavBar currentRoute syncState onAddClick =
         ]
 
 
-viewSyncIcon : Data.Settings.SyncState -> Html msg
+viewSyncIcon : Sync.State -> Html msg
 viewSyncIcon syncState =
     case syncState of
-        Data.Settings.None ->
+        Sync.None ->
             span [ class "icon-wrapper" ]
                 [ nothing ]
 
-        Data.Settings.SyncOffline ->
+        Sync.Offline ->
             span [ class "icon-wrapper" ]
                 [ Icons.cloudOffIcon [] ]
 
-        Data.Settings.Syncing ->
+        Sync.Syncing ->
             span [ class "icon-wrapper working" ]
                 [ Icons.cloudDownloadIcon [] ]
 
-        Data.Settings.Synced ->
+        Sync.Synced ->
             span [ class "icon-wrapper success" ]
                 [ Icons.cloudCheckIcon [] ]
 
-        Data.Settings.SyncError _ ->
+        Sync.SyncError _ ->
             span [ class "icon-wrapper error" ]
                 [ Icons.cloudAlertIcon [] ]
 
