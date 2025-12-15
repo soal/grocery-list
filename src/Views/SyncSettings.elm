@@ -246,7 +246,7 @@ viewForm { room, url, toMsg } =
                 ]
             , label [ class "group" ]
                 [ text "Имя комнаты"
-                , input [ value room, onInput (UserInputUrl >> toMsg) ] []
+                , input [ value room, onInput (UserInputRoom >> toMsg) ] []
                 , button [ onClick (UserClickedNewRoom |> toMsg) ] [ text "Создать новую" ]
                 ]
             ]
