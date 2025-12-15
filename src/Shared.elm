@@ -51,7 +51,7 @@ init flags _ =
         settings =
             case flags of
                 Ok data ->
-                    data
+                    Debug.log "DATA" data
 
                 Err _ ->
                     Data.Settings.defaultSettings
@@ -130,7 +130,7 @@ update _ msg model =
                 Err err ->
                     let
                         error =
-                            Data.Settings.parseSyncErr err
+                            Sync.parseErr err
                     in
                     ( { model
                         | settings =
@@ -144,6 +144,34 @@ update _ msg model =
                     , Effect.none
                     )
 
+        Shared.Msg.GotPauseSyncReq ->
+            let
+                settings =
+                    model.settings
+            in
+            ( { model
+                | settings =
+                    { settings
+                        | sync = Sync.setState Sync.Paused model.settings.sync
+                    }
+              }
+            , Effect.pauseSync (\_ -> Shared.Msg.NoOp)
+            )
+
+        Shared.Msg.GotResumeSyncReq ->
+            let
+                settings =
+                    model.settings
+            in
+            ( { model
+                | settings =
+                    { settings
+                        | sync = Sync.setState Sync.Syncing model.settings.sync
+                    }
+              }
+            , Effect.resumeSync (\_ -> Shared.Msg.NoOp)
+            )
+
         Shared.Msg.GotSyncStatus state ->
             let
                 settings =
@@ -152,7 +180,7 @@ update _ msg model =
             ( { model
                 | settings =
                     { settings
-                        | sync = Sync.setState state model.settings.sync
+                        | sync = Sync.setState (Debug.log "NEW STATE" state) model.settings.sync
                     }
               }
             , Effect.none

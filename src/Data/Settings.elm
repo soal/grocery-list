@@ -6,8 +6,6 @@ module Data.Settings exposing
     , defaultSettings
     , dumpDecoder
     , encodeDump
-    , initSync
-    , parseSyncErr
     )
 
 import Data.Categories as Cats
@@ -16,8 +14,6 @@ import Data.Sync as Sync
 import Dict exposing (Dict)
 import Json.Decode as JD
 import Json.Encode as JE
-import Task
-import TaskPort
 
 
 type alias CatsAndItems =
@@ -95,30 +91,3 @@ dumpDecoder =
         (JD.field "version" JD.int)
         (JD.field "items" <| JD.dict Items.decoder)
         (JD.field "categories" <| JD.list Cats.decoder)
-
-
-initSync : (Result TaskPort.Error Sync.Config -> msg) -> Sync.Config -> Cmd msg
-initSync onResult settings =
-    let
-        call : Sync.Config -> TaskPort.Task Sync.Config
-        call =
-            TaskPort.call
-                { function = "initSync"
-                , valueDecoder = Sync.configDecoder
-                , argsEncoder = Sync.encodeConfig
-                }
-    in
-    Task.attempt onResult <| call settings
-
-
-parseSyncErr : TaskPort.Error -> String
-parseSyncErr err =
-    case err of
-        TaskPort.InteropError error ->
-            TaskPort.interopErrorToString error
-
-        TaskPort.JSError (TaskPort.ErrorObject "Error" { message }) ->
-            message
-
-        TaskPort.JSError _ ->
-            "General connection error"

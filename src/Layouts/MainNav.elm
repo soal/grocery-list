@@ -188,6 +188,10 @@ viewSyncIcon syncState =
             span [ class "icon-wrapper success" ]
                 [ Icons.cloudCheckIcon [] ]
 
+        Sync.Paused ->
+            span [ class "icon-wrapper" ]
+                [ Icons.cloudIcon [] ]
+
         Sync.SyncError _ ->
             span [ class "icon-wrapper error" ]
                 [ Icons.cloudAlertIcon [] ]

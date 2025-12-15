@@ -71,11 +71,13 @@ withOpen (Settings settings) =
 
 
 type Msg msg
-    = GotToggleClick
-    | GotUrlInput String
-    | GotRoomInput String
-    | GotNewRoomClick
-    | GotSubmit
+    = UserClickedToggle
+    | UserInputUrl String
+    | UserInputRoom String
+    | UserClickedNewRoom
+    | UserClickedPause
+    | UserClickedResume
+    | UserClickedSubmit
     | GotRoomUuid (TaskPort.Result String)
 
 
@@ -99,7 +101,7 @@ update props =
     in
     toParentModel <|
         case props.msg of
-            GotToggleClick ->
+            UserClickedToggle ->
                 let
                     newState =
                         if model.formState == Hidden then
@@ -112,13 +114,13 @@ update props =
                 , Effect.none
                 )
 
-            GotUrlInput content ->
+            UserInputUrl content ->
                 ( Model { model | url = content }, Effect.none )
 
-            GotRoomInput content ->
+            UserInputRoom content ->
                 ( Model { model | room = content }, Effect.none )
 
-            GotSubmit ->
+            UserClickedSubmit ->
                 let
                     syncUrl : String
                     syncUrl =
@@ -140,8 +142,14 @@ update props =
                     )
                 )
 
-            GotNewRoomClick ->
+            UserClickedNewRoom ->
                 ( Model model, Effect.requestUuid (GotRoomUuid >> props.toMsg) )
+
+            UserClickedPause ->
+                ( Model model, Effect.reqPauseSync )
+
+            UserClickedResume ->
+                ( Model model, Effect.reqResumeSync )
 
             GotRoomUuid uuid_ ->
                 case uuid_ of
@@ -173,12 +181,30 @@ view (Settings settings) =
     if model.formState == Show then
         case settings.state of
             Sync.Syncing ->
-                viewConnecting
+                div []
+                    [ viewConnecting
+                    , button [ onClick (settings.toMsg UserClickedPause) ] [ text "Поставить на паузу" ]
+                    ]
 
             Sync.SyncError err ->
                 div [] [ text <| "Ошибка: " ++ err, viewForm_ ]
 
-            _ ->
+            Sync.Synced ->
+                div []
+                    [ viewForm_
+                    , button [ onClick (settings.toMsg UserClickedPause) ] [ text "Поставить на паузу" ]
+                    ]
+
+            Sync.Paused ->
+                div []
+                    [ viewForm_
+                    , button [ onClick (settings.toMsg UserClickedResume) ] [ text "Включить" ]
+                    ]
+
+            Sync.None ->
+                viewForm_
+
+            Sync.Offline ->
                 viewForm_
 
     else
@@ -191,15 +217,15 @@ viewConnecting =
 
 
 viewButton : Sync.Config -> (Msg msg -> msg) -> Html msg
-viewButton sync toMsg =
-    if sync == Sync.NotConfigured then
-        button [ onClick (GotToggleClick |> toMsg) ]
+viewButton syncConfig toMsg =
+    if syncConfig == Sync.NotConfigured then
+        button [ onClick (UserClickedToggle |> toMsg) ]
             [ text "Настроить синхронизацию" ]
 
     else
         div []
             [ h3 [] [ text "Синхронизация включена" ]
-            , button [ onClick (GotToggleClick |> toMsg) ]
+            , button [ onClick (UserClickedToggle |> toMsg) ]
                 [ text "Изменить настройки" ]
             ]
 
@@ -208,21 +234,28 @@ viewForm :
     { a | room : String, url : String, toMsg : Msg msg -> msg }
     -> Html msg
 viewForm { room, url, toMsg } =
-    div []
+    div [ class "sync-settings-form" ]
         [ h2 []
             [ text "Настройки синхронизации"
-            , span [ class "button", onClick (toMsg GotToggleClick) ] [ Icons.xIcon [] ]
+            , span [ class "button", onClick (toMsg UserClickedToggle) ] [ Icons.xIcon [] ]
             ]
         , div []
             [ label []
                 [ text "Адрес сервера"
-                , input [ value url, onInput (GotUrlInput >> toMsg) ] []
+                , input [ value url, onInput (UserInputUrl >> toMsg) ] []
                 ]
             , label [ class "group" ]
                 [ text "Имя комнаты"
-                , input [ value room, onInput (GotRoomInput >> toMsg) ] []
-                , button [ onClick (GotNewRoomClick |> toMsg) ] [ text "Создать новую" ]
+                , input [ value room, onInput (UserInputUrl >> toMsg) ] []
+                , button [ onClick (UserClickedNewRoom |> toMsg) ] [ text "Создать новую" ]
                 ]
             ]
-        , button [ onClick (GotSubmit |> toMsg) ] [ text "Подключиться" ]
+        , button [ onClick (UserClickedSubmit |> toMsg) ] [ text "Подключиться" ]
+        ]
+
+
+viewHeader toMsg =
+    h2 []
+        [ text "Настройки синхронизации"
+        , span [ class "button", onClick (toMsg UserClickedToggle) ] [ Icons.xIcon [] ]
         ]

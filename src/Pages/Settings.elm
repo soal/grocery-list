@@ -171,8 +171,7 @@ view shared model =
             , button [ onClick ImportRequested ] [ text "Импорт из файла" ]
             ]
         , p [ id "settings-sync-section" ]
-            [ h2 [] [ text "Синхронизация" ]
-            , Views.SyncSettings.new
+            [ Views.SyncSettings.new
                 { model = model.syncForm
                 , toMsg = GotSyncSettingsMsg
                 , state = shared.settings.sync.state

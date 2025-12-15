@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , deleteCategory, deleteItem, getTime, importData, initSync, maybe, queryAll, refreshSyncState, reqInitSync, requestUuid, selectInput, storeAllItems, storeCategory, storeDump, storeItem
+    , deleteCategory, deleteItem, getTime, importData, initSync, maybe, pauseSync, queryAll, refreshSyncState, reqInitSync, reqPauseSync, reqResumeSync, requestUuid, resumeSync, selectInput, storeAllItems, storeCategory, storeDump, storeItem
     )
 
 {-|
@@ -25,7 +25,6 @@ module Effect exposing
 
 -}
 
-import Browser.Events exposing (onResize)
 import Browser.Navigation
 import Data.Categories as Cats
 import Data.Items as Items
@@ -59,6 +58,8 @@ type Effect msg
       -- CUSTOM
     | GetTime (Time.Posix -> msg)
     | InitSync (TaskPort.Result Sync.Config -> msg) Sync.Config
+    | PauseSync (TaskPort.Result Bool -> msg)
+    | ResumeSync (TaskPort.Result Bool -> msg)
     | QueryAllCatsAndItems (TaskPort.Result CatsAndItems -> msg)
     | RequestUuid (TaskPort.Result String -> msg)
     | StoreItem (TaskPort.Result Bool -> msg) Items.Item
@@ -98,12 +99,32 @@ selectInputEffect onResult id =
 
 
 
--- INIT SYNC
+-- SYNC
 
 
 reqInitSync : Sync.Config -> Effect msg
 reqInitSync settings =
     SendSharedMsg <| Shared.Msg.GotInitSyncReq settings
+
+
+reqPauseSync : Effect msg
+reqPauseSync =
+    SendSharedMsg <| Shared.Msg.GotPauseSyncReq
+
+
+pauseSync : (TaskPort.Result Bool -> msg) -> Effect msg
+pauseSync onResult =
+    PauseSync onResult
+
+
+reqResumeSync : Effect msg
+reqResumeSync =
+    SendSharedMsg <| Shared.Msg.GotResumeSyncReq
+
+
+resumeSync : (TaskPort.Result Bool -> msg) -> Effect msg
+resumeSync onResult =
+    ResumeSync onResult
 
 
 initSync :
@@ -117,6 +138,10 @@ initSync onResult settings =
 refreshSyncState : Effect msg
 refreshSyncState =
     SendSharedMsg Shared.Msg.GotRefreshSyncState
+
+
+
+-- QUERY
 
 
 queryAll :
@@ -375,6 +400,12 @@ map fn effect =
         InitSync onResult settings ->
             InitSync (onResult >> fn) settings
 
+        PauseSync onResult ->
+            PauseSync (onResult >> fn)
+
+        ResumeSync onResult ->
+            ResumeSync (onResult >> fn)
+
         QueryAllCatsAndItems onResult ->
             QueryAllCatsAndItems (onResult >> fn)
 
@@ -450,7 +481,13 @@ toCmd options effect =
             Task.perform onResult Time.now
 
         InitSync onResult settings ->
-            Data.Settings.initSync onResult settings
+            Sync.init onResult settings
+
+        PauseSync onResult ->
+            Sync.pause onResult
+
+        ResumeSync onResult ->
+            Sync.resume onResult
 
         QueryAllCatsAndItems onResult ->
             queryAllEffect onResult

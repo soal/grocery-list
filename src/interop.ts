@@ -19,12 +19,20 @@ type ElmApp = {
 	};
 };
 
-type SyncState = "none" | "offline" | "syncing" | "synced" | { error: string };
+type SyncState =
+	| "none"
+	| "offline"
+	| "paused"
+	| "syncing"
+	| "synced"
+	| { error: string };
 
 type AppSettings = {
 	theme: "auto" | "light" | "dark";
-	sync: { room: string; url: string } | null;
-	syncState: SyncState;
+	sync: {
+		config: { room: string; url: string } | null;
+		state: SyncState;
+	};
 	version: number;
 };
 
@@ -63,8 +71,8 @@ type DataDump = {
 };
 
 type GlobalState = {
-	room?: string;
 	doc?: Y.Doc;
+	settings?: AppSettings;
 	items?: Y.Map<Item>;
 	categories?: Y.Array<Category>;
 	provider?: HocuspocusProvider;
@@ -76,144 +84,168 @@ window.customElements.define("on-click-outside", ClickOutside);
 
 TaskPort.install({ logCallErrors: true, logInteropErrors: true });
 
+TaskPort.register("storeDump", storeDump);
+TaskPort.register("queryAllCatsAndItems", queryAllCatsAndItems);
+TaskPort.register("getUuid", getUuid);
+
+TaskPort.register("storeAllItems", storeAllItems);
+TaskPort.register("storeItem", storeItem);
+TaskPort.register("deleteItem", deleteItem);
+
+TaskPort.register("storeCategory", storeCategory);
+TaskPort.register("deleteCategory", deleteCategory);
+TaskPort.register("selectInput", selectInput);
+
+TaskPort.register("initSync", initSync);
+TaskPort.register("pauseSync", pauseSync);
+TaskPort.register("resumeSync", resumeSync);
+
 const globalState: GlobalState = {};
 
-async function initDb({
-	name,
-	version,
-}: {
-	name: string;
-	version: number;
-}): Promise<AppSettings | Error> {
+export const flags = async () => {
+	await init(globalState);
+	return globalState.settings;
+};
+
+export const onReady = ({ app }: { app: ElmApp }) => {
+	globalState.app = app;
+	if (
+		globalState.settings?.sync?.config?.url &&
+		globalState.settings?.sync?.config?.room
+	) {
+		globalState.provider = startSync({
+			url: globalState.settings.sync.config.url,
+			room: globalState.settings.sync.config.room,
+			doc: globalState.doc,
+			app: globalState.app,
+		});
+	}
+
+	globalState.doc.on("update", (_, origin) => {
+		if (origin == null) return;
+		app.ports.incoming.send({
+			categories: globalState.categories.toJSON(),
+			items: globalState.items.toJSON(),
+		});
+	});
+};
+
+async function init(globalState: GlobalState) {
+	globalState.doc = new Y.Doc();
+	globalState.categories = globalState.doc.getArray("categories");
+	globalState.items = globalState.doc.getMap("items");
+
+	try {
+		globalState.db = await initDb(globalState.doc);
+
+		globalState.settings = await getSettings(globalState.db);
+		return globalState;
+	} catch (error) {
+		return error;
+	}
+}
+
+function initDb(doc: Y.Doc): Promise<IndexeddbPersistence> {
 	return new Promise((resolve, reject) => {
 		try {
-			globalState.doc = new Y.Doc();
-
-			globalState.categories = globalState.doc.getArray("categories");
-			globalState.items = globalState.doc.getMap("items");
-
-			globalState.db = new IndexeddbPersistence(name, globalState.doc);
-			globalState.db.set("version", version);
-
-			globalState.db.once("synced", async () => {
-				const appSettings = await getSettings(globalState.db);
-				if (appSettings.sync?.room && appSettings.sync?.url) {
-					startSync(
-						appSettings.sync.room,
-						appSettings.sync.url,
-						globalState.doc,
-						() => {
-							if (globalState.app) {
-								globalState.app.ports.syncState.send("syncing");
-							}
-						},
-					);
-					appSettings.syncState = "syncing";
-				}
-
-				resolve(appSettings);
-			});
+			const db = new IndexeddbPersistence("grocery", doc);
+			db.set("version", 1);
+			db.once("synced", () => resolve(db));
 		} catch (error) {
 			reject(error);
 		}
 	});
 }
 
-async function startSync(
-	name: string,
-	url: string,
-	ydoc: Y.Doc,
-	onConnect: () => void,
-) {
-	globalState.provider = new HocuspocusProvider({
+function startSync({ url, room, doc, app }) {
+	return new HocuspocusProvider({
 		url: url,
-		name: name,
-		document: ydoc,
-		onConnect,
-		onSynced() {
-			if (globalState.app) {
-				globalState.app.ports.syncState.send("synced");
+		name: room,
+		document: doc,
+		onStatus(data) {
+			console.log("STATUS", data.status);
+			if (data.status === "connecting") {
+				app.ports.syncState.send("syncing");
 			}
 		},
-		onStatus(data) {
-			if (data.status === "connecting") {
-				if (globalState.app) {
-					globalState.app.ports.syncState.send("syncing");
-				}
-			}
+		onConnect() {
+			globalState.settings.sync.state = "syncing";
+			globalState.app.ports.syncState.send("syncing");
+		},
+		onSynced() {
+			globalState.settings.sync.state = "synced";
+			globalState.app.ports.syncState.send("synced");
 		},
 		onDisconnect(data) {
-			if (data.event.code === 1000) {
-				if (globalState.app) {
-					globalState.app.ports.syncState.send("offline");
-				}
+			if (data.event.code === 1005) {
+				globalState.settings.sync.state = "paused";
+				app.ports.syncState.send("paused");
 			} else {
+				globalState.settings.sync.state = {
+					error: `Connection failed.
+									 Code: ${data.event.code}, reason: ${data.event.reason}`,
+				};
 				globalState.app.ports.syncState.send({
 					error: `Connection failed.
 									 Code: ${data.event.code}, reason: ${data.event.reason}`,
 				});
-				// resolve("Connection failed");
 			}
 		},
 	});
 }
 
-async function storeSyncSettings(
-	room: string,
-	url: string,
-	dbHandler: IndexeddbPersistence,
-) {
-	globalState.room = room;
-	await dbHandler.set("room", room);
-	await dbHandler.set("url", url);
+function pauseSync() {
+	if (globalState.provider) {
+		globalState.provider.disconnect();
+	}
+}
+
+async function resumeSync() {
+	if (globalState.provider) {
+		const result = await globalState.provider.connect();
+		console.log("RESUME RESULT", result);
+	}
 }
 
 async function initSync({ room, url }: { room: string; url: string }) {
 	if (globalState.db) {
-		try {
-			startSync(room, url, globalState.doc, () => {
-				storeSyncSettings(room, url, globalState.db);
-				if (globalState.app) {
-					globalState.app.ports.syncState.send("syncing");
-				}
-			});
-		} catch (err) {
-			throw new Error(err);
-		}
-		return {
-			room,
-			url,
+		const onConnected = async () => {
+			await globalState.db.set("room", room);
+			await globalState.db.set("url", url);
+			globalState.provider?.off("connect", onConnected);
 		};
+
+		globalState.provider = startSync({
+			url,
+			room,
+			doc: globalState.doc,
+			app: globalState.app,
+		});
+
+		globalState.provider.on("connect", onConnected);
 	}
 	return {
-		room: "",
-		url: "",
+		room,
+		url,
 	};
 }
 
 async function getSettings(
 	dbHandler: IndexeddbPersistence,
 ): Promise<AppSettings> {
-	try {
-		const theme = await dbHandler.get("theme");
-		const room = await dbHandler.get("room");
-		const url = await dbHandler.get("url");
-		const version = await dbHandler.get("version");
+	const theme = await dbHandler.get("theme");
+	const room = await dbHandler.get("room");
+	const url = await dbHandler.get("url");
+	const version = await dbHandler.get("version");
 
-		return {
-			theme: theme ?? "auto",
-			sync: room && url ? { room, url } : null,
-			syncState: room && url ? "syncing" : "none",
-			version: version ?? 1,
-		};
-	} catch (_) {
-		return {
-			theme: "auto",
-			syncState: "none",
-			sync: null,
-			version: 1,
-		};
-	}
+	return {
+		theme: theme ?? "auto",
+		sync: {
+			config: room && url ? { room, url } : null,
+			state: room && url ? "offline" : "none",
+		},
+		version: version ?? 1,
+	};
 }
 
 function queryAllCatsAndItems() {
@@ -322,49 +354,3 @@ function selectInput(id: string) {
 		}
 	});
 }
-
-TaskPort.register("initDb", initDb);
-TaskPort.register("storeDump", storeDump);
-TaskPort.register("queryAllCatsAndItems", queryAllCatsAndItems);
-TaskPort.register("getUuid", getUuid);
-
-TaskPort.register("storeAllItems", storeAllItems);
-TaskPort.register("storeItem", storeItem);
-TaskPort.register("deleteItem", deleteItem);
-
-TaskPort.register("storeCategory", storeCategory);
-TaskPort.register("deleteCategory", deleteCategory);
-TaskPort.register("selectInput", selectInput);
-TaskPort.register("initSync", initSync);
-
-export const flags = async () => {
-	const settings = await initDb({
-		name: "grocery",
-		version: 1,
-	});
-
-	return settings;
-};
-
-export const onReady = ({ app }: { app: ElmApp }) => {
-	globalState.app = app;
-	// if (globalState.provider) {
-	// 	globalState.provider.on("connect", () => {
-	// 		app.ports.syncState.send("syncing");
-	// 	});
-	// 	globalState.provider.on("synced", () => {
-	// 		app.ports.syncState.send("synced");
-	// 	});
-	// 	globalState.provider.on("disconnect", () => {
-	// 		app.ports.syncState.send("offline");
-	// 	});
-	// }
-
-	globalState.doc.on("update", (_, origin) => {
-		if (origin == null) return;
-		app.ports.incoming.send({
-			categories: globalState.categories.toJSON(),
-			items: globalState.items.toJSON(),
-		});
-	});
-};

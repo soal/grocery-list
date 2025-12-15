@@ -10,6 +10,8 @@ type Msg
     | ImportData DataDump
     | Error (Maybe String)
     | GotInitSyncReq Sync.Config
+    | GotPauseSyncReq
+    | GotResumeSyncReq
     | GotInitSyncRes (TaskPort.Result Sync.Config)
     | GotSyncStatus Sync.State
     | GotRefreshSyncState

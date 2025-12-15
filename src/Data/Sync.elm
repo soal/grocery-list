@@ -6,6 +6,10 @@ module Data.Sync exposing
     , configDecoder
     , decoder
     , encodeConfig
+    , init
+    , parseErr
+    , pause
+    , resume
     , setConfig
     , setState
     , stateDecoder
@@ -13,6 +17,8 @@ module Data.Sync exposing
 
 import Json.Decode as JD
 import Json.Encode as JE
+import Task
+import TaskPort
 
 
 type alias Sync =
@@ -90,6 +96,7 @@ type State
     | Syncing
     | Synced
     | Offline
+    | Paused
     | SyncError String
 
 
@@ -108,6 +115,9 @@ stringToState maybeError stateStr =
         "synced" ->
             Synced
 
+        "paused" ->
+            Paused
+
         "error" ->
             SyncError <| Maybe.withDefault "" maybeError
 
@@ -124,3 +134,48 @@ stateDecoder =
             SyncError
             (JD.field "error" <| JD.string)
         ]
+
+
+init : (Result TaskPort.Error Config -> msg) -> Config -> Cmd msg
+init onResult settings =
+    let
+        call : Config -> TaskPort.Task Config
+        call =
+            TaskPort.call
+                { function = "initSync"
+                , valueDecoder = configDecoder
+                , argsEncoder = encodeConfig
+                }
+    in
+    Task.attempt onResult <| call settings
+
+
+parseErr : TaskPort.Error -> String
+parseErr err =
+    case err of
+        TaskPort.InteropError error ->
+            TaskPort.interopErrorToString error
+
+        TaskPort.JSError (TaskPort.ErrorObject "Error" { message }) ->
+            message
+
+        TaskPort.JSError _ ->
+            "General connection error"
+
+
+pause : (TaskPort.Result Bool -> msg) -> Cmd msg
+pause onResult =
+    TaskPort.callNoArgs
+        { function = "pauseSync"
+        , valueDecoder = JD.bool
+        }
+        |> Task.attempt onResult
+
+
+resume : (TaskPort.Result Bool -> msg) -> Cmd msg
+resume onResult =
+    TaskPort.callNoArgs
+        { function = "resumeSync"
+        , valueDecoder = JD.bool
+        }
+        |> Task.attempt onResult
