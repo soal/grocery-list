@@ -283,11 +283,8 @@ onListMsg model msg =
 
         Views.Items.List.EditStarted item _ fieldId ->
             ( { model | draft = Existing item }
-            , Effect.batch
-                [ Effect.sendCmd <|
-                    Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
-                , Effect.selectInput (\_ -> NoOp) fieldId
-                ]
+            , Effect.sendCmd <|
+                Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
             )
 
         Views.Items.List.InputChanged field content ->
@@ -511,7 +508,7 @@ view shared model =
 
             _ ->
                 button
-                    [ class "add-item-button outline"
+                    [ class "add-item-button outline no-cat"
                     , onClick GotItemAddClick
                     ]
                     [ Icons.plusIcon [] ]
