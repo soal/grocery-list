@@ -51,7 +51,7 @@ init flags _ =
         settings =
             case flags of
                 Ok data ->
-                    Debug.log "DATA" data
+                    data
 
                 Err _ ->
                     Data.Settings.defaultSettings
@@ -180,7 +180,7 @@ update _ msg model =
             ( { model
                 | settings =
                     { settings
-                        | sync = Sync.setState (Debug.log "NEW STATE" state) model.settings.sync
+                        | sync = Sync.setState state model.settings.sync
                     }
               }
             , Effect.none
