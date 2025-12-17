@@ -245,7 +245,7 @@ button {
 
   .item-quantity {
     align-items: baseline;
-    display: inline-block;
+    display: inline-flex;
     text-align: center;
 
     .input-resize-container {
@@ -256,6 +256,20 @@ button {
       & input[type=text],
       &::after {
         min-width: 1rem;
+      }
+
+      & input[type=text],
+      &::after {
+        min-width: 1rem;
+      }
+    }
+
+    b {
+      min-width: 1rem;
+      margin-right: 0.25em;
+
+      & input {
+        font-weight: 700;
       }
     }
   }
@@ -293,31 +307,45 @@ button {
     position: relative;
     max-width: 100%;
     overflow: hidden;
-    display: grid;
-    grid-template-columns: auto;
-    grid-template-rows: auto;
+    /* display: grid; */
+    /* grid-template-columns: auto; */
+    /* grid-template-rows: auto; */
     flex-grow: 1;
     word-wrap: break-word;
 
-
-    &::after {
-      content: attr(data-content) " ";
-      visibility: hidden;
-      display: inline-block;
-      margin: 0;
-      padding: 0;
-      max-width: 100%;
-      word-wrap: break-word;
-      grid-column: 1 / -1;
-      grid-row: 1 / -1;
+    @supports not (field-sizing: content) {
+      display: grid;
+      grid-template-columns: auto;
+      grid-template-rows: auto;
     }
 
-    & textarea {
-      grid-column: 1 / -1;
-      grid-row: 1 / -1;
-      overflow: clip;
-      word-wrap: break-word;
-      scrollbar-width: none;
+    @supports (field-sizing: content) {
+      & textarea {
+        field-sizing: content;
+        margin: 0;
+      }
+    }
+
+    @supports not (field-sizing: content) {
+      &::after {
+        content: attr(data-content) " ";
+        visibility: hidden;
+        display: inline-block;
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+        word-wrap: break-word;
+        grid-column: 1 / -1;
+        grid-row: 1 / -1;
+      }
+
+      & textarea {
+        grid-column: 1 / -1;
+        grid-row: 1 / -1;
+        overflow: clip;
+        word-wrap: break-word;
+        scrollbar-width: none;
+      }
     }
   }
 
@@ -489,7 +517,7 @@ a {
     box-shadow: none;
     height: 100%;
     max-width: 100%;
-    min-width: 3em;
+    min-width: 2ch;
     outline: none;
     padding-inline: 0;
     padding: 0;
@@ -498,6 +526,7 @@ a {
   @supports (field-sizing: content) {
     & input {
       field-sizing: content;
+      margin: 0;
     }
   }
 
@@ -670,5 +699,20 @@ h1 {
     display: flex;
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+.empty-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-items: stretch;
+  width: 18rem;
+  margin-inline: auto;
+  gap: var(--pico-block-spacing-horizontal);
+
+  button,
+  a {
+    width: 100%;
   }
 }

@@ -1,5 +1,6 @@
 module Views.Items.Form exposing (viewCheckbox, viewComment, viewName, viewQuantity)
 
+import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
 import Data.Items as Items
 import Html exposing (Html, b, div, input, span, text, textarea)
 import Html.Attributes
@@ -20,7 +21,6 @@ import Html.Extra exposing (nothing)
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Svg.Attributes
-import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
 import Utils exposing (maybeKbd)
 
 
@@ -242,10 +242,11 @@ viewQuantity props (Items.Quantity count unit) =
 
     else
         span
-            [ attributeMaybe onClick <|
+            [ class "item-quantity"
+            , attributeMaybe onClick <|
                 Maybe.map (\f -> f Name countFieldId) props.onOpen
             ]
-            [ b [ class "item-quantity" ] [ text (String.fromFloat count) ]
+            [ b [] [ text (String.fromFloat count) ]
             , text " "
             , span [] [ text unit ]
             ]

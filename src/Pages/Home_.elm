@@ -458,10 +458,19 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     { title = shared.titlePrefix ++ "Список"
     , body =
-        [ if Dict.size model.items == 0 && List.length model.categories == 0 then
-            div []
-                [ button [ onClick GotItemAddClick ] [ text "Добавить" ]
-                , button [] [ text "Добавить категорию" ]
+        [ if
+            Dict.size model.items
+                == 0
+                && List.length model.categories
+                == 0
+                && model.draft
+                == Empty
+          then
+            div [ class "empty-actions group" ]
+                [ button [ class "outline", onClick GotItemAddClick ]
+                    [ text "Добавить" ]
+                , button [ class "outline", onClick GotCatAddClick ]
+                    [ text "Добавить категорию" ]
                 , if shared.settings.sync.config == Sync.NotConfigured then
                     a
                         [ Route.href
@@ -470,6 +479,7 @@ view shared model =
                             , hash = Just "settings-sync-section"
                             }
                         , role "button"
+                        , class "outline"
                         ]
                         [ text "Настроить синхронизацию" ]
 
