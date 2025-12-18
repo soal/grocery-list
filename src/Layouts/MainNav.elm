@@ -1,6 +1,5 @@
 module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
-import Data.Settings
 import Data.Sync as Sync
 import Dict
 import Effect exposing (Effect)
@@ -8,14 +7,13 @@ import Html exposing (Html, a, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on, onClick)
 import Html.Extra exposing (nothing)
-import Html.Lazy exposing (lazy, lazy3)
+import Html.Lazy exposing (lazy3)
 import Json.Decode
 import Layout exposing (Layout)
 import LucideIcons as Icons
 import Route exposing (Route)
 import Route.Path exposing (Path)
 import Shared
-import Svg
 import View exposing (View)
 
 
@@ -54,7 +52,7 @@ layout props shared route =
 type alias NavLink msg =
     { path : Path
     , text : String
-    , icon : List (Svg.Attribute msg) -> Html msg
+    , icon : Html msg
     }
 
 
@@ -134,11 +132,11 @@ viewNavBar currentRoute syncState onAddClick =
         links =
             [ { path = Route.Path.Home_
               , text = "Список"
-              , icon = Icons.listIcon
+              , icon = Icons.listIcon []
               }
             , { path = Route.Path.Shopping
               , text = "В магазине"
-              , icon = Icons.shoppingCartIcon
+              , icon = Icons.shoppingCartIcon []
               }
             ]
     in
@@ -151,8 +149,6 @@ viewNavBar currentRoute syncState onAddClick =
                         , onClick onAddClick
                         ]
                         [ Icons.plusIcon [] ]
-                    , span [ class "icon-wrapper button" ]
-                        [ lazy viewSyncIcon syncState ]
                     ]
                 ]
             ]
@@ -164,7 +160,7 @@ viewNavBar currentRoute syncState onAddClick =
             )
         , ul []
             [ viewNavLink currentRoute
-                (NavLink Route.Path.Settings "" Icons.settingsIcon)
+                (NavLink Route.Path.Settings "" (viewSyncIcon syncState))
             ]
         ]
 
@@ -215,10 +211,10 @@ viewNavLink currentRoute page =
             ]
           <|
             if page.text == "" then
-                [ span [ class "icon-wrapper" ] [ page.icon [] ] ]
+                [ page.icon ]
 
             else
-                [ span [ class "icon-wrapper" ] [ page.icon [] ]
+                [ page.icon
                 , text page.text
                 ]
         ]

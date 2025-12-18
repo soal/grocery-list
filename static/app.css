@@ -73,9 +73,13 @@ button {
     }
 
     &.active {
-      color: white;
+      color: white !important;
       background-color: var(--pico-primary-background);
       text-decoration: none;
+
+      .icon-wrapper {
+        color: white !important;
+      }
 
       &:hover,
       &:focus,
