@@ -53,7 +53,8 @@ toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
     Layouts.MainNav
         { onClickOutside = GotClickOutside
-        , onAddClick = GotCatAddClick
+        , onAddCatClick = GotCatAddClick
+        , onAddItemClick = GotItemAddClick
         }
 
 

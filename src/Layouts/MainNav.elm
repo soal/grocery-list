@@ -1,13 +1,14 @@
 module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
+import Common exposing (AddMenuItem(..), VisibilityState(..))
 import Data.Sync as Sync
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html, a, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on, onClick)
-import Html.Extra exposing (nothing)
-import Html.Lazy exposing (lazy3)
+import Html.Extra exposing (nothing, viewIf)
+import Html.Lazy exposing (lazy2, lazy3, lazy4)
 import Json.Decode
 import Layout exposing (Layout)
 import LucideIcons as Icons
@@ -15,18 +16,21 @@ import Route exposing (Route)
 import Route.Path exposing (Path)
 import Shared
 import View exposing (View)
+import Views.AddMenu
 
 
 type alias Props contentMsg =
     { onClickOutside : contentMsg
-    , onAddClick : contentMsg
+    , onAddItemClick : contentMsg
+    , onAddCatClick : contentMsg
     }
 
 
 map : (msg1 -> msg2) -> Props msg1 -> Props msg2
 map fn props =
     { onClickOutside = fn props.onClickOutside
-    , onAddClick = fn props.onAddClick
+    , onAddItemClick = fn props.onAddItemClick
+    , onAddCatClick = fn props.onAddCatClick
     }
 
 
@@ -39,7 +43,7 @@ layout props shared route =
     Layout.new
         { init = init route
         , update = update props
-        , view = view props shared.settings.sync.state
+        , view = view props shared.titlePrefix shared.settings.sync.state
         , subscriptions = subscriptions
         }
         |> Layout.withOnUrlChanged UrlChanged
@@ -49,21 +53,23 @@ layout props shared route =
 -- MODEL
 
 
-type alias NavLink msg =
+type alias NavLink =
     { path : Path
     , text : String
-    , icon : Html msg
+    , icon : Html Msg
     }
 
 
 type alias Model =
     { currentRoute : Route ()
+    , addMenuState : VisibilityState
     }
 
 
 init : Route () -> () -> ( Model, Effect msg )
 init route () =
     ( { currentRoute = route
+      , addMenuState = Hidden
       }
     , Effect.none
     )
@@ -75,6 +81,7 @@ init route () =
 
 type Msg
     = UrlChanged { from : Route (), to : Route () }
+    | UserClickedAddMenu
 
 
 update : Props contentMsg -> Msg -> Model -> ( Model, Effect Msg )
@@ -82,6 +89,19 @@ update _ msg model =
     case msg of
         UrlChanged { to } ->
             ( { model | currentRoute = to }
+            , Effect.none
+            )
+
+        UserClickedAddMenu ->
+            ( { model
+                | addMenuState =
+                    case model.addMenuState of
+                        Show ->
+                            Hidden
+
+                        Hidden ->
+                            Show
+              }
             , Effect.none
             )
 
@@ -97,6 +117,7 @@ subscriptions _ =
 
 view :
     Props contentMsg
+    -> String
     -> Sync.State
     ->
         { toContentMsg : Msg -> contentMsg
@@ -104,8 +125,8 @@ view :
         , model : Model
         }
     -> View contentMsg
-view props syncState { model, content } =
-    { title = content.title
+view props titlePrefix syncState { model, content, toContentMsg } =
+    { title = titlePrefix ++ content.title
     , body =
         [ Html.node "on-click-outside"
             [ on "clickoutside" <|
@@ -113,11 +134,25 @@ view props syncState { model, content } =
                     props.onClickOutside
             ]
             [ header [ class "nav-header app-container" ]
-                [ lazy3
-                    viewNavBar
-                    model.currentRoute
-                    syncState
-                    props.onAddClick
+                [ nav [ class "main-nav" ]
+                    [ ul []
+                        [ li []
+                            [ span [ class "link" ]
+                                [ span
+                                    [ class "icon-wrapper button add-button" ]
+                                    [ Views.AddMenu.view
+                                        (model.addMenuState == Show)
+                                        props.onAddItemClick
+                                        props.onAddCatClick
+                                    ]
+                                ]
+                            ]
+                        ]
+                    , viewPages model.currentRoute
+                        |> Html.map toContentMsg
+                    , viewSetting model.currentRoute syncState
+                        |> Html.map toContentMsg
+                    ]
                 ]
             , main_ [ class "app-main app-container" ] content.body
             ]
@@ -125,10 +160,10 @@ view props syncState { model, content } =
     }
 
 
-viewNavBar : Route () -> Sync.State -> msg -> Html msg
-viewNavBar currentRoute syncState onAddClick =
+viewPages : Route () -> Html Msg
+viewPages currentRoute =
     let
-        links : List (NavLink msg)
+        links : List NavLink
         links =
             [ { path = Route.Path.Home_
               , text = "Список"
@@ -140,32 +175,23 @@ viewNavBar currentRoute syncState onAddClick =
               }
             ]
     in
-    nav [ class "main-nav" ]
-        [ ul []
-            [ li []
-                [ span [ class "link" ]
-                    [ span
-                        [ class "icon-wrapper button add-button"
-                        , onClick onAddClick
-                        ]
-                        [ Icons.plusIcon [] ]
-                    ]
-                ]
-            ]
-        , ul [ class "group" ] <|
-            (List.map
-                (viewNavLink currentRoute)
-             <|
-                links
-            )
-        , ul []
-            [ viewNavLink currentRoute
-                (NavLink Route.Path.Settings "" (viewSyncIcon syncState))
-            ]
+    ul [ class "group" ] <|
+        (List.map
+            (viewNavLink currentRoute)
+         <|
+            links
+        )
+
+
+viewSetting : Route () -> Sync.State -> Html Msg
+viewSetting currentRoute syncState =
+    ul []
+        [ viewNavLink currentRoute
+            (NavLink Route.Path.Settings "" (viewSyncIcon syncState))
         ]
 
 
-viewSyncIcon : Sync.State -> Html msg
+viewSyncIcon : Sync.State -> Html Msg
 viewSyncIcon syncState =
     case syncState of
         Sync.None ->
@@ -193,7 +219,7 @@ viewSyncIcon syncState =
                 [ Icons.cloudAlertIcon [] ]
 
 
-viewNavLink : Route () -> NavLink msg -> Html msg
+viewNavLink : Route () -> NavLink -> Html Msg
 viewNavLink currentRoute page =
     li []
         [ a

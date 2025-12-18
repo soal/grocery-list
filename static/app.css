@@ -48,6 +48,8 @@ button {
 }
 
 .main-nav {
+  position: relative;
+
   & ul {
     column-gap: 0.25em;
   }
@@ -688,15 +690,6 @@ h1 {
   color: var(--pico-form-element-invalid-focus-color);
 }
 
-.add-menu {
-  @media screen and (width < 451px) {
-    display: none;
-  }
-
-  @media screen and (width > 450px) {
-    display: block;
-  }
-}
 
 .sync-settings-form {
   h2 {
@@ -718,5 +711,37 @@ h1 {
   button,
   a {
     width: 100%;
+  }
+}
+
+.dropdown.add-menu {
+  background-color: transparent;
+  border: 0;
+
+  @media screen and (width < 451px) {
+    display: none;
+  }
+
+  @media screen and (width > 450px) {
+    display: block;
+  }
+
+  >summary:not([role]) {
+    background-color: transparent;
+    border: 0;
+    height: auto;
+    padding: 0;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  .add-menu-item {
+    font-size: 0.85rem;
+
+    &:hover {
+      color: var(--pico-primary);
+    }
   }
 }

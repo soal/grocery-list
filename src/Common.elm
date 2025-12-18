@@ -1,5 +1,6 @@
 module Common exposing
-    ( CheckboxKind(..)
+    ( AddMenuItem(..)
+    , CheckboxKind(..)
     , DomId
     , Draft(..)
     , FormState(..)
@@ -10,6 +11,11 @@ module Common exposing
 
 import Data.Categories as Cats
 import Data.Items as Items
+
+
+type AddMenuItem
+    = AddItem
+    | AddCategory
 
 
 type VisibilityState

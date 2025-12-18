@@ -1,11 +1,9 @@
 module Pages.Shopping exposing (ContentState, Model, Msg, page)
 
-import Views.Counter
-import Views.Items.List
-import DataUpdate
 import Data.Categories as Cats
 import Data.Items as Items
 import Data.Settings exposing (CatsAndItems)
+import DataUpdate
 import Dict exposing (Dict)
 import Effect exposing (Effect)
 import Html exposing (Html, button, div, h3, text)
@@ -20,6 +18,8 @@ import Shared
 import TaskPort
 import Time
 import View exposing (View)
+import Views.Counter
+import Views.Items.List
 
 
 page : Shared.Model -> Route () -> Page Model Msg
@@ -37,7 +37,8 @@ toLayout : Model -> Layouts.Layout Msg
 toLayout _ =
     Layouts.MainNav
         { onClickOutside = NoOp
-        , onAddClick = NoOp
+        , onAddItemClick = NoOp
+        , onAddCatClick = NoOp
         }
 
 
