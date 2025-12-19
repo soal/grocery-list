@@ -6,19 +6,19 @@ module Views.Category.Header exposing
     , withDraft
     )
 
-import Views.Counter
+import Common exposing (Draft(..))
 import Data.Categories as Cats
 import Data.Items as Items
 import Dict exposing (Dict)
 import Html exposing (Html, h4, input, span, text)
-import Html.Attributes exposing (attribute, class, id, type_, value)
+import Html.Attributes exposing (attribute, class, classList, id, type_, value)
 import Html.Attributes.Extra exposing (attributeMaybe)
 import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (viewIf)
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
-import Common exposing (Draft(..))
 import Utils exposing (maybeKbd)
+import Views.Counter
 
 
 type CategoryHeader msg
@@ -115,13 +115,9 @@ view (Settings ({ on } as settings)) =
             span
                 [ class "chevron category-action button"
                 , onClick on.toggle
+                , classList [ ( "open", settings.state == Cats.Open ) ]
                 ]
-                [ if settings.state == Cats.Open then
-                    Icons.chevronDownIcon []
-
-                  else
-                    Icons.chevronRightIcon []
-                ]
+                [ Icons.chevronRightIcon [] ]
 
         deleteButton : Html msg
         deleteButton =

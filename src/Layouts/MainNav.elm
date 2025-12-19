@@ -1,11 +1,12 @@
 module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
 import Common exposing (AddMenuItem(..), VisibilityState(..))
+import Data.Settings
 import Data.Sync as Sync
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html, a, header, li, main_, nav, span, text, ul)
-import Html.Attributes exposing (class, classList)
+import Html.Attributes exposing (attribute, class, classList)
 import Html.Events exposing (on, onClick)
 import Html.Extra exposing (nothing, viewIf)
 import Html.Lazy exposing (lazy2, lazy3, lazy4)
@@ -43,7 +44,7 @@ layout props shared route =
     Layout.new
         { init = init route
         , update = update props
-        , view = view props shared.titlePrefix shared.settings.sync.state
+        , view = view props shared
         , subscriptions = subscriptions
         }
         |> Layout.withOnUrlChanged UrlChanged
@@ -82,10 +83,11 @@ init route () =
 type Msg
     = UrlChanged { from : Route (), to : Route () }
     | UserClickedAddMenu
+    | UserClickedOutside
 
 
 update : Props contentMsg -> Msg -> Model -> ( Model, Effect Msg )
-update _ msg model =
+update props msg model =
     case msg of
         UrlChanged { to } ->
             ( { model | currentRoute = to }
@@ -105,6 +107,12 @@ update _ msg model =
             , Effect.none
             )
 
+        UserClickedOutside ->
+            ( { model | addMenuState = Hidden }
+              -- , Effect.sendMsg props.onClickOutside
+            , Effect.none
+            )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -117,16 +125,15 @@ subscriptions _ =
 
 view :
     Props contentMsg
-    -> String
-    -> Sync.State
+    -> Shared.Model
     ->
         { toContentMsg : Msg -> contentMsg
         , content : View contentMsg
         , model : Model
         }
     -> View contentMsg
-view props titlePrefix syncState { model, content, toContentMsg } =
-    { title = titlePrefix ++ content.title
+view props shared { model, content, toContentMsg } =
+    { title = shared.titlePrefix ++ content.title
     , body =
         [ Html.node "on-click-outside"
             [ on "clickoutside" <|
@@ -137,20 +144,17 @@ view props titlePrefix syncState { model, content, toContentMsg } =
                 [ nav [ class "main-nav" ]
                     [ ul []
                         [ li []
-                            [ span [ class "link" ]
-                                [ span
-                                    [ class "icon-wrapper button add-button" ]
-                                    [ Views.AddMenu.view
-                                        (model.addMenuState == Show)
-                                        props.onAddItemClick
-                                        props.onAddCatClick
-                                    ]
-                                ]
+                            [ Views.AddMenu.view
+                                (model.addMenuState == Show)
+                                props.onAddItemClick
+                                props.onAddCatClick
+                                (toContentMsg UserClickedAddMenu)
+                                (toContentMsg UserClickedOutside)
                             ]
                         ]
                     , viewPages model.currentRoute
                         |> Html.map toContentMsg
-                    , viewSetting model.currentRoute syncState
+                    , viewSetting model.currentRoute shared.settings.sync.state
                         |> Html.map toContentMsg
                     ]
                 ]
@@ -175,7 +179,7 @@ viewPages currentRoute =
               }
             ]
     in
-    ul [ class "group" ] <|
+    ul [] <|
         (List.map
             (viewNavLink currentRoute)
          <|

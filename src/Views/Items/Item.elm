@@ -9,6 +9,15 @@ module Views.Items.Item exposing
     , withLink
     )
 
+import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
+import Data.Items as Items
+import Html exposing (Html, a, div, text)
+import Html.Attributes exposing (class, classList)
+import Html.Attributes.Extra exposing (attributeMaybe)
+import Html.Events exposing (onClick)
+import Html.Extra exposing (viewIf)
+import LucideIcons as Icons
+import Route.Path
 import Views.Items.Form
     exposing
         ( viewCheckbox
@@ -16,23 +25,6 @@ import Views.Items.Form
         , viewName
         , viewQuantity
         )
-import Data.Items as Items
-import Html
-    exposing
-        ( Html
-        , a
-        , article
-        , div
-        , span
-        , text
-        )
-import Html.Attributes exposing (class, classList)
-import Html.Attributes.Extra exposing (attributeMaybe)
-import Html.Events exposing (onClick)
-import Html.Extra exposing (viewIf)
-import LucideIcons as Icons
-import Route.Path
-import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
 
 
 type alias Handlers msg =
@@ -182,7 +174,7 @@ view (Settings ({ on } as settings)) =
         checkMark =
             settings.clickable && settings.item.state == Items.InBasket
     in
-    article
+    div
         [ class "grocery-item"
         , classList
             [ ( "in-basket", checkMark )
@@ -203,7 +195,7 @@ view (Settings ({ on } as settings)) =
                 settings.item.state
                 settings.checkedSates
             )
-        , span [ class "item-title" ]
+        , div [ class "item-content" ]
             [ viewName
                 { itemId = settings.item.id
                 , onOpen = on.edit
@@ -214,19 +206,17 @@ view (Settings ({ on } as settings)) =
                 , onEnter = on.enter
                 , onEsc = on.esc
                 }
-            ]
-        , viewQuantity
-            { itemId = settings.item.id
-            , onOpen = on.edit
-            , inputChange = on.input
-            , formState = settings.formState
-            , editable = settings.editable
-            , onEnter = on.enter
-            , onEsc = on.esc
-            }
-            settings.item.quantity
-        , div [ class "item-comment-box" ]
-            [ viewComment
+            , viewQuantity
+                { itemId = settings.item.id
+                , onOpen = on.edit
+                , inputChange = on.input
+                , formState = settings.formState
+                , editable = settings.editable
+                , onEnter = on.enter
+                , onEsc = on.esc
+                }
+                settings.item.quantity
+            , viewComment
                 { itemId = settings.item.id
                 , onOpen = on.edit
                 , inputChange = Maybe.map (\f -> f Comment) on.input
@@ -236,14 +226,14 @@ view (Settings ({ on } as settings)) =
                 , onEnter = on.enter
                 , onEsc = on.esc
                 }
-            , viewIf settings.editable <|
-                div
-                    [ class "button delete-button with-click-outside"
-                    , attributeMaybe onClick on.delete
-                    ]
-                    [ Icons.trashIcon [] ]
-            , link
             ]
+        , viewIf settings.editable <|
+            div
+                [ class "button delete-button with-click-outside"
+                , attributeMaybe onClick on.delete
+                ]
+                [ Icons.trashIcon [] ]
+        , link
         ]
 
 

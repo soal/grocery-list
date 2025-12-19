@@ -457,7 +457,7 @@ subscriptions _ =
 
 view : Shared.Model -> Model -> View Msg
 view shared model =
-    { title = shared.titlePrefix ++ "Список"
+    { title = "Список"
     , body =
         [ if
             Dict.size model.items

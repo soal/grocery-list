@@ -391,7 +391,7 @@ viewDraft { draft, open, category } =
 
         _ ->
             button
-                [ class "add-item-button outline"
+                [ class "add-item-button"
                 , onClick (DraftOpened category)
                 ]
                 [ Icons.plusIcon [] ]

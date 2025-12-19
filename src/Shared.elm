@@ -200,6 +200,15 @@ update _ msg model =
             , Effect.none
             )
 
+        Shared.Msg.GotThemeChange theme ->
+            let
+                settings =
+                    model.settings
+            in
+            ( { model | settings = { settings | theme = theme } }
+            , Effect.sendCmd (Effect.storeTheme (\_ -> NoOp) theme)
+            )
+
 
 subscriptions : Route () -> Model -> Sub Msg
 subscriptions _ _ =

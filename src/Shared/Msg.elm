@@ -15,3 +15,4 @@ type Msg
     | GotInitSyncRes (TaskPort.Result Sync.Config)
     | GotSyncStatus Sync.State
     | GotRefreshSyncState
+    | GotThemeChange Data.Settings.AppTheme

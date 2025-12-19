@@ -6,7 +6,7 @@ module Effect exposing
     , pushRoutePath, replaceRoutePath
     , loadExternalUrl, back
     , map, toCmd
-    , deleteCategory, deleteItem, getTime, importData, initSync, maybe, pauseSync, queryAll, refreshSyncState, reqInitSync, reqPauseSync, reqResumeSync, requestUuid, resumeSync, selectInput, storeAllItems, storeCategory, storeDump, storeItem
+    , changeTheme, deleteCategory, deleteItem, getTime, importData, initSync, maybe, pauseSync, queryAll, refreshSyncState, reqInitSync, reqPauseSync, reqResumeSync, requestUuid, resumeSync, selectInput, storeAllItems, storeCategory, storeDump, storeItem, storeTheme
     )
 
 {-|
@@ -255,6 +255,22 @@ importData content =
                 |> Just
                 |> Shared.Msg.Error
                 |> SendSharedMsg
+
+
+
+-- SETTING
+
+
+storeTheme : (TaskPort.Result Bool -> msg) -> Data.Settings.AppTheme -> Cmd msg
+storeTheme onResult theme =
+    Data.Settings.storeTheme
+        onResult
+        theme
+
+
+changeTheme : Data.Settings.AppTheme -> Effect msg
+changeTheme theme =
+    SendSharedMsg (Shared.Msg.GotThemeChange theme)
 
 
 

@@ -84,6 +84,7 @@ type Msg
     | GotExportedData (TaskPort.Result CatsAndItems)
       -- SYNC SETTINGS
     | GotSyncSettingsMsg (Views.SyncSettings.Msg Msg)
+    | UserClickedThemeSwitch Data.Settings.AppTheme
 
 
 update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
@@ -142,6 +143,9 @@ update shared msg model =
                 , toMsg = GotSyncSettingsMsg
                 }
 
+        UserClickedThemeSwitch theme ->
+            ( model, Effect.changeTheme theme )
+
 
 
 -- SUBSCRIPTIONS
@@ -163,18 +167,28 @@ view shared model =
         [ h1 [] [ text "Настройки" ]
         , p [ id "settings-theme-section" ]
             [ h2 [] [ text "Тема" ]
-            , div [ class "button-row", role "group" ]
-                [ button [] [ text "Как в системе" ]
-                , button [ class "secondary" ] [ text "Светлая" ]
-                , button [ class "secondary" ] [ text "Тёмная" ]
+            , div [ role "group" ]
+                [ button
+                    [ onClick (UserClickedThemeSwitch Data.Settings.Auto) ]
+                    [ text "Как в системе" ]
+                , button
+                    [ class "secondary"
+                    , onClick (UserClickedThemeSwitch Data.Settings.Light)
+                    ]
+                    [ text "Светлая" ]
+                , button
+                    [ class "secondary"
+                    , onClick (UserClickedThemeSwitch Data.Settings.Dark)
+                    ]
+                    [ text "Тёмная" ]
                 ]
             ]
-        , p [ id "settings-export-section" ]
+        , p [ id "settings-export-section", class "section" ]
             [ h2 [] [ text "Экспорт и импорт" ]
-            , button [ onClick ExportRequested ] [ text "Экспорт данных" ]
+            , button [ onClick ExportRequested ] [ text "Экспорт в файл" ]
             , button [ onClick ImportRequested ] [ text "Импорт из файла" ]
             ]
-        , p [ id "settings-sync-section" ]
+        , p [ id "settings-sync-section", class "section" ]
             [ Views.SyncSettings.new
                 { model = model.syncForm
                 , toMsg = GotSyncSettingsMsg
