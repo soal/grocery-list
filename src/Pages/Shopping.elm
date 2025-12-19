@@ -249,8 +249,8 @@ viewEndButton : Dict String Items.Item -> Html Msg
 viewEndButton items =
     if Dict.size items > 0 then
         button
-            [ class "end-shopping-button"
-            , classList [ ( "all-done", Items.isAllDone items ) ]
+            [ class "end-shopping-button large"
+            , classList [ ( "green", Items.isAllDone items ) ]
             , onClick ClickedEndShopping
             , disabled (Items.getInBasketLength items <= 0)
             ]

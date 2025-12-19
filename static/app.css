@@ -45,10 +45,24 @@ button {
   border-radius: var(--radius-2);
   border: var(--border-size-1) solid var(--element-gray);
   padding: var(--size-relative-2) var(--size-relative-4);
+  display: inline-flex;
+  gap: var(--size-relative-3);
 
   &.primary {
     border-color: var(--blue-6);
     color: var(--blue-6);
+  }
+
+  &.large {
+    padding: var(--size-relative-4) var(--size-relative-6);
+    font-weight: 500;
+  }
+
+  &.green {
+    color: var(--gray-0);
+    background: var(--green-9);
+    /* background: var(--gradient-30); */
+    border-color: var(--green-10);
   }
 }
 
@@ -83,6 +97,7 @@ h3 {
 h4 {
   font-weight: 600;
 }
+
 /* -- NAV */
 
 .nav-header {
@@ -235,7 +250,7 @@ nav {
     /* } */
 
     &.checked {
-      background-color: var(--blue-6);
+      background: var(--blue-6);
       border-color: var(--blue-6);
       color: var(--gray-0);
 
@@ -245,7 +260,7 @@ nav {
     }
 
     &.checked.check {
-      background-color: var(--green-8);
+      background: var(--green-8);
       border-color: var(--green-8);
 
     }
