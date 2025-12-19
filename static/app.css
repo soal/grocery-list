@@ -725,15 +725,6 @@ nav {
     grid-area: room-input;
   }
 
-  /* & button:first-of-type { */
-  /* grid-area: room-button; */
-  /* font-size: var(--font-size-1); */
-  /* display: inline-flex; */
-  /* align-items: anchor-center; */
-  /* padding: 0 var(--size-2); */
-  /* justify-content: center; */
-  /* } */
-
   & button:last-of-type {
     grid-area: submit;
     justify-self: center;

@@ -16,7 +16,7 @@ import Data.Sync as Sync
 import DataUpdate
 import Dict exposing (Dict)
 import Effect exposing (Effect)
-import Html exposing (a, button, div, hr, text)
+import Html exposing (a, button, div, text)
 import Html.Attributes exposing (class)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
