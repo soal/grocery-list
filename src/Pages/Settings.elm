@@ -8,8 +8,8 @@ import Effect exposing (Effect)
 import File exposing (File)
 import File.Download
 import File.Select
-import Html exposing (button, div, h1, h2, p, text)
-import Html.Attributes exposing (class, id)
+import Html exposing (button, div, h1, h2, h3, p, text)
+import Html.Attributes exposing (class, classList, id)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
 import Json.Encode as JE
@@ -166,25 +166,39 @@ view shared model =
     , body =
         [ h1 [] [ text "Настройки" ]
         , p [ id "settings-theme-section" ]
-            [ h2 [] [ text "Тема" ]
+            [ h3 [] [ text "Тема" ]
             , div [ role "group" ]
                 [ button
-                    [ onClick (UserClickedThemeSwitch Data.Settings.Auto) ]
+                    [ classList
+                        [ ( "primary"
+                          , shared.settings.theme == Data.Settings.Auto
+                          )
+                        ]
+                    , onClick (UserClickedThemeSwitch Data.Settings.Auto)
+                    ]
                     [ text "Как в системе" ]
                 , button
-                    [ class "secondary"
+                    [ classList
+                        [ ( "primary"
+                          , shared.settings.theme == Data.Settings.Light
+                          )
+                        ]
                     , onClick (UserClickedThemeSwitch Data.Settings.Light)
                     ]
                     [ text "Светлая" ]
                 , button
-                    [ class "secondary"
+                    [ classList
+                        [ ( "primary"
+                          , shared.settings.theme == Data.Settings.Dark
+                          )
+                        ]
                     , onClick (UserClickedThemeSwitch Data.Settings.Dark)
                     ]
                     [ text "Тёмная" ]
                 ]
             ]
         , p [ id "settings-export-section", class "section" ]
-            [ h2 [] [ text "Экспорт и импорт" ]
+            [ h3 [] [ text "Экспорт и импорт" ]
             , button [ onClick ExportRequested ] [ text "Экспорт в файл" ]
             , button [ onClick ImportRequested ] [ text "Импорт из файла" ]
             ]

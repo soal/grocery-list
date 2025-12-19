@@ -251,6 +251,7 @@ viewEndButton items =
         button
             [ class "end-shopping-button large"
             , classList [ ( "green", Items.isAllDone items ) ]
+            , classList [ ( "primary", not <| Items.isAllDone items ) ]
             , onClick ClickedEndShopping
             , disabled (Items.getInBasketLength items <= 0)
             ]

@@ -4,7 +4,7 @@ import Common exposing (SyncSettingsField(..), VisibilityState(..))
 import Data.Sync as Sync
 import Effect exposing (Effect)
 import Html exposing (Html, button, div, form, h2, h3, input, label, span, text)
-import Html.Attributes exposing (class, value)
+import Html.Attributes exposing (class, disabled, for, name, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import LucideIcons as Icons
 import TaskPort
@@ -234,28 +234,37 @@ viewForm :
     { a | room : String, url : String, toMsg : Msg msg -> msg }
     -> Html msg
 viewForm { room, url, toMsg } =
-    div [ class "sync-settings-form" ]
-        [ h2 []
+    form [ class "sync-settings-form" ]
+        [ h3 []
             [ text "Настройки синхронизации"
-            , span [ class "button", onClick (toMsg UserClickedToggle) ] [ Icons.xIcon [] ]
             ]
-        , div []
-            [ label []
-                [ text "Адрес сервера"
-                , input [ value url, onInput (UserInputUrl >> toMsg) ] []
-                ]
-            , label [ class "group" ]
-                [ text "Имя комнаты"
-                , input [ value room, onInput (UserInputRoom >> toMsg) ] []
-                , button [ onClick (UserClickedNewRoom |> toMsg) ] [ text "Создать новую" ]
-                ]
+        , span [ onClick (toMsg UserClickedToggle) ] [ Icons.xIcon [] ]
+        , label [ for "url" ] [ text "Адрес сервера" ]
+        , input
+            [ type_ "url"
+            , value url
+            , onInput (UserInputUrl >> toMsg)
+            , name "url"
             ]
-        , button [ onClick (UserClickedSubmit |> toMsg) ] [ text "Подключиться" ]
+            []
+        , label [ for "room" ] [ text "Код комнаты" ]
+        , input
+            [ type_ "text"
+            , value room
+            , onInput (UserInputRoom >> toMsg)
+            , name "room"
+            ]
+            []
+        -- , button [ onClick (UserClickedNewRoom |> toMsg) ]
+        --     [ text "Создать" ]
+        , button
+            [ class "large"
+            , disabled (isDisabled room url)
+            , onClick (UserClickedSubmit |> toMsg)
+            ]
+            [ text "Подключиться" ]
         ]
 
 
-viewHeader toMsg =
-    h2 []
-        [ text "Настройки синхронизации"
-        , span [ class "button", onClick (toMsg UserClickedToggle) ] [ Icons.xIcon [] ]
-        ]
+isDisabled room url =
+    String.isEmpty room || String.isEmpty url

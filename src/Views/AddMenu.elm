@@ -20,7 +20,7 @@ view state clickedItem clickedCat clickedToggle clickHide =
             , onClick clickedToggle
             , classList [ ( "open", state ) ]
             ]
-            [ div [ class "summary" ]
+            [ div [ class "summary icon-wrapper" ]
                 [ Icons.plusIcon []
                 ]
             , ul []

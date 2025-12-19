@@ -8,5 +8,5 @@ import LucideIcons as Icons
 
 view : msg -> Html msg
 view click =
-    button [ class "main-action", onClick click ]
+    button [ class "main-action primary round", onClick click ]
         [ Icons.plusIcon [] ]

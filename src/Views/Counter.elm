@@ -14,7 +14,6 @@ view idsAndStates listOfIds desiredState =
                 |> List.filter
                     (\id -> Dict.get id idsAndStates == Just desiredState)
                 |> List.length
-
         total : Int
         total =
             listOfIds

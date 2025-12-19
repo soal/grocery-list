@@ -519,7 +519,7 @@ view shared model =
 
             _ ->
                 button
-                    [ class "add-item-button outline no-cat"
+                    [ class "add-item-button no-cat "
                     , onClick GotItemAddClick
                     ]
                     [ Icons.plusIcon [] ]
