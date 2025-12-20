@@ -100,6 +100,8 @@ const globalState: GlobalState = {};
 
 export const flags = async () => {
   await init(globalState);
+  document.getElementsByTagName("html")[0].dataset.theme = globalState.settings.theme;
+
   return globalState.settings;
 };
 
@@ -343,6 +345,8 @@ function selectInput(id: string) {
 }
 
 function setTheme(theme: string) {
-  console.log("THEME!", theme);
   document.getElementsByTagName("html")[0].dataset.theme = theme;
+  if (globalState.db) {
+    globalState.db.set("theme", theme);
+  }
 }
