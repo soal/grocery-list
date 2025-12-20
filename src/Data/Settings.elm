@@ -78,10 +78,7 @@ type alias AppSettings =
 
 defaultSettings : AppSettings
 defaultSettings =
-    AppSettings
-        Auto
-        (Sync.Sync Sync.NotConfigured Sync.None)
-        1
+    AppSettings Auto (Sync.Sync Sync.NotConfigured Sync.None) 1
 
 
 decoder : JD.Decoder AppSettings

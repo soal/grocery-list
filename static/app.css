@@ -320,6 +320,32 @@ nav {
     .counter.all-done {
       color: var(--green-9);
     }
+
+    >span {
+      border-bottom: var(--border-size-2) solid transparent;
+
+      &:focus-within {
+        border-color: var(--accent-color);
+      }
+    }
+
+    & input {
+      background: transparent;
+      border: none;
+      min-height: 1em;
+      font-size: 1em;
+      line-height: 1em;
+      padding: 0;
+
+      &:focus {
+        outline: 0;
+      }
+
+      @supports (field-sizing: content) {
+        field-sizing: content;
+        max-width: 100%;
+      }
+    }
   }
 
   .category-body {
@@ -395,9 +421,6 @@ nav {
          * I dunno, man =( */
         padding-right: 4.6px;
       }
-
-      /* display: inline-flex; */
-      /* box-sizing: border-box; */
     }
   }
 
