@@ -1,15 +1,13 @@
 module Layouts.MainNav exposing (Model, Msg, Props, layout, map)
 
 import Common exposing (AddMenuItem(..), VisibilityState(..))
-import Data.Settings
 import Data.Sync as Sync
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html, a, header, li, main_, nav, span, text, ul)
-import Html.Attributes exposing (attribute, class, classList)
-import Html.Events exposing (on, onClick)
-import Html.Extra exposing (nothing, viewIf)
-import Html.Lazy exposing (lazy2, lazy3, lazy4)
+import Html.Attributes exposing (class, classList)
+import Html.Events exposing (on)
+import Html.Extra exposing (nothing)
 import Json.Decode
 import Layout exposing (Layout)
 import LucideIcons as Icons
@@ -87,7 +85,7 @@ type Msg
 
 
 update : Props contentMsg -> Msg -> Model -> ( Model, Effect Msg )
-update props msg model =
+update _ msg model =
     case msg of
         UrlChanged { to } ->
             ( { model | currentRoute = to }

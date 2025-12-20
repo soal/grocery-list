@@ -71,9 +71,17 @@ html {
 .app-main {
   margin-bottom: 10rem;
 
-  &:has(.main-action) {
+  @media screen and (width <=450px) {
     padding-bottom: var(--size-10);
+    &:has(.main-action) {
+      padding-bottom: var(--size-10);
+    }
   }
+
+  @media screen and (width > 450px) {
+    padding-bottom: var(--size-7);
+  }
+
 }
 
 /* -- COMMON */
@@ -118,7 +126,7 @@ button {
   }
 
   &.large {
-    padding: var(--size-relative-4) var(--size-relative-6);
+    padding: var(--size-relative-3) var(--size-relative-5);
     font-weight: 500;
   }
 
@@ -326,6 +334,16 @@ nav {
 
       &:focus-within {
         border-color: var(--accent-color);
+      }
+    }
+
+    .delete-button {
+      cursor: pointer;
+
+      @media (hover: hover) {
+        &:hover {
+          color: var(--red-6);
+        }
       }
     }
 
