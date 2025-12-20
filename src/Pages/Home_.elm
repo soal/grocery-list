@@ -145,7 +145,7 @@ update msg model =
                         fieldId =
                             "item-name-" ++ uuid
                     in
-                    ( { model | draft = New (Items.emptyItem <| Just uuid) }
+                    ( { model | draft = New ( Items.emptyItem <| Just uuid, Items.ValidationOk ) }
                     , Effect.sendCmd <|
                         Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
                     )
@@ -198,11 +198,17 @@ update msg model =
                 altered : Draft
                 altered =
                     case draft of
-                        New item ->
-                            New { item | updated = timestamp }
+                        New ( item, validation ) ->
+                            New
+                                ( { item | updated = timestamp }
+                                , validation
+                                )
 
-                        Existing item ->
-                            Existing { item | updated = timestamp }
+                        Existing ( item, validation ) ->
+                            Existing
+                                ( { item | updated = timestamp }
+                                , validation
+                                )
 
                         NewCat category ->
                             NewCat { category | updated = timestamp }
@@ -283,7 +289,7 @@ onListMsg model msg =
             toggleItemState model item state
 
         Views.Items.List.EditStarted item _ fieldId ->
-            ( { model | draft = Existing item }
+            ( { model | draft = Existing ( item, Items.ValidationOk ) }
             , Effect.sendCmd <|
                 Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
             )
@@ -325,11 +331,11 @@ onListMsg model msg =
 alterDraft : Draft -> ItemField -> String -> Draft
 alterDraft draft field content =
     case draft of
-        New item ->
-            New (updateItemContent item field content)
+        New ( item, validation ) ->
+            New ( updateItemContent item field content, validation )
 
-        Existing item ->
-            Existing (updateItemContent item field content)
+        Existing ( item, validation ) ->
+            Existing ( updateItemContent item field content, validation )
 
         NewCat cat ->
             NewCat { cat | name = content }
@@ -375,21 +381,34 @@ endEditAndSave model addNew =
         Empty ->
             ( model, Effect.none )
 
-        Existing item ->
+        Existing ( item, _ ) ->
             let
                 newItem : Items.Item
                 newItem =
                     { item | slug = slugify item.name }
             in
-            ( { model
-                | items = Items.alter model.items newItem
-                , draft = Empty
-                , catWithDraft = Nothing
-              }
-            , Effect.storeItem onTaskPortResult newItem
-            )
+            case Items.validate newItem model.items of
+                Items.ValidationOk ->
+                    ( { model
+                        | items = Items.alter model.items newItem
+                        , draft = Empty
+                        , catWithDraft = Nothing
+                      }
+                    , Effect.storeItem onTaskPortResult newItem
+                    )
 
-        New item ->
+                Items.ValidationError error ->
+                    ( { model
+                        | draft =
+                            Existing
+                                ( newItem
+                                , Items.ValidationError error
+                                )
+                      }
+                    , Effect.none
+                    )
+
+        New ( item, _ ) ->
             if String.isEmpty item.name then
                 ( { model
                     | catWithDraft = Nothing
@@ -399,7 +418,17 @@ endEditAndSave model addNew =
                 )
 
             else
-                endItemDraft model item addNew
+                case Items.validate item model.items of
+                    Items.ValidationOk ->
+                        endItemDraft model item addNew
+
+                    Items.ValidationError error ->
+                        ( { model
+                            | draft =
+                                New ( item, Items.ValidationError error )
+                          }
+                        , Effect.none
+                        )
 
         NewCat cat ->
             if String.isEmpty cat.name then
@@ -503,9 +532,10 @@ view shared model =
                 |> Views.Items.List.view
                 |> Html.map GotItemListMsg
         , case ( model.draft, model.catWithDraft ) of
-            ( New item, Nothing ) ->
+            ( New ( item, validation ), Nothing ) ->
                 Views.Items.Item.new
                     { item = item
+                    , validation = validation
                     , checkedSates = []
                     , formState = Form
                     }

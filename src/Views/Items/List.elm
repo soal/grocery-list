@@ -10,8 +10,7 @@ module Views.Items.List exposing
     , withLink
     )
 
-import Views.Category.Header
-import Views.Items.Item
+import Common exposing (DomId, Draft(..), FormState(..), ItemField(..))
 import Data.Categories as Cats
 import Data.Items as Items
 import Dict exposing (Dict)
@@ -22,7 +21,8 @@ import Html.Extra exposing (viewIf)
 import Html.Keyed
 import LucideIcons as Icons
 import Set exposing (Set)
-import Common exposing (DomId, Draft(..), FormState(..), ItemField(..))
+import Views.Category.Header
+import Views.Items.Item
 
 
 type alias Options =
@@ -232,34 +232,35 @@ viewItems options itemsKeyed =
         (\( id, item ) ->
             let
                 -- TODO: something more elegant
-                ( formState, activeItem ) =
+                ( formState, activeItem, validation ) =
                     case options.draft of
                         Empty ->
-                            ( Static, item )
+                            ( Static, item, Items.ValidationOk )
 
-                        New draft ->
+                        New ( draft, validation_ ) ->
                             if draft.id == id then
-                                ( Form, draft )
+                                ( Form, draft, validation_ )
 
                             else
-                                ( Static, item )
+                                ( Static, item, Items.ValidationOk )
 
-                        Existing draft ->
+                        Existing ( draft, validation_ ) ->
                             if draft.id == id then
-                                ( Form, draft )
+                                ( Form, draft, validation_ )
 
                             else
-                                ( Static, item )
+                                ( Static, item, Items.ValidationOk )
 
                         NewCat _ ->
-                            ( Static, item )
+                            ( Static, item, Items.ValidationOk )
 
                         ExistingCat _ ->
-                            ( Static, item )
+                            ( Static, item, Items.ValidationOk )
             in
             ( id
             , viewItem
                 { item = activeItem
+                , validation = validation
                 , clickable = options.clickable
                 , link = options.link
                 , checkable = options.checkable
@@ -314,6 +315,7 @@ getItemsWithoutCat allItems categories =
 
 viewItem :
     { item : Items.Item
+    , validation : Items.ValidationResult
     , link : Bool
     , clickable : Bool
     , checkable : Bool
@@ -322,44 +324,46 @@ viewItem :
     , editable : Bool
     }
     -> Html Msg
-viewItem { item, clickable, link, checkedStates, formState, checkable, editable } =
+viewItem props =
     Views.Items.Item.new
-        { item = item
-        , checkedSates = checkedStates
-        , formState = formState
+        { item = props.item
+        , validation = props.validation
+        , checkedSates = props.checkedStates
+        , formState = props.formState
         }
-        |> (if link then
+        |> (if props.link then
                 Views.Items.Item.withLink
 
             else
                 identity
            )
-        |> (if clickable then
-                Views.Items.Item.withClick (ItemClicked item item.state)
+        |> (if props.clickable then
+                Views.Items.Item.withClick
+                    (ItemClicked props.item props.item.state)
 
             else
                 identity
            )
-        |> (if checkable then
+        |> (if props.checkable then
                 Views.Items.Item.withCheck
-                    (\_ -> ItemChecked item item.state)
+                    (\_ -> ItemChecked props.item props.item.state)
 
             else
                 identity
            )
-        |> (if editable then
+        |> (if props.editable then
                 Views.Items.Item.withEditing
-                    { edit = EditStarted item
-                    , delete = ItemDeleteClicked item.id
+                    { edit = EditStarted props.item
+                    , delete = ItemDeleteClicked props.item.id
                     }
 
             else
                 identity
            )
-        |> (if formState == Form then
+        |> (if props.formState == Form then
                 Views.Items.Item.asForm
                     { input = InputChanged
-                    , delete = ItemDeleteClicked item.id
+                    , delete = ItemDeleteClicked props.item.id
                     , enter = EnterPressed
                     , esc = EscPressed
                     }
@@ -378,9 +382,10 @@ viewDraft :
     -> Html Msg
 viewDraft { draft, open, category } =
     case ( open, draft ) of
-        ( True, New item ) ->
+        ( True, New ( item, validation ) ) ->
             viewItem
                 { item = item
+                , validation = validation
                 , link = False
                 , clickable = False
                 , checkable = False

@@ -255,6 +255,7 @@ viewForm { room, url, toMsg } =
             , name "room"
             ]
             []
+
         -- , button [ onClick (UserClickedNewRoom |> toMsg) ]
         --     [ text "Создать" ]
         , button
@@ -266,5 +267,6 @@ viewForm { room, url, toMsg } =
         ]
 
 
+isDisabled : String -> String -> Bool
 isDisabled room url =
     String.isEmpty room || String.isEmpty url

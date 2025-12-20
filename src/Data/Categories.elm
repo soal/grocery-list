@@ -1,7 +1,9 @@
 module Data.Categories exposing
-    ( Category
+    ( CatError(..)
+    , Category
     , CollapsedState(..)
     , Id
+    , ValidationResult(..)
     , add
     , addItem
     , alter
@@ -60,6 +62,16 @@ type alias Category =
     , created : Time.Posix
     , updated : Time.Posix
     }
+
+
+type CatError
+    = NameIsEmpty String
+    | NameAlreadyExist String
+
+
+type ValidationResult
+    = ValidationOk
+    | ValidationError CatError
 
 
 decoder : JD.Decoder Category

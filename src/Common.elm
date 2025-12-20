@@ -33,8 +33,8 @@ type alias DomId =
 
 
 type Draft
-    = New Items.Item
-    | Existing Items.Item
+    = New ( Items.Item, Items.ValidationResult )
+    | Existing ( Items.Item, Items.ValidationResult )
     | NewCat Cats.Category
     | ExistingCat Cats.Category
     | Empty

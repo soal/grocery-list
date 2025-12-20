@@ -1,8 +1,10 @@
 module Data.Items exposing
     ( Id
     , Item
+    , ItemError(..)
     , Quantity(..)
     , State(..)
+    , ValidationResult(..)
     , alter
     , decoder
     , delete
@@ -19,6 +21,7 @@ module Data.Items exposing
     , setUpdated
     , store
     , storeAll
+    , validate
     )
 
 import Dict exposing (Dict)
@@ -293,3 +296,44 @@ isAllDone items =
 filterByStates : Dict Id Item -> List State -> Dict Id Item
 filterByStates items states =
     Dict.filter (\_ { state } -> List.member state states) items
+
+
+type ItemError
+    = NameIsEmpty String
+    | QuanitiyIsZero String
+    | NameAlreadyExist String
+
+
+type ValidationResult
+    = ValidationOk
+    | ValidationError ItemError
+
+
+validate : Item -> Dict Id Item -> ValidationResult
+validate item items =
+    let
+        name =
+            String.trim item.name
+
+        isZero (Quantity count _) =
+            count <= 0
+
+        isDuplicate =
+            LT
+                == (items
+                        |> Dict.filter (\_ value -> value.name == name)
+                        |> Dict.size
+                        |> compare 0
+                   )
+    in
+    if String.isEmpty name then
+        ValidationError (NameIsEmpty "Покупке нужно имя")
+
+    else if isZero item.quantity then
+        ValidationError (QuanitiyIsZero "Количество должно быть больше 0")
+
+    else if isDuplicate then
+        ValidationError (NameAlreadyExist "Такая покупка уже есть")
+
+    else
+        ValidationOk

@@ -53,6 +53,7 @@ defaultHandlers =
 type ItemListElement msg
     = Settings
         { item : Items.Item
+        , validation : Items.ValidationResult
         , link : Bool
         , checkedSates : List Items.State
         , clickable : Bool
@@ -65,6 +66,7 @@ type ItemListElement msg
 
 new :
     { item : Items.Item
+    , validation : Items.ValidationResult
     , checkedSates : List Items.State
     , formState : FormState
     }
@@ -72,6 +74,7 @@ new :
 new props =
     Settings
         { item = props.item
+        , validation = props.validation
         , link = False
         , clickable = False
         , checkable = False
