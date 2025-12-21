@@ -128,7 +128,11 @@ view (Settings settings) =
         |> List.append
             (case settings.draft of
                 NewCat cat ->
-                    [ ( cat.id, viewCatHeader settings Cats.Collapsed cat ) ]
+                    [ ( cat.id
+                      , div [ class "grocery-category" ]
+                            [ viewCatHeader settings Cats.Collapsed cat ]
+                      )
+                    ]
 
                 _ ->
                     []

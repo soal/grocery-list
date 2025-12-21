@@ -23,6 +23,7 @@ html {
     --element-gray: var(--gray-4);
     --basic-shadow: var(--shadow-3);
     --basic-border-color: var(--gray-7);
+    --placeholder-color: var(--gray-9);
     color: var(--text-2);
   }
 
@@ -34,6 +35,7 @@ html {
     --element-gray: var(--gray-4);
     --basic-shadow: var(--shadow-3);
     --basic-border-color: var(--gray-7);
+    --placeholder-color: var(--gray-9);
     color: var(--text-2);
   }
 
@@ -45,6 +47,7 @@ html {
     --element-gray: var(--gray-6);
     --basic-shadow: var(--shadow-1);
     --basic-border-color: var(--gray-5);
+    --placeholder-color: var(--gray-5);
     color: var(--text-1);
   }
 
@@ -56,6 +59,7 @@ html {
     --element-gray: var(--gray-6);
     --basic-shadow: var(--shadow-1);
     --basic-border-color: var(--gray-5);
+    --placeholder-color: var(--gray-5);
     color: var(--text-1);
   }
 }
@@ -160,6 +164,10 @@ button {
 
 :is(textarea, select, input:not([type=button], [type=submit], [type=reset])) {
   border: var(--border-size-1) solid var(--basic-border-color);
+  &::placeholder {
+    color: var(--placeholder-color);
+    font-weight: normal;
+  }
 }
 
 *[role=group] {

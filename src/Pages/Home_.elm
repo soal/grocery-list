@@ -314,9 +314,17 @@ onListMsg model msg =
             )
 
         Views.Items.List.CatDeleteClicked catId ->
-            ( { model | categories = Cats.delete catId model.categories }
-            , Effect.deleteCategory onTaskPortResult catId
-            )
+            case model.draft of
+                NewCat _ ->
+                    ( { model | draft = Empty }, Effect.none )
+
+                ExistingCat _ ->
+                    ( { model | categories = Cats.delete catId model.categories }
+                    , Effect.deleteCategory onTaskPortResult catId
+                    )
+
+                _ ->
+                    ( model, Effect.none )
 
         Views.Items.List.EnterPressed ->
             endEditAndSave model True

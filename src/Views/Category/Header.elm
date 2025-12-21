@@ -19,6 +19,7 @@ import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Utils exposing (maybeKbd)
 import Views.Counter
+import Html.Attributes exposing (placeholder)
 
 
 type CategoryHeader msg
@@ -149,6 +150,7 @@ view (Settings ({ on } as settings)) =
                                 , attributeMaybe
                                     (Keyboard.on Keyboard.Keydown)
                                     (maybeKbd on.enter on.esc)
+                                , placeholder "Новая категория"
                                 ]
                                 []
                             ]
