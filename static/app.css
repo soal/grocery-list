@@ -14,6 +14,7 @@
 
 html {
   --basic-hover-transition: all 100ms var(--ease-in-out-2);
+  --error-bg: var(--red-5);
 
   @media (prefers-color-scheme: dark) {
     --accent-color: var(--blue-6);
@@ -77,6 +78,7 @@ html {
 
   @media screen and (width <=450px) {
     padding-bottom: var(--size-10);
+
     &:has(.main-action) {
       padding-bottom: var(--size-10);
     }
@@ -164,6 +166,7 @@ button {
 
 :is(textarea, select, input:not([type=button], [type=submit], [type=reset])) {
   border: var(--border-size-1) solid var(--basic-border-color);
+
   &::placeholder {
     color: var(--placeholder-color);
     font-weight: normal;
@@ -410,6 +413,7 @@ nav {
     background-color: var(--surface-2);
     box-shadow: var(--basic-shadow);
     align-items: center;
+    position: relative;
 
     :is(textarea, input) {
       background: transparent;
@@ -417,6 +421,7 @@ nav {
       min-height: 1em;
       font-size: 1em;
       line-height: 1em;
+      min-width: 1ch;
 
       &:focus {
         outline: 0;
@@ -434,6 +439,35 @@ nav {
         }
 
         align-items: center;
+      }
+    }
+
+    .item-validation-error {
+      position: absolute;
+      z-index: var(--layer-1);
+      top: 44px;
+
+      .error-message {
+        background: var(--error-bg);
+        border-radius: var(--radius-2);
+        box-shadow: var(--shadow-2);
+        color: var(--gray-0);
+        font-size: 0.887em;
+        margin-left: -1rem;
+        padding: var(--size-1) var(--size-2);
+
+        &:before {
+          content: '';
+          position: absolute;
+          display: block;
+          width: 0px;
+          left: 1rem;
+          top: 0;
+          border: 8px solid transparent;
+          border-top: 0;
+          border-bottom: 8px solid var(--error-bg);
+          transform: translate(-50%, calc(-100%));
+        }
       }
     }
   }

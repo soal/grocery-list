@@ -15,7 +15,7 @@ import Html exposing (Html, a, div, text)
 import Html.Attributes exposing (class, classList)
 import Html.Attributes.Extra exposing (attributeMaybe)
 import Html.Events exposing (onClick)
-import Html.Extra exposing (viewIf)
+import Html.Extra exposing (nothing, viewIf)
 import LucideIcons as Icons
 import Route.Path
 import Views.Items.Form
@@ -209,6 +209,8 @@ view (Settings ({ on } as settings)) =
                 , onEnter = on.enter
                 , onEsc = on.esc
                 }
+            , viewValidationError settings.validation
+                [ Items.NameIsEmpty, Items.NameAlreadyExist ]
             , viewQuantity
                 { itemId = settings.item.id
                 , onOpen = on.edit
@@ -243,3 +245,20 @@ view (Settings ({ on } as settings)) =
 itemStateToBool : Items.State -> List Items.State -> Bool
 itemStateToBool state checkedSates =
     List.member state checkedSates
+
+
+viewValidationError : Items.ValidationResult -> List Items.ItemError -> Html msg
+viewValidationError validationResult errorTypes =
+    case validationResult of
+        Items.ValidationOk ->
+            nothing
+
+        Items.ValidationError error ->
+            if List.member error errorTypes then
+                div [ class "item-validation-error" ]
+                    [ div [ class "error-message" ]
+                        [ text <| Items.validationMessage error ]
+                    ]
+
+            else
+                nothing

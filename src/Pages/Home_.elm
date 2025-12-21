@@ -33,6 +33,7 @@ import TaskPort
 import Time
 import Utils exposing (slugify)
 import View exposing (View)
+import Views.Items.Form
 import Views.Items.Item
 import Views.Items.List
 import Views.MainActionButton
@@ -339,11 +340,11 @@ onListMsg model msg =
 alterDraft : Draft -> ItemField -> String -> Draft
 alterDraft draft field content =
     case draft of
-        New ( item, validation ) ->
-            New ( updateItemContent item field content, validation )
+        New ( item, _ ) ->
+            New ( updateItemContent item field content, Items.ValidationOk )
 
-        Existing ( item, validation ) ->
-            Existing ( updateItemContent item field content, validation )
+        Existing ( item, _ ) ->
+            Existing ( updateItemContent item field content, Items.ValidationOk )
 
         NewCat cat ->
             NewCat { cat | name = content }
@@ -413,7 +414,18 @@ endEditAndSave model addNew =
                                 , Items.ValidationError error
                                 )
                       }
-                    , Effect.none
+                    , case error of
+                        Items.NameAlreadyExist ->
+                            Effect.sendCmd <|
+                                Views.Items.Form.focusField Name item.id NoOp
+
+                        Items.NameIsEmpty ->
+                            Effect.sendCmd <|
+                                Views.Items.Form.focusField Name item.id NoOp
+
+                        Items.QuantityIsZero ->
+                            Effect.sendCmd <|
+                                Views.Items.Form.focusField QCount item.id NoOp
                     )
 
         New ( item, _ ) ->

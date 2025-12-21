@@ -22,6 +22,7 @@ module Data.Items exposing
     , store
     , storeAll
     , validate
+    , validationMessage
     )
 
 import Dict exposing (Dict)
@@ -299,9 +300,9 @@ filterByStates items states =
 
 
 type ItemError
-    = NameIsEmpty String
-    | QuanitiyIsZero String
-    | NameAlreadyExist String
+    = NameIsEmpty
+    | QuantityIsZero
+    | NameAlreadyExist
 
 
 type ValidationResult
@@ -319,21 +320,41 @@ validate item items =
             count <= 0
 
         isDuplicate =
-            LT
-                == (items
-                        |> Dict.filter (\_ value -> value.name == name)
-                        |> Dict.size
-                        |> compare 0
-                   )
+            let
+                filtered =
+                    Dict.filter
+                        (\_ value ->
+                            String.toLower value.name == String.toLower name
+                        )
+                        items
+            in
+            if Dict.size filtered == 0 then
+                False
+
+            else
+                not (Dict.member item.id filtered)
     in
     if String.isEmpty name then
-        ValidationError (NameIsEmpty "Покупке нужно имя")
+        ValidationError NameIsEmpty
 
     else if isZero item.quantity then
-        ValidationError (QuanitiyIsZero "Количество должно быть больше 0")
+        ValidationError QuantityIsZero
 
     else if isDuplicate then
-        ValidationError (NameAlreadyExist "Такая покупка уже есть")
+        ValidationError NameAlreadyExist
 
     else
         ValidationOk
+
+
+validationMessage : ItemError -> String
+validationMessage error =
+    case error of
+        NameIsEmpty ->
+            "Покупке нужно имя"
+
+        NameAlreadyExist ->
+            "Такая покупка уже есть"
+
+        QuantityIsZero ->
+            "Количество должно быть больше 0"

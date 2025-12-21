@@ -1,5 +1,12 @@
-module Views.Items.Form exposing (viewCheckbox, viewComment, viewName, viewQuantity)
+module Views.Items.Form exposing
+    ( focusField
+    , viewCheckbox
+    , viewComment
+    , viewName
+    , viewQuantity
+    )
 
+import Browser.Dom
 import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
 import Data.Items as Items
 import Html exposing (Html, b, div, input, span, text, textarea)
@@ -21,6 +28,7 @@ import Html.Extra exposing (nothing)
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
 import Svg.Attributes
+import Task
 import Utils exposing (maybeKbd)
 
 
@@ -215,13 +223,13 @@ viewQuantity props (Items.Quantity count unit) =
     let
         countFieldId : String
         countFieldId =
-            "item-quantity-count" ++ props.itemId
+            "item-quantity-count-" ++ props.itemId
     in
     if props.formState == Form then
         let
             unitFieldId : String
             unitFieldId =
-                "item-quantity-unit" ++ props.itemId
+                "item-quantity-unit-" ++ props.itemId
         in
         span [ class "item-quantity" ]
             [ viewQCountField
@@ -306,3 +314,22 @@ viewQUnitField { fieldId, content, inputChange, onEnter, onEsc } =
             ]
             []
         ]
+
+
+focusField : ItemField -> String -> msg -> Cmd msg
+focusField field itemId onFail =
+    let
+        id =
+            case field of
+                Name ->
+                    "item-name-" ++ itemId
+
+                QCount ->
+                    "item-quantity-count-" ++ itemId
+
+                _ ->
+                    ""
+    in
+    Task.attempt
+        (\_ -> onFail)
+        (Browser.Dom.focus <| id)
