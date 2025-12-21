@@ -15,6 +15,7 @@
 html {
   --basic-hover-transition: all 100ms var(--ease-in-out-2);
   --error-bg: var(--red-5);
+  --placeholder-color: var(--gray-5);
 
   @media (prefers-color-scheme: dark) {
     --accent-color: var(--blue-6);
@@ -24,7 +25,6 @@ html {
     --element-gray: var(--gray-4);
     --basic-shadow: var(--shadow-3);
     --basic-border-color: var(--gray-7);
-    --placeholder-color: var(--gray-9);
     color: var(--text-2);
   }
 
@@ -36,7 +36,6 @@ html {
     --element-gray: var(--gray-4);
     --basic-shadow: var(--shadow-3);
     --basic-border-color: var(--gray-7);
-    --placeholder-color: var(--gray-9);
     color: var(--text-2);
   }
 
@@ -48,7 +47,6 @@ html {
     --element-gray: var(--gray-6);
     --basic-shadow: var(--shadow-1);
     --basic-border-color: var(--gray-5);
-    --placeholder-color: var(--gray-5);
     color: var(--text-1);
   }
 
@@ -60,7 +58,6 @@ html {
     --element-gray: var(--gray-6);
     --basic-shadow: var(--shadow-1);
     --basic-border-color: var(--gray-5);
-    --placeholder-color: var(--gray-5);
     color: var(--text-1);
   }
 }
@@ -467,6 +464,27 @@ nav {
           border-top: 0;
           border-bottom: 8px solid var(--error-bg);
           transform: translate(-50%, calc(-100%));
+        }
+      }
+    }
+
+    &:last-child {
+      .item-validation-error {
+        top: -30px;
+
+        .error-message {
+          &:before {
+            content: '';
+            position: absolute;
+            display: block;
+            width: 0px;
+            left: 1rem;
+            bottom: 0;
+            border: 8px solid transparent;
+            border-bottom: 0;
+            border-top: 8px solid var(--error-bg);
+            transform: translate(-50%, calc(100%));
+          }
         }
       }
     }
