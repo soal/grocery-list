@@ -19,7 +19,13 @@
 					"content": "width=device-width, initial-scale=1.0"
 				}
 			],
-			"link": [{ "rel": "stylesheet", "href": "/app.css" }],
+			"link": [
+				{ "rel": "stylesheet", "href": "/normalize.min.css" },
+				{ "rel": "stylesheet", "href": "/open-props.min.css" },
+				{ "rel": "stylesheet", "href": "/theme.dark.switch.min.css" },
+				{ "rel": "stylesheet", "href": "/theme.light.switch.min.css" },
+				{ "rel": "stylesheet", "href": "/app.css" }
+			],
 			"script": []
 		},
 		"router": {
