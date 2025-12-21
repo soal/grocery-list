@@ -114,7 +114,10 @@ viewNameField { fieldId, inputChange, content, onEnter, onEsc } =
             , name fieldId
             , id fieldId
             , attributeMaybe
-                (Keyboard.on Keyboard.Keydown)
+                (Keyboard.custom
+                    Keyboard.Keydown
+                    { preventDefault = True, stopPropagation = True }
+                )
                 (maybeKbd onEnter onEsc)
             ]
             []
@@ -200,7 +203,10 @@ viewCommentField { fieldId, inputChange, content, onEnter, onEsc } =
             , id fieldId
             , placeholder "Комментарий"
             , attributeMaybe
-                (Keyboard.on Keyboard.Keydown)
+                (Keyboard.custom
+                    Keyboard.Keydown
+                    { preventDefault = True, stopPropagation = True }
+                )
                 (maybeKbd onEnter onEsc)
             ]
             []
@@ -283,7 +289,10 @@ viewQCountField { fieldId, content, inputChange, onEnter, onEsc } =
             , name fieldId
             , id fieldId
             , attributeMaybe
-                (Keyboard.on Keyboard.Keydown)
+                (Keyboard.custom
+                    Keyboard.Keydown
+                    { preventDefault = True, stopPropagation = True }
+                )
                 (maybeKbd onEnter onEsc)
             ]
             []
@@ -309,7 +318,10 @@ viewQUnitField { fieldId, content, inputChange, onEnter, onEsc } =
             , name fieldId
             , id fieldId
             , attributeMaybe
-                (Keyboard.on Keyboard.Keydown)
+                (Keyboard.custom
+                    Keyboard.Keydown
+                    { preventDefault = True, stopPropagation = True }
+                )
                 (maybeKbd onEnter onEsc)
             ]
             []

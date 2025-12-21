@@ -198,7 +198,7 @@ viewSyncIcon syncState =
     case syncState of
         Sync.None ->
             span [ class "icon-wrapper" ]
-                [ nothing ]
+                [ Icons.settingsIcon [] ]
 
         Sync.Offline ->
             span [ class "icon-wrapper" ]

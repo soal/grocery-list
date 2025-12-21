@@ -257,6 +257,7 @@ update msg model =
             in
             ( { model
                 | items = Dict.remove itemId model.items
+                , draft = Empty
                 , categories =
                     List.map
                         (Cats.removeItem itemId)
@@ -320,7 +321,10 @@ onListMsg model msg =
                     ( { model | draft = Empty }, Effect.none )
 
                 ExistingCat _ ->
-                    ( { model | categories = Cats.delete catId model.categories }
+                    ( { model
+                        | categories = Cats.delete catId model.categories
+                        , draft = Empty
+                      }
                     , Effect.deleteCategory onTaskPortResult catId
                     )
 
@@ -410,7 +414,7 @@ endEditAndSave model addNew =
                     ( { model
                         | draft =
                             Existing
-                                ( newItem
+                                ( item
                                 , Items.ValidationError error
                                 )
                       }

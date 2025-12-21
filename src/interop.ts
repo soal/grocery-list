@@ -68,7 +68,8 @@ type GlobalState = {
   doc?: Y.Doc;
   settings?: AppSettings;
   items?: Y.Map<Item>;
-  categories?: Y.Array<Category>;
+  categories?: Y.Map<Category>;
+  categoryOrder?: Y.Array<string>;
   provider?: HocuspocusProvider;
   db?: IndexeddbPersistence;
   app?: ElmApp;
@@ -118,8 +119,11 @@ export const onReady = ({ app }: { app: ElmApp }) => {
 
   globalState.doc.on("update", (_, origin) => {
     if (origin == null) return;
+    const cats = globalState.categories.toJSON();
+    const catsOrder = globalState.categoryOrder.toArray();
+
     app.ports.incoming.send({
-      categories: globalState.categories.toJSON(),
+      categories: catsOrder.map((id) => cats[id]),
       items: globalState.items.toJSON(),
     });
   });
@@ -127,7 +131,8 @@ export const onReady = ({ app }: { app: ElmApp }) => {
 
 async function init(globalState: GlobalState) {
   globalState.doc = new Y.Doc();
-  globalState.categories = globalState.doc.getArray("categories");
+  globalState.categories = globalState.doc.getMap("categories");
+  globalState.categoryOrder = globalState.doc.getArray("categoryOrder");
   globalState.items = globalState.doc.getMap("items");
 
   try {
@@ -158,7 +163,6 @@ function startSync({ url, room, doc, app }) {
     name: room,
     document: doc,
     onStatus(data) {
-      console.log("STATUS", data.status);
       if (data.status === "connecting") {
         app.ports.syncState.send("syncing");
       }
@@ -197,8 +201,7 @@ function pauseSync() {
 
 async function resumeSync() {
   if (globalState.provider) {
-    const result = await globalState.provider.connect();
-    console.log("RESUME RESULT", result);
+    await globalState.provider.connect();
   }
 }
 
@@ -247,7 +250,9 @@ function queryAllCatsAndItems() {
     items: {},
   };
   if (globalState.doc) {
-    result.categories = globalState.categories.toJSON();
+    const cats = globalState.categories.toJSON();
+    const catsOrder = globalState.categoryOrder.toArray();
+    result.categories = catsOrder.map((id) => cats[id]);
     result.items = globalState.items.toJSON();
   }
   return result;
@@ -272,7 +277,6 @@ function deleteItem(itemId: string) {
 function storeAllItems(items: Record<string, Item>) {
   if (globalState.items) {
     Object.entries(items).forEach(([id, item]) => {
-      console.log(item.id);
       globalState.items.set(id, item);
     });
     return true;
@@ -282,9 +286,10 @@ function storeAllItems(items: Record<string, Item>) {
 
 function deleteCategory(categoryId: string) {
   if (globalState.categories) {
-    const index = globalState.categories.toArray().findIndex((cat) => cat.id === categoryId);
+    globalState.categories.delete(categoryId);
+    const index = globalState.categoryOrder.toArray().findIndex((id) => id === categoryId);
     if (index !== -1) {
-      globalState.categories.delete(index, 1);
+      globalState.categoryOrder.delete(index, 1);
     }
 
     return true;
@@ -294,15 +299,10 @@ function deleteCategory(categoryId: string) {
 
 function storeCategory(category: Category) {
   if (globalState.categories) {
-    const index = globalState.categories.toArray().findIndex((cat) => cat.id === category.id);
-
-    if (index !== -1) {
-      globalState.categories.insert(index, [category]);
-      globalState.categories.delete(index + 1, 1);
-    } else {
-      globalState.categories.insert(0, [category]);
+    globalState.categories.set(category.id, category);
+    if (globalState.categoryOrder.toArray().indexOf(category.id) == -1) {
+      globalState.categoryOrder.unshift([category.id]);
     }
-
     return true;
   }
   return false;
