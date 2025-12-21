@@ -234,7 +234,7 @@ viewForm :
     { a | room : String, url : String, toMsg : Msg msg -> msg }
     -> Html msg
 viewForm { room, url, toMsg } =
-    form [ class "sync-settings-form" ]
+    form [ class "sync-settings-form", onSubmit (UserClickedSubmit |> toMsg) ]
         [ h3 []
             [ text "Настройки синхронизации"
             ]
@@ -255,9 +255,6 @@ viewForm { room, url, toMsg } =
             , name "room"
             ]
             []
-
-        -- , button [ onClick (UserClickedNewRoom |> toMsg) ]
-        --     [ text "Создать" ]
         , button
             [ class "large"
             , disabled (isDisabled room url)
