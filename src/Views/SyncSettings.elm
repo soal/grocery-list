@@ -3,7 +3,7 @@ module Views.SyncSettings exposing (Model, Msg, init, new, update, view, withOpe
 import Common exposing (SyncSettingsField(..), VisibilityState(..))
 import Data.Sync as Sync
 import Effect exposing (Effect)
-import Html exposing (Html, button, div, form, h2, h3, input, label, span, text)
+import Html exposing (Html, button, div, form, h3, input, label, span, text)
 import Html.Attributes exposing (class, disabled, for, name, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import LucideIcons as Icons

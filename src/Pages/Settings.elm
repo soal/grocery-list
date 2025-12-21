@@ -8,7 +8,7 @@ import Effect exposing (Effect)
 import File exposing (File)
 import File.Download
 import File.Select
-import Html exposing (button, div, h1, h2, h3, p, text)
+import Html exposing (button, div, h1, h3, p, text)
 import Html.Attributes exposing (class, classList, id)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
