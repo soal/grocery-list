@@ -437,6 +437,11 @@ nav {
 
         align-items: center;
       }
+
+      .item-validation-error+span {
+        border-color: var(--error-bg);
+
+      }
     }
 
     .item-validation-error {

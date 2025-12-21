@@ -199,7 +199,9 @@ view (Settings ({ on } as settings)) =
                 settings.checkedSates
             )
         , div [ class "item-content" ]
-            [ viewName
+            [ viewValidationError settings.validation
+                [ Items.NameIsEmpty, Items.NameAlreadyExist ]
+            , viewName
                 { itemId = settings.item.id
                 , onOpen = on.edit
                 , inputChange = Maybe.map (\f -> f Name) on.input
@@ -210,7 +212,7 @@ view (Settings ({ on } as settings)) =
                 , onEsc = on.esc
                 }
             , viewValidationError settings.validation
-                [ Items.NameIsEmpty, Items.NameAlreadyExist ]
+                [ Items.QuantityIsZero ]
             , viewQuantity
                 { itemId = settings.item.id
                 , onOpen = on.edit
