@@ -233,10 +233,16 @@ view (Settings ({ on } as settings)) =
                 , onEnter = on.enter
                 , onEsc = on.esc
                 }
+            , viewIf (settings.formState == Form) <|
+                div
+                    [ attributeMaybe onClick on.esc
+                    , class "icon-button cancel-button with-click-outside"
+                    ]
+                    [ Icons.xIcon [] ]
             ]
         , viewIf settings.editable <|
             div
-                [ class "button delete-button with-click-outside"
+                [ class "icon-button delete-button with-click-outside"
                 , attributeMaybe onClick on.delete
                 ]
                 [ Icons.trashIcon [] ]

@@ -196,6 +196,18 @@ h4 {
   font-weight: 600;
 }
 
+.icon-button {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--accent-color);
+    }
+  }
+}
+
 /* -- NAV */
 
 .nav-header {
@@ -340,8 +352,6 @@ nav {
     }
 
     .delete-button {
-      cursor: pointer;
-
       @media (hover: hover) {
         &:hover {
           color: var(--red-6);
@@ -487,6 +497,14 @@ nav {
         }
       }
     }
+
+    .cancel-button {
+      font-size: 1.2em;
+    }
+
+    .delete-button {
+      visibility: visible;
+    }
   }
 
   .item-quantity {
@@ -575,8 +593,7 @@ nav {
   }
 
 
-  .add-item-comment,
-  .delete-button {
+  .add-item-comment {
     cursor: pointer;
   }
 
