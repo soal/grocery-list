@@ -173,7 +173,7 @@ viewPages currentRoute =
               }
             , { path = Route.Path.Shopping
               , text = "В магазине"
-              , icon = Icons.shoppingCartIcon []
+              , icon = Icons.shoppingBasketIcon []
               }
             ]
     in
