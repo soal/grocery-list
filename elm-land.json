@@ -20,13 +20,14 @@
 				}
 			],
 			"link": [
+				{ "rel": "manifest", "href": "manifest.json" },
 				{ "rel": "stylesheet", "href": "/normalize.min.css" },
 				{ "rel": "stylesheet", "href": "/open-props.min.css" },
 				{ "rel": "stylesheet", "href": "/theme.dark.switch.min.css" },
 				{ "rel": "stylesheet", "href": "/theme.light.switch.min.css" },
 				{ "rel": "stylesheet", "href": "/app.css" }
 			],
-			"script": []
+			"script": [{ "src": "/registerServiceWorker.js" }]
 		},
 		"router": {
 			"useHashRouting": true
