@@ -10,7 +10,7 @@
 				"html": { "lang": "ru", "data-theme": "auto" },
 				"head": {}
 			},
-			"title": "Список покупок",
+			"title": "Покупки",
 			"meta": [
 				{ "charset": "UTF-8" },
 				{ "http-equiv": "X-UA-Compatible", "content": "IE=edge" },
@@ -20,7 +20,25 @@
 				}
 			],
 			"link": [
-				{ "rel": "manifest", "href": "manifest.json" },
+				{
+					"rel": "icon",
+					"type": "image/png",
+					"sizes": "32x32",
+					"href": "/icons/favicon-32x32.png"
+				},
+				{
+					"rel": "icon",
+					"type": "image/png",
+					"sizes": "16x16",
+					"href": "/icons/favicon-16x16.png"
+				},
+				{
+					"rel": "apple-touch-icon",
+					"type": "image/png",
+					"sizes": "180x180",
+					"href": "/icons/apple-touch-icon.png"
+				},
+				{ "rel": "manifest", "href": "/manifest.json" },
 				{ "rel": "stylesheet", "href": "/normalize.min.css" },
 				{ "rel": "stylesheet", "href": "/open-props.min.css" },
 				{ "rel": "stylesheet", "href": "/theme.dark.switch.min.css" },
