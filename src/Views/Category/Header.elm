@@ -114,7 +114,7 @@ view (Settings ({ on } as settings)) =
         chevron : Html msg
         chevron =
             span
-                [ class "chevron category-action button"
+                [ class "chevron icon-button"
                 , onClick on.toggle
                 , classList [ ( "open", settings.state == Cats.Open ) ]
                 ]
@@ -123,7 +123,7 @@ view (Settings ({ on } as settings)) =
         deleteButton : Html msg
         deleteButton =
             span
-                [ class "delete-button category-action button with-click-outside"
+                [ class "delete-button icon-button with-click-outside"
                 , attributeMaybe onClick on.delete
                 ]
                 [ Icons.trashIcon [] ]
