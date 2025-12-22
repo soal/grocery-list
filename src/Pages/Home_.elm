@@ -411,26 +411,7 @@ endEditAndSave model addNew =
                     )
 
                 Items.ValidationError error ->
-                    ( { model
-                        | draft =
-                            Existing
-                                ( item
-                                , Items.ValidationError error
-                                )
-                      }
-                    , case error of
-                        Items.NameAlreadyExist ->
-                            Effect.sendCmd <|
-                                Views.Items.Form.focusField Name item.id NoOp
-
-                        Items.NameIsEmpty ->
-                            Effect.sendCmd <|
-                                Views.Items.Form.focusField Name item.id NoOp
-
-                        Items.QuantityIsZero ->
-                            Effect.sendCmd <|
-                                Views.Items.Form.focusField QCount item.id NoOp
-                    )
+                    endEditingWithError model error item
 
         New ( item, _ ) ->
             if String.isEmpty item.name then
@@ -493,6 +474,24 @@ endEditAndSave model addNew =
                     onTaskPortResult
                     cat
                 )
+
+
+endEditingWithError : Model -> Items.ItemError -> Items.Item -> ( Model, Effect Msg )
+endEditingWithError model error item =
+    ( { model | draft = Existing ( item, Items.ValidationError error ) }
+    , case error of
+        Items.NameAlreadyExist ->
+            Effect.sendCmd <|
+                Views.Items.Form.focusField Name item.id NoOp
+
+        Items.NameIsEmpty ->
+            Effect.sendCmd <|
+                Views.Items.Form.focusField Name item.id NoOp
+
+        Items.QuantityIsZero ->
+            Effect.sendCmd <|
+                Views.Items.Form.focusField QCount item.id NoOp
+    )
 
 
 
