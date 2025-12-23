@@ -370,11 +370,17 @@ nav {
       &:focus {
         outline: 0;
       }
+    }
 
-      @supports (field-sizing: content) {
+    @supports (field-sizing: content) {
+      & input {
         field-sizing: content;
         max-width: 100%;
       }
+    }
+
+    @supports not (field-sizing: content) {
+      & input {}
     }
   }
 
@@ -396,6 +402,50 @@ nav {
   }
 }
 
+/* Hack fot Firefox to resize inputs to content size */
+@supports not (field-sizing: content) {
+  .input-resize-container {
+    height: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    position: relative;
+
+    &::after {
+      content: attr(data-content) "";
+      display: inline-block;
+      height: 100%;
+      margin: 0;
+      max-width: 100%;
+      padding: 0;
+      visibility: hidden;
+      white-space: pre;
+    }
+
+    & input[type=text] {
+      border: none;
+      box-shadow: none;
+      font-size: 1em;
+      height: 100%;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      margin: 0;
+      max-width: 100%;
+      outline: none;
+      padding: 0;
+      position: absolute;
+    }
+  }
+
+  & b.input-resize-container {
+    padding-right: 4.6px;
+
+    & input[type=text] {
+      min-width: 1ch;
+    }
+  }
+}
 
 /* -- GROCERY ITEM */
 
@@ -421,8 +471,8 @@ nav {
       border: none;
       min-height: 1em;
       font-size: 1em;
-      line-height: 1em;
-      min-width: 1ch;
+      /* line-height: 1em; */
+      min-width: 3ch;
 
       &:focus {
         outline: 0;
@@ -431,7 +481,36 @@ nav {
 
     .grow-container {
       display: inline-flex;
+
+      @supports not (field-sizing: content) {
+        display: grid;
+        grid-template-columns: auto;
+        grid-template-rows: auto;
+
+        &::after {
+          content: attr(data-content) " ";
+          visibility: hidden;
+          display: inline-block;
+          margin: 0;
+          padding: 0;
+          max-width: 100%;
+          word-wrap: break-word;
+          grid-column: 1 / -1;
+          grid-row: 1 / -1;
+        }
+
+        & textarea {
+          grid-column: 1 / -1;
+          grid-row: 1 / -1;
+          overflow: clip;
+          word-wrap: break-word;
+          scrollbar-width: none;
+          height: 100%;
+        }
+
+      }
     }
+
 
     .item-content {
       >span {
@@ -515,6 +594,7 @@ nav {
         * when b has input
          * I dunno, man =( */
         padding-right: 4.6px;
+        min-width: 1ch;
       }
     }
   }
