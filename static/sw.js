@@ -1,6 +1,6 @@
-const VERSION = "v4";
+const VERSION = "v5";
 const PRECACHE = [
-  "./",
+  "/",
   "/app.css",
   "/index.html",
   "/normalize.min.css",
