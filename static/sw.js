@@ -1,4 +1,4 @@
-const VERSION = "v2";
+const VERSION = "v3";
 const PRECACHE = [
   "./",
   "/app.css",
@@ -13,7 +13,7 @@ const PRECACHE = [
   "/icons/apple-touch-icon.png",
   "/icons/favicon-16x16.png",
   "/icons/favicon-32x32.png",
-  "/icons/favicon.ico",
+  "/favicon.ico",
 
   "/icons/android/android-launchericon-144-144.png",
   "/icons/android/android-launchericon-192-192.png",
