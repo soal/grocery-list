@@ -19,6 +19,7 @@ import Html.Attributes exposing (class, classList)
 import Html.Events exposing (onClick)
 import Html.Extra exposing (viewIf)
 import Html.Keyed
+import Html.Lazy exposing (lazy, lazy3)
 import LucideIcons as Icons
 import Set exposing (Set)
 import Views.Category.Header
@@ -164,11 +165,11 @@ viewCategory options category =
         [ class "grocery-category"
         , classList [ ( "shopping-page", options.clickable ) ]
         ]
-        [ viewCatHeader options state category
+        [ lazy3 viewCatHeader options state category
         , viewCatItems options category
             ++ [ ( "empty"
                  , viewIf options.editable <|
-                    viewDraft
+                    lazy viewDraft
                         { draft = options.draft
                         , open =
                             Maybe.withDefault
@@ -262,7 +263,7 @@ viewItems options itemsKeyed =
                             ( Static, item, Items.ValidationOk )
             in
             ( id
-            , viewItem
+            , lazy viewItem
                 { item = activeItem
                 , validation = validation
                 , clickable = options.clickable

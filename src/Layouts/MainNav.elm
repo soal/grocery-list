@@ -8,6 +8,7 @@ import Html exposing (Html, a, header, li, main_, nav, span, text, ul)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on)
 import Html.Extra exposing (nothing)
+import Html.Lazy exposing (lazy, lazy2)
 import Json.Decode
 import Layout exposing (Layout)
 import LucideIcons as Icons
@@ -137,6 +138,7 @@ view props shared { model, content, toContentMsg } =
             [ on "clickoutside" <|
                 Json.Decode.succeed <|
                     props.onClickOutside
+            , class "wrapper"
             ]
             [ header [ class "nav-header app-container" ]
                 [ nav [ class "main-nav" ]
@@ -150,9 +152,9 @@ view props shared { model, content, toContentMsg } =
                                 (toContentMsg UserClickedOutside)
                             ]
                         ]
-                    , viewPages model.currentRoute
+                    , lazy viewPages model.currentRoute
                         |> Html.map toContentMsg
-                    , viewSetting model.currentRoute shared.settings.sync.state
+                    , lazy2 viewSetting model.currentRoute shared.settings.sync.state
                         |> Html.map toContentMsg
                     ]
                 ]
