@@ -377,17 +377,13 @@ nav {
         max-width: 100%;
       }
     }
-
-    @supports not (field-sizing: content) {
-      & input {}
-    }
   }
 
   .category-body {
     height: auto;
     display: flex;
     flex-flow: column nowrap;
-    transition: height 200ms var(--ease-elastic-in-out-3);
+    transition: height 200ms var(--ease-in-out-3);
     margin-inline: calc(0px - var(--size-3));
     overflow-y: clip;
     overflow-x: visible;
@@ -452,6 +448,8 @@ nav {
   align-items: center;
   border-radius: var(--radius-2);
   column-gap: var(--size-1);
+  content-visibility: auto;
+  contain-intrinsic-height: 40px;
   display: grid;
   grid-template-columns: 2rem minmax(2rem, 100%) 1rem;
   padding: var(--size-2) var(--size-3);
@@ -470,7 +468,6 @@ nav {
       border: none;
       min-height: 1em;
       font-size: 1em;
-      /* line-height: 1em; */
       min-width: 3ch;
 
       &:focus {
@@ -674,8 +671,6 @@ nav {
     transform: translateY(-20px);
     margin-bottom: -20px;
     display: none;
-    width: var(--size-4);
-    height: var(--size-4);
   }
 
   & input[type=checkbox]:checked+img {
