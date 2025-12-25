@@ -9,16 +9,19 @@ module Views.Items.Form exposing
 import Browser.Dom
 import Common exposing (CheckboxKind(..), FormState(..), ItemField(..))
 import Data.Items as Items
-import Html exposing (Html, b, div, input, span, text, textarea)
+import Html exposing (Html, b, img, input, span, text, textarea)
 import Html.Attributes
     exposing
         ( attribute
+        , checked
         , class
         , classList
+        , disabled
         , id
         , name
         , placeholder
         , rows
+        , src
         , type_
         , value
         )
@@ -27,28 +30,38 @@ import Html.Events exposing (onClick, onInput)
 import Html.Extra exposing (nothing)
 import Keyboard.Events as Keyboard
 import LucideIcons as Icons
-import Svg.Attributes
 import Task
 import Utils exposing (maybeKbd)
 
 
 viewCheckbox : Maybe (Bool -> msg) -> Bool -> CheckboxKind -> Bool -> Html msg
-viewCheckbox onCheck disabled kind checked =
-    div
-        [ role "checkbox"
-        , attribute "aria-role" "checkbox"
-        , classList
-            [ ( "checked", checked )
-            , ( "check", kind == Check )
-            , ( "disabled", disabled )
+viewCheckbox onCheck disabled_ kind checked_ =
+    span [ classList [ ( "check", kind == Check ) ] ]
+        [ input
+            [ role "checkbox"
+            , attribute "aria-role" "checkbox"
+            , type_ "checkbox"
+            , checked checked_
+            , disabled disabled_
+            , attributeMaybe onClick
+                (Maybe.map (\f -> f <| not checked_) onCheck)
             ]
-        , attributeMaybe onClick (Maybe.map (\f -> f <| not checked) onCheck)
-        ]
-        [ if kind == Plus then
-            Icons.plusIcon [ Svg.Attributes.strokeWidth "3" ]
+            []
+        , if kind == Plus then
+            img
+                [ src "/icons/app/plus.svg"
+                , attributeMaybe onClick
+                    (Maybe.map (\f -> f <| not checked_) onCheck)
+                ]
+                []
 
           else
-            Icons.checkIcon [ Svg.Attributes.strokeWidth "3" ]
+            img
+                [ src "/icons/app/check.svg"
+                , attributeMaybe onClick
+                    (Maybe.map (\f -> f <| not checked_) onCheck)
+                ]
+                []
         ]
 
 

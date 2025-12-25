@@ -56,7 +56,6 @@ html {
   }
 }
 
-
 .app-container {
   max-width: 700px;
   margin: 0 auto;
@@ -642,36 +641,46 @@ nav {
     }
   }
 
-  & [role=checkbox] {
-    aspect-ratio: var(--ratio-square);
+  & input[type=checkbox] {
+    background: var(--surface-1);
+    display: block;
     border-radius: var(--radius-2);
     border: var(--border-size-2) solid var(--gray-5);
     color: var(--gray-7);
     place-content: center;
     place-items: center;
     width: var(--size-4);
+    height: var(--size-4);
+    -webkit-appearance: none;
+    appearance: none;
 
-    & svg {
-      visibility: hidden;
-    }
-
-    &.checked {
+    &:checked {
       background: var(--accent-color);
       border-color: var(--accent-color);
       color: var(--gray-0);
 
-      & svg {
-        visibility: visible;
-      }
-    }
-
-    &.checked.check {
-      background: var(--green-9);
-      border-color: var(--green-9);
-
     }
   }
 
+  .check {
+    & input[type=checkbox]:checked {
+      background: var(--green-9);
+      border-color: var(--green-9);
+    }
+  }
+
+  & input[type=checkbox]+img {
+    cursor: pointer;
+    transform: translateY(-20px);
+    margin-bottom: -20px;
+    display: none;
+    width: var(--size-4);
+    height: var(--size-4);
+  }
+
+  & input[type=checkbox]:checked+img {
+    display: block;
+  }
 
   .add-item-comment {
     cursor: pointer;
@@ -939,4 +948,9 @@ nav {
       flex-grow: 1;
     }
   }
+}
+
+.empty-page {
+  display: grid;
+  place-items: center;
 }
