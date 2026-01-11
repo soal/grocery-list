@@ -404,6 +404,7 @@ nav {
     max-width: 100%;
     overflow: hidden;
     position: relative;
+    min-width: 3ch;
 
     &::after {
       content: attr(data-content) "";
@@ -435,6 +436,7 @@ nav {
 
   & b.input-resize-container {
     padding-right: 4.6px;
+    min-width: 1ch;
 
     & input[type=text] {
       min-width: 1ch;
