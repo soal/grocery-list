@@ -154,7 +154,10 @@ view props shared { model, content, toContentMsg } =
                         ]
                     , lazy viewPages model.currentRoute
                         |> Html.map toContentMsg
-                    , lazy2 viewSetting model.currentRoute shared.settings.sync.state
+                    , lazy2
+                        viewSetting
+                        model.currentRoute
+                        shared.settings.sync.state
                         |> Html.map toContentMsg
                     ]
                 ]

@@ -312,6 +312,9 @@ nav {
   width: 100%;
 
   @media screen and (width <=450px) {
+    margin-top: var(--size-1);
+    margin-bottom: var(--size-4);
+
     .dropdown {
       display: none;
     }
@@ -870,26 +873,32 @@ nav {
 .sync-settings-form {
   display: grid;
   gap: var(--size-5) var(--size-2);
-  grid-template-areas:
-    "title      title      close"
-    "url-label  url-input  url-input"
-    "room-label room-input room-input"
-    "empty-left submit     empty-right";
-  grid-template-columns: min-content auto min-content;
-  grid-template-rows: repeat(4, auto);
+  display: grid;
   white-space: nowrap;
 
+  & input {
+    width: 100%;
+  }
 
   & h3 {
     display: flex;
     width: 100%;
     justify-content: space-between;
-    align-items: center;
-    grid-area: title;
+    align-items: start;
     margin-bottom: 0;
 
     & span {
       cursor: pointer;
+      align-self: baseline;
+      justify-self: flex-end;
+      font-size: var(--font-size-5);
+      cursor: pointer;
+
+      @media (hover: hover) {
+        &:hover {
+          color: var(--accent-color);
+        }
+      }
 
       @media (hover: hover) {
         &:hover {
@@ -899,53 +908,13 @@ nav {
     }
   }
 
-  >span {
-    grid-area: close;
-    align-self: baseline;
-    justify-self: flex-end;
-    font-size: var(--font-size-5);
-    cursor: pointer;
-
-    @media (hover: hover) {
-      &:hover {
-        color: var(--accent-color);
-      }
-    }
-
+  form-group {
+    display: grid;
+    gap: var(--size-3);
   }
 
-  & label:first-of-type {
-    grid-area: url-label;
-  }
-
-  & input:first-of-type {
-    grid-area: url-input;
-  }
-
-  & label:last-of-type {
-    grid-area: room-label;
-  }
-
-  & input:last-of-type {
-    grid-area: room-input;
-  }
-
-  & button:last-of-type {
-    grid-area: submit;
+  button {
     justify-self: center;
-  }
-
-  & label {
-    margin: var(--size-3) 0;
-    display: flex;
-    width: 100%;
-    gap: var(--size-2);
-    align-items: baseline;
-    flex-grow: 1;
-
-    & input {
-      flex-grow: 1;
-    }
   }
 }
 

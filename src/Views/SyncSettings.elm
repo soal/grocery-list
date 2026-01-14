@@ -3,7 +3,7 @@ module Views.SyncSettings exposing (Model, Msg, init, new, update, view, withOpe
 import Common exposing (SyncSettingsField(..), VisibilityState(..))
 import Data.Sync as Sync
 import Effect exposing (Effect)
-import Html exposing (Html, button, div, form, h3, input, label, span, text)
+import Html as H exposing (Html, button, div, form, h3, input, label, span, text)
 import Html.Attributes exposing (class, disabled, for, name, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import LucideIcons as Icons
@@ -237,24 +237,30 @@ viewForm { room, url, toMsg } =
     form [ class "sync-settings-form", onSubmit (UserClickedSubmit |> toMsg) ]
         [ h3 []
             [ text "Настройки синхронизации"
+            , span [ onClick (toMsg UserClickedToggle) ] [ Icons.xIcon [] ]
             ]
-        , span [ onClick (toMsg UserClickedToggle) ] [ Icons.xIcon [] ]
-        , label [ for "url" ] [ text "Адрес сервера" ]
-        , input
-            [ type_ "url"
-            , value url
-            , onInput (UserInputUrl >> toMsg)
-            , name "url"
-            ]
+        , H.node "form-group"
             []
-        , label [ for "room" ] [ text "Код комнаты" ]
-        , input
-            [ type_ "text"
-            , value room
-            , onInput (UserInputRoom >> toMsg)
-            , name "room"
+            [ label [ for "url" ] [ text "Адрес сервера" ]
+            , input
+                [ type_ "url"
+                , value url
+                , onInput (UserInputUrl >> toMsg)
+                , name "url"
+                ]
+                []
             ]
+        , H.node "form-group"
             []
+            [ label [ for "room" ] [ text "Код комнаты" ]
+            , input
+                [ type_ "text"
+                , value room
+                , onInput (UserInputRoom >> toMsg)
+                , name "room"
+                ]
+                []
+            ]
         , button
             [ class "large"
             , disabled (isDisabled room url)

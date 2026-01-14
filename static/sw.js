@@ -1,4 +1,4 @@
-const VERSION = "v8";
+const VERSION = "v10";
 const PRECACHE = [
   "/",
   "/app.css",
