@@ -115,6 +115,7 @@ type Msg
     | DraftOpened Cats.Category
     | InputChanged ItemField String
     | EditStarted Items.Item ItemField DomId
+    | NewCatSelected Items.Id (Maybe Cats.Category) Cats.Id
     | EnterPressed
       -- | ShiftEnterPressed
       -- | CtrlEnterPressed
@@ -140,7 +141,7 @@ view (Settings settings) =
             )
     )
         -- Items without categories
-        ++ (viewItems settings <|
+        ++ (viewItems settings Nothing <|
                 getItemsWithoutCat settings.items settings.categories
            )
         |> Html.Keyed.node "div" []
@@ -177,6 +178,7 @@ viewCategory options category =
                                 options.catWithDraft
                                 == category.id
                         , category = category
+                        , categories = options.categories
                         }
                  )
                ]
@@ -231,8 +233,8 @@ onCatToggle state catId =
             Cats.Open
 
 
-viewItems : Options -> List ( Items.Id, Items.Item ) -> List ( Items.Id, Html Msg )
-viewItems options itemsKeyed =
+viewItems : Options -> Maybe Cats.Category -> List ( Items.Id, Items.Item ) -> List ( Items.Id, Html Msg )
+viewItems options category itemsKeyed =
     List.map
         (\( id, item ) ->
             let
@@ -266,6 +268,8 @@ viewItems options itemsKeyed =
             , lazy viewItem
                 { item = activeItem
                 , validation = validation
+                , categories = Just options.categories
+                , category = category
                 , clickable = options.clickable
                 , link = options.link
                 , checkable = options.checkable
@@ -285,7 +289,7 @@ viewCatItems :
 viewCatItems options category =
     ( options.items, category )
         |> getCatItems
-        |> viewItems options
+        |> viewItems options (Just category)
 
 
 getCatItems :
@@ -321,6 +325,8 @@ getItemsWithoutCat allItems categories =
 viewItem :
     { item : Items.Item
     , validation : Items.ValidationResult
+    , categories : Maybe (List Cats.Category)
+    , category : Maybe Cats.Category
     , link : Bool
     , clickable : Bool
     , checkable : Bool
@@ -360,6 +366,10 @@ viewItem props =
                 Views.Items.Item.withEditing
                     { edit = EditStarted props.item
                     , delete = ItemDeleteClicked props.item.id
+                    , changeCat = NewCatSelected props.item.id
+                    }
+                    { allCats = props.categories
+                    , currentCat = props.category
                     }
 
             else
@@ -382,14 +392,17 @@ viewItem props =
 viewDraft :
     { draft : Draft
     , category : Cats.Category
+    , categories : List Cats.Category
     , open : Bool
     }
     -> Html Msg
-viewDraft { draft, open, category } =
+viewDraft { draft, open, category, categories } =
     case ( open, draft ) of
         ( True, New ( item, validation ) ) ->
             viewItem
                 { item = item
+                , categories = Just categories
+                , category = Just category
                 , validation = validation
                 , link = False
                 , clickable = False

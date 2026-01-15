@@ -337,6 +337,43 @@ onListMsg model msg =
         Views.Items.List.EscPressed ->
             ( model, Effect.sendMsg GotEscKey )
 
+        Views.Items.List.NewCatSelected itemId maybeOldCat newCatId ->
+            let
+                updatedNewCat =
+                    model.categories
+                        |> List.filter (\cat -> cat.id == newCatId)
+                        |> List.head
+                        |> Maybe.map (Cats.addItem itemId)
+
+                effectsWithNew =
+                    updatedNewCat
+                        |> Maybe.map (Effect.storeCategory onTaskPortResult)
+                        |> Maybe.map List.singleton
+                        |> Maybe.withDefault []
+
+                updatedOldCat =
+                    maybeOldCat
+                        |> Maybe.map (Cats.removeItem itemId)
+
+                catsWithNew =
+                    updatedNewCat
+                        |> Maybe.map (Cats.alter model.categories)
+                        |> Maybe.withDefault model.categories
+
+                updatedCats =
+                    updatedOldCat
+                        |> Maybe.map (Cats.alter catsWithNew)
+                        |> Maybe.withDefault catsWithNew
+
+                effects =
+                    updatedNewCat
+                        |> Maybe.map (Effect.storeCategory onTaskPortResult)
+                        |> Maybe.map List.singleton
+                        |> Maybe.map (List.append effectsWithNew)
+                        |> Maybe.withDefault effectsWithNew
+            in
+            ( { model | categories = updatedCats }, Effect.batch effects )
+
         _ ->
             ( model, Effect.none )
 

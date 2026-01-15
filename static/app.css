@@ -876,7 +876,7 @@ nav {
   display: grid;
   white-space: nowrap;
 
-  & input {
+  & input[type=text] {
     width: 100%;
   }
 
@@ -916,6 +916,10 @@ nav {
   button {
     justify-self: center;
   }
+}
+
+.pause-button {
+  margin-top: var(--size-4);
 }
 
 .empty-page {

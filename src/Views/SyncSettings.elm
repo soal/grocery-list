@@ -3,7 +3,7 @@ module Views.SyncSettings exposing (Model, Msg, init, new, update, view, withOpe
 import Common exposing (SyncSettingsField(..), VisibilityState(..))
 import Data.Sync as Sync
 import Effect exposing (Effect)
-import Html as H exposing (Html, button, div, form, h3, input, label, span, text)
+import Html as H exposing (Html)
 import Html.Attributes exposing (class, disabled, for, name, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import LucideIcons as Icons
@@ -181,24 +181,24 @@ view (Settings settings) =
     if model.formState == Show then
         case settings.state of
             Sync.Syncing ->
-                div []
+                H.div []
                     [ viewConnecting
-                    , button [ onClick (settings.toMsg UserClickedPause) ] [ text "Поставить на паузу" ]
+                    , H.button [ onClick (settings.toMsg UserClickedPause) ] [ H.text "Поставить на паузу" ]
                     ]
 
             Sync.SyncError err ->
-                div [] [ text <| "Ошибка: " ++ err, viewForm_ ]
+                H.div [] [ H.text <| "Ошибка: " ++ err, viewForm_ ]
 
             Sync.Synced ->
-                div []
+                H.div []
                     [ viewForm_
-                    , button [ onClick (settings.toMsg UserClickedPause) ] [ text "Поставить на паузу" ]
+                    , H.button [ class "pause-button", onClick (settings.toMsg UserClickedPause) ] [ H.text "Поставить на паузу" ]
                     ]
 
             Sync.Paused ->
-                div []
+                H.div []
                     [ viewForm_
-                    , button [ onClick (settings.toMsg UserClickedResume) ] [ text "Включить" ]
+                    , H.button [ onClick (settings.toMsg UserClickedResume) ] [ H.text "Включить" ]
                     ]
 
             Sync.None ->
@@ -213,20 +213,20 @@ view (Settings settings) =
 
 viewConnecting : Html msg
 viewConnecting =
-    div [] [ text "Подключаемся к серверу..." ]
+    H.div [] [ H.text "Подключаемся к серверу..." ]
 
 
 viewButton : Sync.Config -> (Msg msg -> msg) -> Html msg
 viewButton syncConfig toMsg =
     if syncConfig == Sync.NotConfigured then
-        button [ onClick (UserClickedToggle |> toMsg) ]
-            [ text "Настроить синхронизацию" ]
+        H.button [ onClick (UserClickedToggle |> toMsg) ]
+            [ H.text "Настроить синхронизацию" ]
 
     else
-        div []
-            [ h3 [] [ text "Синхронизация включена" ]
-            , button [ onClick (UserClickedToggle |> toMsg) ]
-                [ text "Изменить настройки" ]
+        H.div []
+            [ H.h3 [] [ H.text "Синхронизация включена" ]
+            , H.button [ onClick (UserClickedToggle |> toMsg) ]
+                [ H.text "Изменить настройки" ]
             ]
 
 
@@ -234,15 +234,15 @@ viewForm :
     { a | room : String, url : String, toMsg : Msg msg -> msg }
     -> Html msg
 viewForm { room, url, toMsg } =
-    form [ class "sync-settings-form", onSubmit (UserClickedSubmit |> toMsg) ]
-        [ h3 []
-            [ text "Настройки синхронизации"
-            , span [ onClick (toMsg UserClickedToggle) ] [ Icons.xIcon [] ]
+    H.form [ class "sync-settings-form", onSubmit (UserClickedSubmit |> toMsg) ]
+        [ H.h3 []
+            [ H.text "Настройки синхронизации"
+            , H.span [ onClick (toMsg UserClickedToggle) ] [ Icons.xIcon [] ]
             ]
         , H.node "form-group"
             []
-            [ label [ for "url" ] [ text "Адрес сервера" ]
-            , input
+            [ H.label [ for "url" ] [ H.text "Адрес сервера" ]
+            , H.input
                 [ type_ "url"
                 , value url
                 , onInput (UserInputUrl >> toMsg)
@@ -252,8 +252,8 @@ viewForm { room, url, toMsg } =
             ]
         , H.node "form-group"
             []
-            [ label [ for "room" ] [ text "Код комнаты" ]
-            , input
+            [ H.label [ for "room" ] [ H.text "Код комнаты" ]
+            , H.input
                 [ type_ "text"
                 , value room
                 , onInput (UserInputRoom >> toMsg)
@@ -261,12 +261,12 @@ viewForm { room, url, toMsg } =
                 ]
                 []
             ]
-        , button
+        , H.button
             [ class "large"
             , disabled (isDisabled room url)
             , onClick (UserClickedSubmit |> toMsg)
             ]
-            [ text "Подключиться" ]
+            [ H.text "Подключиться" ]
         ]
 
 
