@@ -260,7 +260,10 @@ view (Settings ({ on } as settings)) =
             , viewIf settings.editable <|
                 Maybe.withDefault (H.text "nothing")
                     (Maybe.map2
-                        (Views.CategorySelector.view settings.currentCat)
+                        (Views.CategorySelector.view
+                            settings.currentCat
+                            settings.item.id
+                        )
                         settings.allCats
                         settings.on.changeCat
                     )
