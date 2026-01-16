@@ -7,6 +7,7 @@ module Data.Categories exposing
     , add
     , addItem
     , alter
+    , apply
     , decoder
     , delete
     , deleteStored
@@ -146,6 +147,11 @@ alter categories category =
                 cat
         )
         categories
+
+
+apply : Category -> List Category -> List Category
+apply category categories =
+    alter categories category
 
 
 addItem : Items.Id -> Category -> Category

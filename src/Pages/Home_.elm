@@ -23,6 +23,7 @@ import Html.Events exposing (onClick)
 import Html.Extra exposing (nothing)
 import Layouts
 import LucideIcons as Icons
+import Maybe.Extra exposing (values)
 import Page exposing (Page)
 import Route exposing (Route)
 import Route.Path
@@ -345,34 +346,24 @@ onListMsg model msg =
                         |> List.head
                         |> Maybe.map (Cats.addItem itemId)
 
-                effectsWithNew =
-                    updatedNewCat
-                        |> Maybe.map (Effect.storeCategory onTaskPortResult)
-                        |> Maybe.map List.singleton
-                        |> Maybe.withDefault []
-
                 updatedOldCat =
                     maybeOldCat
                         |> Maybe.map (Cats.removeItem itemId)
 
-                catsWithNew =
-                    updatedNewCat
-                        |> Maybe.map (Cats.alter model.categories)
-                        |> Maybe.withDefault model.categories
+                updates =
+                    values [ updatedNewCat, updatedOldCat ]
 
                 updatedCats =
-                    updatedOldCat
-                        |> Maybe.map (Cats.alter catsWithNew)
-                        |> Maybe.withDefault catsWithNew
+                    List.foldl Cats.apply model.categories updates
 
                 effects =
-                    updatedNewCat
-                        |> Maybe.map (Effect.storeCategory onTaskPortResult)
-                        |> Maybe.map List.singleton
-                        |> Maybe.map (List.append effectsWithNew)
-                        |> Maybe.withDefault effectsWithNew
+                    List.map
+                        (Effect.storeCategory onTaskPortResult)
+                        updates
             in
-            ( { model | categories = updatedCats }, Effect.batch effects )
+            ( { model | categories = updatedCats }
+            , Effect.batch effects
+            )
 
         _ ->
             ( model, Effect.none )
