@@ -338,13 +338,17 @@ onListMsg model msg =
         Views.Items.List.EscPressed ->
             ( model, Effect.sendMsg GotEscKey )
 
-        Views.Items.List.NewCatSelected itemId maybeOldCat newCatId ->
+        Views.Items.List.NewCatSelected itemId maybeOldCat maybeNewCatId ->
             let
                 updatedNewCat =
-                    model.categories
-                        |> List.filter (\cat -> cat.id == newCatId)
-                        |> List.head
-                        |> Maybe.map (Cats.addItem itemId)
+                    Maybe.andThen
+                        (\catId ->
+                            model.categories
+                                |> List.filter (\cat -> cat.id == catId)
+                                |> List.head
+                                |> Maybe.map (Cats.addItem itemId)
+                        )
+                        maybeNewCatId
 
                 updatedOldCat =
                     maybeOldCat

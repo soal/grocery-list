@@ -115,7 +115,7 @@ type Msg
     | DraftOpened Cats.Category
     | InputChanged ItemField String
     | EditStarted Items.Item ItemField DomId
-    | NewCatSelected Items.Id (Maybe Cats.Category) Cats.Id
+    | NewCatSelected Items.Id (Maybe Cats.Category) (Maybe Cats.Id)
     | EnterPressed
       -- | ShiftEnterPressed
       -- | CtrlEnterPressed

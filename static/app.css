@@ -4,6 +4,8 @@
   interpolate-size: allow-keywords;
   font-family: var(--font-system-ui);
   font-size: 16px;
+  --content-max-inline: 700px;
+  --wrapper-padding: var(--size-fluid-3);
 }
 
 html {
@@ -56,11 +58,10 @@ html {
   }
 }
 
-.app-container {
-  max-width: 700px;
-  margin: 0 auto;
-  width: 100%;
-  padding: var(--size-fluid-1) var(--size-fluid-3);
+.app-wrapper {
+  margin-inline: auto;
+  width: min(var(--content-max-inline), 100%);
+  padding: var(--size-fluid-1) var(--wrapper-padding);
 }
 
 .app-main {
@@ -306,7 +307,8 @@ nav {
 .main-nav {
   display: grid;
   grid-template-rows: 100%;
-  grid-template-columns: auto auto auto;
+  grid-auto-flow: column;
+  /* grid-template-columns: ; */
   justify-content: space-between;
   margin-inline: calc(0px - var(--nav-inline-space));
   width: 100%;

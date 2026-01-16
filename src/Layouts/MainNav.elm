@@ -140,7 +140,7 @@ view props shared { model, content, toContentMsg } =
                     props.onClickOutside
             , class "wrapper"
             ]
-            [ header [ class "nav-header app-container" ]
+            [ header [ class "nav-header app-wrapper" ]
                 [ nav [ class "main-nav" ]
                     [ ul []
                         [ li []
@@ -161,7 +161,7 @@ view props shared { model, content, toContentMsg } =
                         |> Html.map toContentMsg
                     ]
                 ]
-            , main_ [ class "app-main app-container" ] content.body
+            , main_ [ class "app-main app-wrapper" ] content.body
             ]
         ]
     }

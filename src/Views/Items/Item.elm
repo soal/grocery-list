@@ -34,7 +34,7 @@ type alias Handlers msg =
     , check : Maybe (Bool -> msg)
     , edit : Maybe (ItemField -> String -> msg)
     , input : Maybe (ItemField -> String -> msg)
-    , changeCat : Maybe (Maybe Cats.Category -> Cats.Id -> msg)
+    , changeCat : Maybe (Maybe Cats.Category -> Maybe Cats.Id -> msg)
     , delete : Maybe msg
     , enter : Maybe msg
     , esc : Maybe msg
@@ -121,7 +121,7 @@ withLink (Settings settings) =
 withEditing :
     { edit : ItemField -> String -> msg
     , delete : msg
-    , changeCat : Maybe Cats.Category -> Cats.Id -> msg
+    , changeCat : Maybe Cats.Category -> Maybe Cats.Id -> msg
     }
     ->
         { allCats : Maybe (List Cats.Category)

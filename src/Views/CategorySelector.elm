@@ -13,9 +13,13 @@ view :
     Maybe Cats.Category
     -> Items.Id
     -> List Cats.Category
-    -> (Maybe Cats.Category -> Cats.Id -> msg)
+    -> (Maybe Cats.Category -> Maybe Cats.Id -> msg)
     -> Html msg
 view currentCat itemId allCats onSelect =
+    let
+        selectNew id =
+            onSelect currentCat (Just id)
+    in
     H.node "category-selector"
         []
         [ H.label
@@ -26,11 +30,12 @@ view currentCat itemId allCats onSelect =
         , H.select
             [ Attr.name "categories"
             , Attr.id ("cat-select" ++ itemId)
-            , EE.onChange (onSelect currentCat)
+            , EE.onChange selectNew
             ]
           <|
-            viewFirst currentCat
-                :: viewRest allCats currentCat
+            List.reverse <|
+                viewFirst currentCat
+                    :: viewRest allCats currentCat
         ]
 
 
@@ -51,3 +56,7 @@ viewRest cats current =
         |> Maybe.map (\id_ -> List.filter (\{ id } -> id_ /= id) cats)
         |> Maybe.withDefault cats
         |> List.map (\cat -> H.option [ Attr.value cat.id ] [ H.text cat.name ])
+
+
+viewOption cat =
+    H.option [ Attr.value cat.id ] [ H.text cat.name ]
