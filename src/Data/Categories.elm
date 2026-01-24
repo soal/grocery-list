@@ -7,7 +7,7 @@ module Data.Categories exposing
     , add
     , addItem
     , alter
-    , apply
+    , alterFlipped
     , decoder
     , delete
     , deleteStored
@@ -149,8 +149,8 @@ alter categories category =
         categories
 
 
-apply : Category -> List Category -> List Category
-apply category categories =
+alterFlipped : Category -> List Category -> List Category
+alterFlipped category categories =
     alter categories category
 
 

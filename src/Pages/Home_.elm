@@ -11,10 +11,9 @@ import Common
         )
 import Data.Categories as Cats
 import Data.Items as Items
-import Data.Settings exposing (CatsAndItems)
 import Data.Sync as Sync
 import DataUpdate
-import Dict exposing (Dict)
+import Dict
 import Effect exposing (Effect)
 import Html exposing (a, button, div, text)
 import Html.Attributes exposing (class)
@@ -23,18 +22,18 @@ import Html.Events exposing (onClick)
 import Html.Extra exposing (nothing)
 import Layouts
 import LucideIcons as Icons
-import Maybe.Extra exposing (values)
+import Main.EditItem exposing (alterDraft, endEditAndSave)
+import Main.ListUpdates as ListUpdates
+import Main.Model
+import Main.Msg exposing (Msg(..))
+import Main.Utils exposing (onTaskPortResult)
 import Page exposing (Page)
 import Route exposing (Route)
 import Route.Path
-import Set exposing (Set)
+import Set
 import Shared
 import Task
-import TaskPort
-import Time
-import Utils exposing (slugify)
 import View exposing (View)
-import Views.Items.Form
 import Views.Items.Item
 import Views.Items.List
 import Views.MainActionButton
@@ -65,14 +64,7 @@ toLayout _ =
 
 
 type alias Model =
-    { draft : Draft
-    , collapsedCats : Set Cats.Id
-    , catWithDraft : Maybe Cats.Id
-    , items : Dict Items.Id Items.Item
-    , categories : List Cats.Category
-    , titlePrefix : String
-    , error : Maybe String
-    }
+    Main.Model.Model
 
 
 init : () -> ( Model, Effect Msg )
@@ -108,24 +100,8 @@ init () =
 -- UPDATE
 
 
-type Msg
-    = NoOp
-    | Error (Maybe String)
-    | GotCatsAndItems CatsAndItems
-    | GotClickOutside
-    | GotItemUuid (TaskPort.Result String)
-    | GotItemListMsg Views.Items.List.Msg
-    | GotDraftUpdateTime Draft Time.Posix
-      -- CATEGORIES
-    | GotCatAddClick
-    | GotCatUuid (TaskPort.Result String)
-      -- ITEM WITHOUT CATEGORY
-    | GotItemAddClick
-    | GotInput ItemField String
-    | GotItemDeleteClick Items.Id
-    | GotItemStateUpdateTime Items.Item Time.Posix
-    | GotEnterKey
-    | GotEscKey
+type alias Msg =
+    Main.Msg.Msg
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -193,7 +169,7 @@ update msg model =
 
         -- ITEM
         GotItemListMsg msg_ ->
-            onListMsg model msg_
+            ListUpdates.update model msg_
 
         GotDraftUpdateTime draft timestamp ->
             let
@@ -269,261 +245,6 @@ update msg model =
                 , Effect.maybe (Effect.storeCategory onTaskPortResult) category
                 ]
             )
-
-
-onListMsg : Model -> Views.Items.List.Msg -> ( Model, Effect Msg )
-onListMsg model msg =
-    case msg of
-        Views.Items.List.CollapseClicked catId state ->
-            let
-                altered : Set Cats.Id
-                altered =
-                    if state == Cats.Open then
-                        Set.remove catId model.collapsedCats
-
-                    else
-                        Set.insert catId model.collapsedCats
-            in
-            ( { model | collapsedCats = altered }
-            , Effect.none
-            )
-
-        Views.Items.List.ItemChecked item state ->
-            toggleItemState model item state
-
-        Views.Items.List.EditStarted item _ fieldId ->
-            ( { model | draft = Existing ( item, Items.ValidationOk ) }
-            , Effect.sendCmd <|
-                Task.attempt (\_ -> NoOp) (Browser.Dom.focus fieldId)
-            )
-
-        Views.Items.List.InputChanged field content ->
-            ( model, Effect.sendMsg (GotInput field content) )
-
-        Views.Items.List.DraftOpened category ->
-            ( { model | catWithDraft = Just category.id }
-            , Effect.requestUuid GotItemUuid
-            )
-
-        Views.Items.List.ItemDeleteClicked itemId ->
-            ( model, Effect.sendMsg (GotItemDeleteClick itemId) )
-
-        Views.Items.List.CatTitleClicked category ->
-            ( { model | draft = ExistingCat category }
-            , Effect.sendCmd <|
-                Task.attempt
-                    (\_ -> NoOp)
-                    (Browser.Dom.focus <| "category-name-" ++ category.id)
-            )
-
-        Views.Items.List.CatDeleteClicked catId ->
-            case model.draft of
-                NewCat _ ->
-                    ( { model | draft = Empty }, Effect.none )
-
-                ExistingCat _ ->
-                    ( { model
-                        | categories = Cats.delete catId model.categories
-                        , draft = Empty
-                      }
-                    , Effect.deleteCategory onTaskPortResult catId
-                    )
-
-                _ ->
-                    ( model, Effect.none )
-
-        Views.Items.List.EnterPressed ->
-            endEditAndSave model True
-
-        Views.Items.List.EscPressed ->
-            ( model, Effect.sendMsg GotEscKey )
-
-        Views.Items.List.NewCatSelected itemId maybeOldCat maybeNewCatId ->
-            let
-                updatedNewCat =
-                    Maybe.andThen
-                        (\catId ->
-                            model.categories
-                                |> List.filter (\cat -> cat.id == catId)
-                                |> List.head
-                                |> Maybe.map (Cats.addItem itemId)
-                        )
-                        maybeNewCatId
-
-                updatedOldCat =
-                    maybeOldCat
-                        |> Maybe.map (Cats.removeItem itemId)
-
-                updates =
-                    values [ updatedNewCat, updatedOldCat ]
-
-                updatedCats =
-                    List.foldl Cats.apply model.categories updates
-
-                effects =
-                    List.map
-                        (Effect.storeCategory onTaskPortResult)
-                        updates
-            in
-            ( { model | categories = updatedCats }
-            , Effect.batch effects
-            )
-
-        _ ->
-            ( model, Effect.none )
-
-
-alterDraft : Draft -> ItemField -> String -> Draft
-alterDraft draft field content =
-    case draft of
-        New ( item, _ ) ->
-            New ( updateItemContent item field content, Items.ValidationOk )
-
-        Existing ( item, _ ) ->
-            Existing ( updateItemContent item field content, Items.ValidationOk )
-
-        NewCat cat ->
-            NewCat { cat | name = content }
-
-        ExistingCat cat ->
-            ExistingCat { cat | name = content }
-
-        Empty ->
-            Empty
-
-
-updateItemContent : Items.Item -> ItemField -> String -> Items.Item
-updateItemContent item field content =
-    case field of
-        Name ->
-            { item | name = content }
-
-        Comment ->
-            { item | comment = Just content }
-
-        QCount ->
-            let
-                (Items.Quantity _ unit) =
-                    item.quantity
-
-                newCount : Float
-                newCount =
-                    Maybe.withDefault 0 (String.toFloat content)
-            in
-            { item | quantity = Items.Quantity newCount unit }
-
-        QUnit ->
-            let
-                (Items.Quantity count _) =
-                    item.quantity
-            in
-            { item | quantity = Items.Quantity count content }
-
-
-endEditAndSave : Model -> Bool -> ( Model, Effect Msg )
-endEditAndSave model addNew =
-    case model.draft of
-        Empty ->
-            ( model, Effect.none )
-
-        Existing ( item, _ ) ->
-            let
-                newItem : Items.Item
-                newItem =
-                    { item | slug = slugify item.name }
-            in
-            case Items.validate newItem model.items of
-                Items.ValidationOk ->
-                    ( { model
-                        | items = Items.alter model.items newItem
-                        , draft = Empty
-                        , catWithDraft = Nothing
-                      }
-                    , Effect.storeItem onTaskPortResult newItem
-                    )
-
-                Items.ValidationError error ->
-                    endEditingWithError model error item
-
-        New ( item, _ ) ->
-            if String.isEmpty item.name then
-                ( { model
-                    | catWithDraft = Nothing
-                    , draft = Empty
-                  }
-                , Effect.none
-                )
-
-            else
-                case Items.validate item model.items of
-                    Items.ValidationOk ->
-                        endItemDraft model item addNew
-
-                    Items.ValidationError error ->
-                        ( { model
-                            | draft =
-                                New ( item, Items.ValidationError error )
-                          }
-                        , Effect.none
-                        )
-
-        NewCat cat ->
-            if String.isEmpty cat.name then
-                ( { model
-                    | catWithDraft = Nothing
-                    , draft = Empty
-                  }
-                , Effect.none
-                )
-
-            else
-                ( { model
-                    | draft = Empty
-                    , catWithDraft = Nothing
-                    , categories = Cats.add model.categories cat
-                  }
-                , Effect.storeCategory
-                    onTaskPortResult
-                    cat
-                )
-
-        ExistingCat cat ->
-            if String.isEmpty cat.name then
-                ( { model
-                    | catWithDraft = Nothing
-                    , draft = Empty
-                  }
-                , Effect.none
-                )
-
-            else
-                ( { model
-                    | draft = Empty
-                    , catWithDraft = Nothing
-                    , categories = Cats.alter model.categories cat
-                  }
-                , Effect.storeCategory
-                    onTaskPortResult
-                    cat
-                )
-
-
-endEditingWithError : Model -> Items.ItemError -> Items.Item -> ( Model, Effect Msg )
-endEditingWithError model error item =
-    ( { model | draft = Existing ( item, Items.ValidationError error ) }
-    , case error of
-        Items.NameAlreadyExist ->
-            Effect.sendCmd <|
-                Views.Items.Form.focusField Name item.id NoOp
-
-        Items.NameIsEmpty ->
-            Effect.sendCmd <|
-                Views.Items.Form.focusField Name item.id NoOp
-
-        Items.QuantityIsZero ->
-            Effect.sendCmd <|
-                Views.Items.Form.focusField QCount item.id NoOp
-    )
 
 
 
@@ -611,78 +332,3 @@ view shared model =
         , Views.MainActionButton.view GotItemAddClick
         ]
     }
-
-
-toggleItemState : Model -> Items.Item -> Items.State -> ( Model, Effect Msg )
-toggleItemState model item state =
-    let
-        altered : Dict Items.Id Items.Item
-        altered =
-            case state of
-                Items.Stuffed ->
-                    model.items
-                        |> Items.setState Items.Required item.id
-                        |> Items.incFrequency item.id
-
-                _ ->
-                    Items.setState Items.Stuffed item.id model.items
-    in
-    ( { model | items = altered }
-    , Effect.maybe
-        (GotItemStateUpdateTime >> Effect.getTime)
-        (Dict.get item.id altered)
-    )
-
-
-onTaskPortResult : TaskPort.Result res -> Msg
-onTaskPortResult res =
-    case res of
-        Err _ ->
-            Error Nothing
-
-        Ok _ ->
-            NoOp
-
-
-endItemDraft : Model -> Items.Item -> Bool -> ( Model, Effect Msg )
-endItemDraft model item addNew =
-    let
-        alteredCat : Maybe Cats.Category
-        alteredCat =
-            model.catWithDraft
-                |> Maybe.andThen
-                    (Cats.getByid model.categories)
-                |> Maybe.map
-                    (Cats.addItem item.id)
-
-        newItem : Items.Item
-        newItem =
-            { item | slug = slugify item.name }
-
-        catWithDraft : Maybe Cats.Id
-        catWithDraft =
-            if addNew then
-                model.catWithDraft
-
-            else
-                Nothing
-    in
-    ( { model
-        | items = Items.alter model.items newItem
-        , draft = Empty
-        , catWithDraft = catWithDraft
-        , categories =
-            alteredCat
-                |> Maybe.map (Cats.alter model.categories)
-                |> Maybe.withDefault model.categories
-      }
-    , Effect.batch
-        [ Effect.storeItem onTaskPortResult newItem
-        , Effect.maybe (Effect.storeCategory onTaskPortResult) alteredCat
-        , if addNew then
-            Effect.requestUuid GotItemUuid
-
-          else
-            Effect.none
-        ]
-    )
